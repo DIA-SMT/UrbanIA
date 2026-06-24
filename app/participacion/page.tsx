@@ -1,5 +1,5 @@
-import { ModulePage } from "@/components/modules/module-page";
+import { CitizenParticipation } from "@/components/citizen/citizen-participation";
 
 export default function ParticipacionPage() {
-  return <ModulePage moduleKey="participacion" />;
+  return <CitizenParticipation />;
 }
