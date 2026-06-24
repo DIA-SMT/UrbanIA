@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  name      String
+  email     String     @unique
+  role      UserRole   @default(CITIZEN)
+  createdAt DateTime   @default(now())
+  proposals Proposal[]
+  comments  Comment[]
+  votes     Vote[]
+}
+
+model Regulation {
+  id        String          @id @default(cuid())
+  title     String
+  type      RegulationType
+  number    String?
+  summary   String?
+  sourceUrl String?
+  fileUrl   String?
+  fullText  String?
+  issuedAt  DateTime?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  chunks    DocumentChunk[]
+}
+
+model DocumentChunk {
+  id           String     @id @default(cuid())
+  regulationId String
+  content      String
+  pageNumber   Int?
+  chunkIndex   Int
+  embeddingId  String?
+  createdAt    DateTime   @default(now())
+  regulation   Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+}
+
+model City {
+  id           String         @id @default(cuid())
+  name         String
+  province     String?
+  country      String
+  population   Int?
+  areaKm2      Float?
+  density      Float?
+  climate      String?
+  description  String?
+  similarity   Int            @default(0)
+  caseStudies  CaseStudy[]
+  indicators   UrbanIndicator[]
+}
+
+model CaseStudy {
+  id          String   @id @default(cuid())
+  cityId      String
+  title       String
+  problem     String
+  solution    String
+  results     String?
+  cost        String?
+  sourceUrl   String?
+  tags        String[]
+  createdAt   DateTime @default(now())
+  city        City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+}
+
+model UrbanIndicator {
+  id        String   @id @default(cuid())
+  cityId    String
+  name      String
+  value     Float
+  unit      String
+  year      Int
+  sourceUrl String?
+  city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+}
+
+model UrbanLayer {
+  id               String       @id @default(cuid())
+  name             String
+  slug             String       @unique
+  description      String?
+  geometryType     GeometryType
+  visibleByDefault Boolean      @default(false)
+  features         MapFeature[]
+}
+
+model MapFeature {
+  id          String     @id @default(cuid())
+  layerId     String
+  name        String
+  description String?
+  properties  Json       @default("{}")
+  geometry    Unsupported("geometry")
+  layer       UrbanLayer @relation(fields: [layerId], references: [id], onDelete: Cascade)
+}
+
+model Proposal {
+  id          String         @id @default(cuid())
+  title       String
+  description String
+  status      ProposalStatus @default(DRAFT)
+  source      ProposalSource @default(CITIZEN)
+  latitude    Float?
+  longitude   Float?
+  createdById String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  createdBy   User?          @relation(fields: [createdById], references: [id])
+  comments    Comment[]
+  votes       Vote[]
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  proposalId String
+  userId     String
+  body       String
+  createdAt  DateTime @default(now())
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Vote {
+  id         String   @id @default(cuid())
+  proposalId String
+  userId     String
+  value      Int      @default(1)
+  createdAt  DateTime @default(now())
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, userId])
+}
+
+model CabinetMeeting {
+  id           String        @id @default(cuid())
+  title        String
+  meetingDate  DateTime
+  area         String?
+  participants String[]
+  notes        String?
+  ideas        CabinetIdea[]
+  createdAt    DateTime      @default(now())
+}
+
+model CabinetIdea {
+  id          String         @id @default(cuid())
+  meetingId   String
+  title       String
+  description String
+  status      IdeaStatus     @default(NEW)
+  proposalId  String?
+  createdAt   DateTime       @default(now())
+  meeting     CabinetMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+}
+
+model AiQuery {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String?
+  sources   Json     @default("[]")
+  createdAt DateTime @default(now())
+}
+
+enum UserRole {
+  ADMIN
+  OFFICIAL
+  TECHNICIAN
+  CITIZEN
+}
+
+enum RegulationType {
+  ORDINANCE
+  DECREE
+  URBAN_CODE
+  BUILDING_CODE
+  REPORT
+}
+
+enum GeometryType {
+  POINT
+  LINESTRING
+  POLYGON
+  MULTIPOLYGON
+}
+
+enum ProposalStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  NEEDS_DATA
+  FEASIBLE
+  NOT_FEASIBLE
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+enum ProposalSource {
+  CITIZEN
+  OFFICIAL
+  CABINET
+  TECHNICAL_TEAM
+}
+
+enum IdeaStatus {
+  NEW
+  ANALYZING
+  CONVERTED_TO_PROPOSAL
+  DISCARDED
+}

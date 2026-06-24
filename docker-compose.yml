@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: urbania-postgres
+    environment:
+      POSTGRES_USER: urbania
+      POSTGRES_PASSWORD: urbania
+      POSTGRES_DB: urbania
+    ports:
+      - "5432:5432"
+    volumes:
+      - urbania_postgres:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  urbania_postgres:
