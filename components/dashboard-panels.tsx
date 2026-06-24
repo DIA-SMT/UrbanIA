@@ -33,7 +33,7 @@ export function CityComparisonPanel({ cities = cityComparison }: { cities?: Dash
           <div key={item.city} className="grid grid-cols-[minmax(84px,110px)_minmax(80px,1fr)_42px] items-center gap-3 text-sm">
             <span className="text-slate-300">{item.city}</span>
             <div className="h-3 rounded-full bg-slate-800">
-              <div className={`h-3 rounded-full ${item.city === "Tucuman" ? "bg-emerald-400" : "bg-sky-500"}`} style={{ width: `${(item.value / max) * 100}%` }} />
+              <div className={`urban-meter h-3 rounded-full ${item.city === "Tucuman" ? "bg-emerald-400" : "bg-sky-500"}`} style={{ width: `${(item.value / max) * 100}%` }} />
             </div>
             <span className="text-right text-slate-200">{item.value}</span>
           </div>
@@ -48,14 +48,14 @@ export function SuccessCasesPanel({ cases = successCases }: { cases?: DashboardS
     <Panel title="Casos de exito destacados" action="Ver todos">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {cases.map((item, index) => (
-          <article key={item.city} className="min-w-0 overflow-hidden rounded-md border border-white/10 bg-white/5">
+          <article key={item.city} className="urban-lift min-w-0 overflow-hidden rounded-md border border-white/10 bg-white/5">
             <div className={`h-24 ${index === 0 ? "bg-cyan-400/30" : index === 1 ? "bg-amber-400/30" : "bg-emerald-400/30"} map-grid`} />
             <div className="p-3">
               <p className="font-bold text-white">{item.city}</p>
               <p className="text-xs text-slate-400">{item.country}</p>
               <p className="mt-2 text-sm text-slate-200">{item.title}</p>
               <p className="text-xs text-slate-400">{item.tag}</p>
-              <button className="mt-3 rounded-md border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-xs font-semibold text-emerald-100">Ver caso</button>
+              <button className="urban-button mt-3 rounded-md border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-xs font-semibold text-emerald-100">Ver caso</button>
             </div>
           </article>
         ))}
@@ -77,7 +77,7 @@ export function ProposalSimulatorPanel() {
           </div>
         ))}
       </div>
-      <button className="mt-5 w-full rounded-md bg-emerald-500 px-4 py-3 text-sm font-bold text-civic-ink">Ver simulacion conceptual</button>
+      <button className="urban-button mt-5 w-full rounded-md bg-emerald-500 px-4 py-3 text-sm font-bold text-civic-ink">Ver simulacion conceptual</button>
     </Panel>
   );
 }
@@ -91,7 +91,7 @@ export function AssistantPanel() {
       </div>
       <div className="mt-3 space-y-2">
         {["Que ordenanzas regulan la altura de edificios?", "Quiero mejorar el transito en Avenida Mate de Luna", "Casos de ciclovias en ciudades similares", "Normativa sobre espacios verdes"].map((prompt) => (
-          <button key={prompt} className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-3 text-left text-sm text-slate-300 hover:bg-white/[0.06]">{prompt}</button>
+          <button key={prompt} className="urban-lift w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-3 text-left text-sm text-slate-300 hover:bg-white/[0.06]">{prompt}</button>
         ))}
       </div>
       <div className="mt-4 flex items-center gap-2 rounded-md border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-500">
@@ -117,7 +117,7 @@ export function CitizenActivityPanel() {
           </div>
         ))}
       </div>
-      <button className="mt-4 w-full rounded-md border border-emerald-300/40 py-2 text-sm font-semibold text-emerald-200">Nueva propuesta</button>
+      <button className="urban-button mt-4 w-full rounded-md border border-emerald-300/40 py-2 text-sm font-semibold text-emerald-200">Nueva propuesta</button>
     </Panel>
   );
 }
@@ -127,13 +127,13 @@ export function RegulationsPanel({ items = regulations }: { items?: DashboardReg
     <Panel title="Normativa destacada" action="Ver todas">
       <div className="space-y-2">
         {items.map((item) => (
-          <div key={item.number} className="flex items-center gap-3 rounded-md border border-white/8 bg-white/[0.03] p-3">
+          <div key={item.number} className="urban-lift flex items-center gap-3 rounded-md border border-white/8 bg-white/[0.03] p-3">
             <FileText className="h-5 w-5 text-emerald-300" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-slate-200">{item.number}</p>
               <p className="text-xs text-slate-500">{item.title}</p>
             </div>
-            <button className="rounded-md bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-200">Ver</button>
+            <button className="urban-button rounded-md bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-200">Ver</button>
           </div>
         ))}
       </div>
@@ -145,7 +145,7 @@ export function DataSourcesPanel() {
   return (
     <Panel title="Fuentes de datos" action="Ver todas">
       {["Municipalidad de San Miguel de Tucuman", "INDEC", "Secretaria de Planeamiento", "Datos Abiertos Tucuman"].map((item) => (
-        <div key={item} className="mb-3 flex items-center gap-3 text-sm text-slate-300">
+        <div key={item} className="urban-lift mb-3 flex items-center gap-3 rounded-md px-2 py-1 text-sm text-slate-300">
           <Database className="h-5 w-5 text-sky-300" />
           {item}
         </div>
@@ -157,7 +157,7 @@ export function DataSourcesPanel() {
 export function CabinetPanel() {
   return (
     <Panel title="Registro de gabinete" action="Preparado">
-      <div className="rounded-md border border-white/10 bg-white/[0.03] p-4">
+      <div className="urban-lift rounded-md border border-white/10 bg-white/[0.03] p-4">
         <div className="flex items-center gap-3">
           <BookOpen className="h-5 w-5 text-amber-300" />
           <p className="font-semibold text-white">Reunion semanal de gestion urbana</p>
@@ -170,11 +170,11 @@ export function CabinetPanel() {
 
 function Panel({ title, action, badge, children }: { title: string; action?: string; badge?: string; children: React.ReactNode }) {
   return (
-    <section className="urban-card min-w-0 rounded-lg p-4">
+    <section className="urban-card urban-lift min-w-0 rounded-lg p-4">
       <div className="mb-4 flex items-start justify-between gap-3">
         <h2 className="text-base font-bold leading-snug text-white">{title}</h2>
-        {action ? <button className="shrink-0 text-xs font-semibold text-emerald-300">{action}</button> : null}
-        {badge ? <span className="shrink-0 rounded-md bg-emerald-400/15 px-2 py-1 text-xs font-bold text-emerald-200">{badge}</span> : null}
+        {action ? <button className="urban-button shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-emerald-300">{action}</button> : null}
+        {badge ? <span className="urban-pulse shrink-0 rounded-md bg-emerald-400/15 px-2 py-1 text-xs font-bold text-emerald-200">{badge}</span> : null}
       </div>
       {children}
     </section>

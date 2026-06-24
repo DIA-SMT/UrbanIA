@@ -16,14 +16,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="mb-4 px-2 pt-2">
             <Brand />
           </div>
-          <div className="urban-card rounded-lg p-3">
+          <div className="urban-card urban-lift rounded-lg p-3">
             <Link href="/" className={navClass(pathname, "/")}>Vista general</Link>
             {sidebarSections.map((section) => (
               <div key={section.title} className="mt-5">
                 <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{section.title}</p>
                 <div className="space-y-1">
                   {section.items.map((item) => (
-                    <Link key={item.label} href={item.href} className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition ${isActive(pathname, item.href) ? "bg-emerald-400/12 text-emerald-100" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}>
+                    <Link key={item.label} href={item.href} className={`urban-button flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition ${isActive(pathname, item.href) ? "bg-emerald-400/12 text-emerald-100" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}>
                       <item.icon className="h-4 w-4" />
                       {item.label}
                     </Link>
@@ -31,10 +31,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
               </div>
             ))}
-            <div className="mt-6 rounded-md border border-emerald-300/20 bg-emerald-300/10 p-4">
+            <div className="urban-lift mt-6 rounded-md border border-emerald-300/20 bg-emerald-300/10 p-4">
               <p className="font-semibold text-emerald-100">Construyamos juntos la ciudad que queremos</p>
               <p className="mt-2 text-xs leading-5 text-slate-300">Tu opinion es fundamental para tomar mejores decisiones.</p>
-              <button className="mt-4 rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-civic-ink">Participar ahora</button>
+              <button className="urban-button mt-4 rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-civic-ink">Participar ahora</button>
             </div>
           </div>
         </aside>
@@ -46,18 +46,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <nav className="hidden flex-1 items-center gap-2 2xl:flex">
               {navItems.map((item) => (
-                <Link key={item.label} href={item.href} className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition ${isActive(pathname, item.href) ? "bg-emerald-400/20 text-emerald-100" : "text-slate-300 hover:bg-white/5"}`}>
+                <Link key={item.label} href={item.href} className={`urban-button flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition ${isActive(pathname, item.href) ? "bg-emerald-400/20 text-emerald-100" : "text-slate-300 hover:bg-white/5"}`}>
                   <item.icon className="h-4 w-4" />
                   {item.label}
                 </Link>
               ))}
             </nav>
-            <div className="ml-auto hidden w-full max-w-xs items-center gap-2 rounded-md border border-white/10 bg-slate-950/60 px-3 py-2 md:flex">
+            <div className="urban-lift ml-auto hidden w-full max-w-xs items-center gap-2 rounded-md border border-white/10 bg-slate-950/60 px-3 py-2 md:flex">
               <Search className="h-4 w-4 text-slate-500" />
               <span className="text-sm text-slate-500">Buscar en la plataforma...</span>
             </div>
-            <button className="rounded-md border border-white/10 bg-slate-950/60 p-2"><Bell className="h-5 w-5" /></button>
-            <button className="hidden items-center gap-2 rounded-md border border-white/10 bg-slate-950/60 px-3 py-2 md:flex">
+            <button className="urban-button rounded-md border border-white/10 bg-slate-950/60 p-2"><Bell className="h-5 w-5" /></button>
+            <button className="urban-button hidden items-center gap-2 rounded-md border border-white/10 bg-slate-950/60 px-3 py-2 md:flex">
               <span className="grid h-7 w-7 place-items-center rounded-full bg-slate-700 text-xs">A</span>
               <span className="text-sm font-semibold">Agustin</span>
               <ChevronDown className="h-4 w-4" />
@@ -79,7 +79,7 @@ function isActive(pathname: string, href: string) {
 }
 
 function navClass(pathname: string, href: string) {
-  return `block rounded-md px-3 py-3 text-sm font-semibold transition ${
+  return `urban-button block rounded-md px-3 py-3 text-sm font-semibold transition ${
     isActive(pathname, href)
       ? "bg-emerald-400/15 text-emerald-100"
       : "text-slate-300 hover:bg-white/5 hover:text-white"
