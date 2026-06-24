@@ -1,5 +1,6 @@
 import { Bike, Building2, Bus, Layers3, Search, Trees, Users } from "lucide-react";
 import { metrics } from "@/lib/data";
+import type { DashboardMetric } from "@/lib/dashboard/data";
 
 const pins = [
   { icon: Building2, label: "Normativa", className: "left-[50%] top-[24%] bg-violet-500" },
@@ -9,7 +10,7 @@ const pins = [
   { icon: Bike, label: "Movilidad", className: "left-[79%] top-[70%] bg-sky-500" }
 ];
 
-export function CityMap() {
+export function CityMap({ dashboardMetrics = metrics }: { dashboardMetrics?: DashboardMetric[] }) {
   return (
     <section className="urban-card relative min-h-[430px] overflow-hidden rounded-lg">
       <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(11,37,48,0.92),rgba(17,24,39,0.48)),url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1400&q=80')] bg-cover bg-center" />
@@ -26,7 +27,7 @@ export function CityMap() {
             <Search className="h-4 w-4" />
           </div>
           <div className="mt-5 grid grid-cols-3 gap-2">
-            {metrics.map((metric) => (
+            {dashboardMetrics.map((metric) => (
               <div key={metric.label} className="rounded-md border border-white/10 bg-white/5 p-3">
                 <p className="text-2xl font-black leading-tight text-civic-mint">{metric.value}</p>
                 <p className="mt-2 text-xs leading-4 text-slate-300">{metric.label}</p>

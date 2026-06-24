@@ -1,5 +1,10 @@
 import { ArrowUpRight, BookOpen, Building2, Circle, Database, FileText, Send } from "lucide-react";
 import { cityComparison, indicators, proposals, regulations, successCases } from "@/lib/data";
+import type {
+  DashboardCityComparison,
+  DashboardRegulation,
+  DashboardSuccessCase
+} from "@/lib/dashboard/data";
 
 export function IndicatorsPanel() {
   return (
@@ -18,13 +23,13 @@ export function IndicatorsPanel() {
   );
 }
 
-export function CityComparisonPanel() {
-  const max = Math.max(...cityComparison.map((item) => item.value));
+export function CityComparisonPanel({ cities = cityComparison }: { cities?: DashboardCityComparison[] }) {
+  const max = Math.max(...cities.map((item) => item.value), 1);
   return (
     <Panel title="Comparador de ciudades" action="Ver todas">
       <div className="mb-4 rounded-md border border-white/10 bg-slate-950/55 px-3 py-2 text-sm text-slate-300">Indicador: Areas verdes (m2/hab)</div>
       <div className="space-y-3">
-        {cityComparison.map((item) => (
+        {cities.map((item) => (
           <div key={item.city} className="grid grid-cols-[minmax(84px,110px)_minmax(80px,1fr)_42px] items-center gap-3 text-sm">
             <span className="text-slate-300">{item.city}</span>
             <div className="h-3 rounded-full bg-slate-800">
@@ -38,11 +43,11 @@ export function CityComparisonPanel() {
   );
 }
 
-export function SuccessCasesPanel() {
+export function SuccessCasesPanel({ cases = successCases }: { cases?: DashboardSuccessCase[] }) {
   return (
     <Panel title="Casos de exito destacados" action="Ver todos">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {successCases.map((item, index) => (
+        {cases.map((item, index) => (
           <article key={item.city} className="min-w-0 overflow-hidden rounded-md border border-white/10 bg-white/5">
             <div className={`h-24 ${index === 0 ? "bg-cyan-400/30" : index === 1 ? "bg-amber-400/30" : "bg-emerald-400/30"} map-grid`} />
             <div className="p-3">
@@ -117,11 +122,11 @@ export function CitizenActivityPanel() {
   );
 }
 
-export function RegulationsPanel() {
+export function RegulationsPanel({ items = regulations }: { items?: DashboardRegulation[] }) {
   return (
     <Panel title="Normativa destacada" action="Ver todas">
       <div className="space-y-2">
-        {regulations.map((item) => (
+        {items.map((item) => (
           <div key={item.number} className="flex items-center gap-3 rounded-md border border-white/8 bg-white/[0.03] p-3">
             <FileText className="h-5 w-5 text-emerald-300" />
             <div className="flex-1">
