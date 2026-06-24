@@ -20,6 +20,16 @@ export default async function Home() {
 
   return (
     <AppShell>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-950/35 px-4 py-3">
+        <div>
+          <p className="text-sm font-bold text-white">Centro de inteligencia urbana</p>
+          <p className="text-xs text-slate-500">Vista ejecutiva para explorar datos, propuestas y decisiones.</p>
+        </div>
+        <div className={`rounded-md px-3 py-2 text-xs font-bold ${dashboard.isLive ? "bg-emerald-400/15 text-emerald-200" : "bg-amber-400/15 text-amber-200"}`}>
+          {dashboard.isLive ? "Datos en vivo" : "Modo demo"}
+        </div>
+      </div>
+
       <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_260px_240px]">
         <div className="xl:col-span-2 2xl:col-span-1">
           <CityMap dashboardMetrics={dashboard.metrics} />
