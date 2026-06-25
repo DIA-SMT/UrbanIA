@@ -1,5 +1,7 @@
-import { ArrowUpRight, BookOpen, Building2, Circle, Database, FileText, Send } from "lucide-react";
+﻿import Link from "next/link";
+import { ArrowUpRight, BookOpen, Building2, CalendarDays, CheckCircle2, Circle, Clock3, Database, FileText, GitBranch, Send, Users } from "lucide-react";
 import { cityComparison, indicators, proposals, regulations, successCases } from "@/lib/data";
+import { cabinetMeetings, cabinetSummary, type CabinetTopicStatus } from "@/lib/demo/cabinet-meetings";
 import type {
   DashboardCityComparison,
   DashboardRegulation,
@@ -156,16 +158,102 @@ export function DataSourcesPanel() {
 
 export function CabinetPanel() {
   return (
-    <Panel title="Registro de gabinete" action="Preparado">
-      <div className="urban-lift rounded-md border border-white/10 bg-white/[0.03] p-4">
-        <div className="flex items-center gap-3">
-          <BookOpen className="h-5 w-5 text-amber-300" />
-          <p className="font-semibold text-white">Reunion semanal de gestion urbana</p>
-        </div>
-        <p className="mt-2 text-sm leading-6 text-slate-400">Ideas, acuerdos y pendientes podran convertirse en propuestas urbanas para analisis IA e informes.</p>
+    <Panel title="Registro de gabinete" action="Modelo visual">
+      <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+        {[
+          ["Reuniones", cabinetSummary.meetings.toString(), BookOpen],
+          ["Decisiones", cabinetSummary.decisions.toString(), CheckCircle2],
+          ["Pendientes", cabinetSummary.pending.toString(), Clock3],
+          ["Vinculos", cabinetSummary.linkedProjects.toString(), GitBranch]
+        ].map(([label, value, Icon]) => (
+          <div key={label as string} className="urban-lift rounded-lg border border-white/10 bg-slate-950/35 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <span className="grid h-9 w-9 place-items-center rounded-md bg-emerald-300/10 text-civic-mint">
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="text-2xl font-black text-white">{value as string}</span>
+            </div>
+            <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">{label as string}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-3 2xl:grid-cols-3">
+        {cabinetMeetings.map((meeting) => (
+          <article key={meeting.id} className="urban-lift group min-w-0 overflow-hidden rounded-lg border border-white/10 bg-[linear-gradient(145deg,rgba(15,23,42,0.82),rgba(15,118,110,0.10))]">
+            <div className="border-b border-white/8 p-4">
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.04] px-2 py-1">
+                  <CalendarDays className="h-3.5 w-3.5 text-slate-500" />
+                  {meeting.date}
+                </span>
+                <span className={`rounded-md border px-2 py-1 font-black ${cabinetStatusClass(meeting.status)}`}>{meeting.status}</span>
+              </div>
+
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-civic-mint">{meeting.area}</p>
+                  <h3 className="mt-2 text-lg font-black leading-6 text-white group-hover:text-emerald-100">{meeting.title}</h3>
+                </div>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-amber-300/20 bg-amber-300/10 text-amber-200">
+                  <BookOpen className="h-5 w-5" />
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_190px] 2xl:grid-cols-1">
+              <div className="min-w-0">
+                <p className="text-sm leading-6 text-slate-400">{meeting.summary}</p>
+
+                <div className="mt-4 space-y-2">
+                  {meeting.decisions.slice(0, 2).map((decision) => (
+                    <div key={decision} className="flex items-start gap-2 text-sm leading-5 text-slate-300">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                      <span>{decision}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-white/8 bg-slate-950/35 p-3">
+                <p className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
+                  <Users className="h-3.5 w-3.5" />
+                  Areas
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {meeting.participants.slice(0, 4).map((participant) => (
+                    <span key={participant} className="rounded-md border border-white/8 bg-white/[0.05] px-2.5 py-1.5 text-[11px] font-bold text-slate-300">{participant}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-4 pb-4">
+              {meeting.linkedProjectId ? (
+                <Link href={`/proyectos/${meeting.linkedProjectId}`} className="urban-button inline-flex w-full items-center justify-between gap-3 rounded-md border border-emerald-300/25 bg-emerald-300/10 px-3 py-3 text-sm font-black text-emerald-100">
+                  <span>Ver propuesta vinculada</span>
+                  <ArrowUpRight className="h-4 w-4 shrink-0" />
+                </Link>
+              ) : (
+                <button className="urban-button w-full rounded-md border border-white/10 bg-white/[0.04] px-3 py-3 text-sm font-black text-slate-300">Preparar propuesta</button>
+              )}
+            </div>
+          </article>
+        ))}
       </div>
     </Panel>
   );
+}
+
+function cabinetStatusClass(status: CabinetTopicStatus) {
+  const styles: Record<CabinetTopicStatus, string> = {
+    Pendiente: "border-slate-300/20 bg-slate-300/10 text-slate-200",
+    "En analisis": "border-amber-300/20 bg-amber-300/10 text-amber-200",
+    Priorizado: "border-emerald-300/20 bg-emerald-300/10 text-emerald-200",
+    Elevado: "border-cyan-300/20 bg-cyan-300/10 text-cyan-100"
+  };
+
+  return styles[status];
 }
 
 function Panel({ title, action, badge, children }: { title: string; action?: string; badge?: string; children: React.ReactNode }) {
@@ -180,3 +268,5 @@ function Panel({ title, action, badge, children }: { title: string; action?: str
     </section>
   );
 }
+
+
