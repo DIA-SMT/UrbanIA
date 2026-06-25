@@ -1,84 +1,15 @@
-"use client";
+﻿"use client";
 
 import "leaflet/dist/leaflet.css";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import L from "leaflet";
 import { CircleMarker, MapContainer, Marker, Polygon, Popup, TileLayer, useMap } from "react-leaflet";
 import { Bike, Building2, CheckCircle2, Layers3, MapPin, Trees, X } from "lucide-react";
-
-type ProjectStatus = "Realizado" | "En ejecucion" | "Planificado" | "En analisis";
-type ProjectLayer = "Transporte" | "Espacios verdes" | "Equipamiento" | "Zonificacion" | "Riesgos";
-
-type UrbanProject = {
-  id: string;
-  title: string;
-  layer: ProjectLayer;
-  status: ProjectStatus;
-  responsible: string;
-  description: string;
-  position: [number, number];
-};
+import { urbanProjects, type ProjectLayer, type UrbanProject } from "@/lib/demo/urban-projects";
 
 const tucumanCenter: [number, number] = [-26.8241, -65.2226];
-
-const projects: UrbanProject[] = [
-  {
-    id: "ciclovia-aconquija",
-    title: "Nueva ciclovia en Av. Aconquija",
-    layer: "Transporte",
-    status: "En analisis",
-    responsible: "Movilidad Urbana",
-    description: "Corredor de movilidad activa con impacto esperado en seguridad vial y conectividad.",
-    position: [-26.8168, -65.2362]
-  },
-  {
-    id: "plaza-barrio-sur",
-    title: "Plaza de bolsillo en Barrio Sur",
-    layer: "Espacios verdes",
-    status: "Planificado",
-    responsible: "Ambiente y Espacio Publico",
-    description: "Intervencion barrial para aumentar cobertura verde y mejorar permanencia peatonal.",
-    position: [-26.8354, -65.2172]
-  },
-  {
-    id: "centro-comunitario",
-    title: "Centro comunitario norte",
-    layer: "Equipamiento",
-    status: "En ejecucion",
-    responsible: "Infraestructura Social",
-    description: "Equipamiento publico para actividades barriales, asistencia y gestion territorial.",
-    position: [-26.8072, -65.2138]
-  },
-  {
-    id: "codigo-alturas",
-    title: "Revision de alturas permitidas",
-    layer: "Zonificacion",
-    status: "En analisis",
-    responsible: "Planeamiento Urbano",
-    description: "Zona de estudio para ordenar densidad, alturas y compatibilidad con servicios.",
-    position: [-26.8268, -65.205]
-  },
-  {
-    id: "drenaje-sali",
-    title: "Mitigacion hidrica Rio Sali",
-    layer: "Riesgos",
-    status: "Planificado",
-    responsible: "Defensa Civil",
-    description: "Puntos criticos para obras de drenaje, monitoreo y reduccion de vulnerabilidad.",
-    position: [-26.8466, -65.1902]
-  },
-  {
-    id: "peatonal-centro",
-    title: "Peatonalizacion calle 25 de Mayo",
-    layer: "Transporte",
-    status: "Realizado",
-    responsible: "Movilidad Urbana",
-    description: "Prueba de pacificacion vial para priorizar caminabilidad y actividad comercial.",
-    position: [-26.8297, -65.2038]
-  }
-];
-
 const layers: ProjectLayer[] = ["Transporte", "Espacios verdes", "Equipamiento", "Zonificacion", "Riesgos"];
 
 const layerStyles: Record<ProjectLayer, { color: string; icon: typeof Bike }> = {
@@ -98,10 +29,10 @@ const studyArea: [number, number][] = [
 
 export function UrbanLeafletMap() {
   const [activeLayers, setActiveLayers] = useState<ProjectLayer[]>(["Transporte", "Espacios verdes", "Equipamiento"]);
-  const [selectedProject, setSelectedProject] = useState<UrbanProject | null>(projects[0]);
+  const [selectedProject, setSelectedProject] = useState<UrbanProject | null>(urbanProjects[0]);
 
   const visibleProjects = useMemo(
-    () => projects.filter((project) => activeLayers.includes(project.layer)),
+    () => urbanProjects.filter((project) => activeLayers.includes(project.layer)),
     [activeLayers]
   );
 
@@ -198,10 +129,10 @@ export function UrbanLeafletMap() {
               ))}
             </div>
 
-            <button className="urban-button mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-3 text-sm font-black text-civic-ink">
+            <Link href={`/proyectos/${selectedProject.id}`} className="urban-button mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-3 text-sm font-black text-civic-ink">
               <CheckCircle2 className="h-4 w-4" />
               Abrir ficha del proyecto
-            </button>
+            </Link>
           </div>
         ) : (
           <div className="rounded-lg border border-dashed border-white/15 p-5 text-sm leading-6 text-slate-400">
