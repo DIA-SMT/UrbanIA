@@ -22,11 +22,11 @@ type Layer = "Transporte" | "Espacios verdes" | "Equipamiento" | "Zonificacion" 
 const pins = [
   {
     icon: Building2,
-    label: "Normativa",
+    label: "Codigo urbano",
     layer: "Zonificacion",
     className: "left-[50%] top-[24%] bg-violet-500",
-    description: "Codigos urbanos, alturas, usos del suelo y reglas de intervencion.",
-    status: "3 documentos vinculados"
+    description: "Articulos del Codigo de Planeamiento, alturas, usos del suelo y reglas de intervencion.",
+    status: "3 tematicas vinculadas"
   },
   {
     icon: Trees,
@@ -46,10 +46,10 @@ const pins = [
   },
   {
     icon: Users,
-    label: "Participacion",
+    label: "Aportes Cidituc",
     layer: "Equipamiento",
     className: "left-[52%] top-[63%] bg-rose-500",
-    description: "Propuestas ciudadanas, comentarios y consultas territoriales.",
+    description: "Aportes ciudadanos importados para lectura territorial y vinculacion con expedientes.",
     status: "128 aportes registrados"
   },
   {
@@ -118,13 +118,13 @@ export function CityMap({ dashboardMetrics = metrics }: { dashboardMetrics?: Das
             <h1 className="text-2xl font-black leading-tight text-white">San Miguel de Tucuman</h1>
             <span className="text-amber-300">21 C</span>
           </div>
-          <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">Explora, simula y participa en el planeamiento urbano con datos, normativa e inteligencia artificial.</p>
+          <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">Ubica propuestas oficiales, articulos del CPU, audiencias y aportes ciudadanos en el territorio.</p>
           <label className="urban-lift mt-5 flex items-center gap-3 rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-slate-400">
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               className="min-w-0 flex-1 bg-transparent text-slate-200 outline-none placeholder:text-slate-500"
-              placeholder="Buscar lugares, normativas, proyectos..."
+              placeholder="Buscar propuestas, CPU, audiencias..."
             />
             {query ? (
               <button type="button" onClick={() => setQuery("")} className="urban-button rounded-md p-1 text-slate-300">

@@ -1,45 +1,43 @@
 import {
   BarChart3,
-  Bike,
   BookOpen,
   Building2,
   CircleDot,
+  CalendarDays,
   FileText,
-  Landmark,
   Layers3,
   Map,
   MessageSquare,
-  Network,
   Vote
 } from "lucide-react";
 
 export const navItems = [
-  { label: "Dashboard", href: "/", icon: BarChart3 },
-  { label: "Mapa", href: "/mapa", icon: Map },
+  { label: "Mesa urbana", href: "/", icon: BarChart3 },
   { label: "Propuestas", href: "/propuestas", icon: CircleDot },
-  { label: "Normativa", href: "/normativa", icon: FileText },
-  { label: "Casos de exito", href: "/casos", icon: Landmark },
-  { label: "Participacion", href: "/participacion", icon: Vote },
-  { label: "Datos", href: "/datos", icon: Layers3 }
+  { label: "Codigo urbano", href: "/normativa", icon: FileText },
+  { label: "Audiencias", href: "/audiencias", icon: CalendarDays },
+  { label: "Aportes Cidituc", href: "/participacion", icon: Vote },
+  { label: "Analisis IA", href: "/asistente", icon: BookOpen },
+  { label: "Mapa", href: "/mapa", icon: Map }
 ];
 
 export const sidebarSections = [
   {
     title: "Explorar",
     items: [
+      { label: "Propuestas oficiales", href: "/propuestas", icon: CircleDot },
+      { label: "Codigo de Planeamiento", href: "/normativa", icon: FileText },
+      { label: "Audiencias publicas", href: "/audiencias", icon: CalendarDays },
       { label: "Mapa interactivo", href: "/mapa", icon: Map },
-      { label: "Indicadores", href: "/indicadores", icon: BarChart3 },
-      { label: "Proyectos", href: "/proyectos", icon: Building2 },
-      { label: "Infraestructura", href: "/infraestructura", icon: Network },
-      { label: "Movilidad", href: "/movilidad", icon: Bike }
+      { label: "Proyectos vinculados", href: "/proyectos", icon: Building2 }
     ]
   },
   {
-    title: "Participacion",
+    title: "Deliberacion",
     items: [
-      { label: "Consulta ciudadana", href: "/participacion", icon: MessageSquare },
-      { label: "Votaciones", href: "/participacion", icon: Vote },
-      { label: "Asistente urbano", href: "/asistente", icon: BookOpen }
+      { label: "Aportes Cidituc", href: "/participacion", icon: MessageSquare },
+      { label: "Analisis IA", href: "/asistente", icon: BookOpen },
+      { label: "Fuentes y datos", href: "/datos", icon: Layers3 }
     ]
   }
 ];
@@ -102,19 +100,35 @@ export const modulePages = {
     ]
   },
   normativa: {
-    eyebrow: "Base legal urbana",
-    title: "Normativa urbana",
-    description: "Repositorio preparado para ordenanzas, decretos y codigos municipales con busqueda semantica futura.",
-    primaryAction: "Cargar documento",
+    eyebrow: "Codigo de Planeamiento",
+    title: "Codigo urbano por tematicas",
+    description: "Consulta del Codigo de Planeamiento Urbano organizada por usos, alturas, retiros, movilidad, ambiente, patrimonio y riesgos.",
+    primaryAction: "Cargar articulo",
     stats: [
-      { label: "Ordenanzas", value: "53" },
-      { label: "Categorias", value: "7" },
-      { label: "Fuentes IA", value: "0" }
+      { label: "Tematicas", value: "7" },
+      { label: "Articulos", value: "53" },
+      { label: "Vinculos IA", value: "12" }
     ],
     cards: [
-      { title: "Planeamiento urbano", body: "Normas vinculadas a uso de suelo, alturas, zonificacion y proyectos urbanos.", tag: "Codigo" },
-      { title: "Edificacion", body: "Reglas tecnicas para permisos, obras y condiciones constructivas.", tag: "Obras" },
-      { title: "Espacios publicos", body: "Ordenanzas sobre arbolado, plazas, veredas y mantenimiento urbano.", tag: "Publico" }
+      { title: "Uso del suelo", body: "Distritos, compatibilidades, restricciones y criterios para evaluar propuestas oficiales.", tag: "CPU" },
+      { title: "Alturas y retiros", body: "Parametros urbanisticos para analizar impacto edilicio, morfologia urbana y conflictividad.", tag: "Norma" },
+      { title: "Movilidad y ambiente", body: "Criterios sobre espacio publico, accesibilidad, arbolado, drenaje y riesgos urbanos.", tag: "Temas" }
+    ]
+  },
+  audiencias: {
+    eyebrow: "Deliberacion publica",
+    title: "Audiencias publicas",
+    description: "Registro de audiencias vinculadas a propuestas urbanas, con fecha, expediente, acta, participantes, documentos y conclusiones.",
+    primaryAction: "Registrar audiencia",
+    stats: [
+      { label: "Programadas", value: "3" },
+      { label: "Con acta", value: "8" },
+      { label: "Pendientes", value: "5" }
+    ],
+    cards: [
+      { title: "Agenda institucional", body: "Fechas, ubicaciones, expedientes asociados y estado de convocatoria.", tag: "Agenda" },
+      { title: "Actas y documentos", body: "Trazabilidad documental de exposiciones, anexos, dictamenes y conclusiones.", tag: "Actas" },
+      { title: "Sintesis IA", body: "Resumen automatico de acuerdos, objeciones, temas frecuentes y riesgos normativos.", tag: "IA" }
     ]
   },
   casos: {
@@ -166,19 +180,19 @@ export const modulePages = {
     ]
   },
   participacion: {
-    eyebrow: "Ciudadania activa",
-    title: "Participacion ciudadana",
-    description: "Espacio para comentarios, apoyos, votaciones y seguimiento publico de propuestas urbanas.",
-    primaryAction: "Abrir consulta",
+    eyebrow: "Integracion Cidituc",
+    title: "Aportes ciudadanos",
+    description: "Visualizacion de aportes recibidos desde Cidituc para alimentar propuestas, audiencias y analisis urbano sin duplicar la carga ciudadana.",
+    primaryAction: "Importar aportes",
     stats: [
-      { label: "Participantes", value: "1.240" },
-      { label: "Comentarios", value: "386" },
-      { label: "Votaciones", value: "12" }
+      { label: "Aportes", value: "1.240" },
+      { label: "Barrios", value: "18" },
+      { label: "Temas", value: "12" }
     ],
     cards: [
-      { title: "Consultas por barrio", body: "Organiza opiniones por zona y tipo de intervencion.", tag: "Consulta" },
-      { title: "Apoyos ciudadanos", body: "Priorizacion simple para detectar demandas con mayor traccion.", tag: "Votos" },
-      { title: "Moderacion", body: "Flujo futuro para cuidar calidad del debate y trazabilidad.", tag: "Gestion" }
+      { title: "Resumen territorial", body: "Aportes agrupados por barrio, propuesta vinculada y tipo de problematica urbana.", tag: "Cidituc" },
+      { title: "Temas frecuentes", body: "Lectura de reclamos, apoyos, objeciones y prioridades detectadas en la participacion.", tag: "Sintesis" },
+      { title: "Vinculo institucional", body: "Relaciona aportes ciudadanos con audiencias, expedientes y propuestas oficiales.", tag: "Trazabilidad" }
     ]
   },
   datos: {
@@ -198,9 +212,9 @@ export const modulePages = {
     ]
   },
   asistente: {
-    eyebrow: "IA urbana",
-    title: "Asistente urbano",
-    description: "Interfaz conversacional para consultar normativa, antecedentes y borradores de impacto con fuentes.",
+    eyebrow: "Analisis IA",
+    title: "Vinculos normativos inteligentes",
+    description: "Interfaz para vincular propuestas, articulos del Codigo de Planeamiento, audiencias, aportes ciudadanos y problematicas urbanas comunes.",
     primaryAction: "Nueva consulta",
     stats: [
       { label: "Consultas", value: "0" },

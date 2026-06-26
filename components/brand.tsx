@@ -8,7 +8,7 @@ export function Brand() {
       </div>
       <div>
         <p className="text-xl font-black leading-none tracking-normal text-white">UrbanIA</p>
-        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-200/70">Gemelo Digital Urbano</p>
+        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-200/70">Deliberacion urbana</p>
       </div>
     </div>
   );

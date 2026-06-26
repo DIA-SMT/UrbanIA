@@ -66,31 +66,31 @@ export function SuccessCasesPanel({ cases = successCases }: { cases?: DashboardS
 
 export function ProposalSimulatorPanel() {
   return (
-    <Panel title="Simulador de propuestas" badge="Nuevo">
+    <Panel title="Propuesta oficial en analisis" badge="Concejo">
       <div className="h-32 rounded-md bg-[linear-gradient(135deg,rgba(16,185,129,0.25),rgba(14,165,233,0.20)),url('https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=800&q=80')] bg-cover bg-center" />
-      <h3 className="mt-4 font-bold text-white">Nueva ciclovia en Av. Aconquija</h3>
+      <h3 className="mt-4 font-bold text-white">Expte. 1482-CD: revision de alturas en corredor norte</h3>
       <div className="mt-4 space-y-3 text-sm">
-        {["Movilidad +76%", "Ambiente +62%", "Seguridad +41%", "Economia local +28%"].map((item) => (
+        {["Uso del suelo: requiere dictamen", "Alturas: conflicto probable", "Audiencia publica: pendiente", "Aportes Cidituc: 42 vinculados"].map((item) => (
           <div key={item} className="flex items-center justify-between text-slate-300">
             <span>{item}</span>
             <ArrowUpRight className="h-4 w-4 text-emerald-300" />
           </div>
         ))}
       </div>
-      <button className="urban-button mt-5 w-full rounded-md bg-emerald-500 px-4 py-3 text-sm font-bold text-civic-ink">Ver simulacion conceptual</button>
+      <button className="urban-button mt-5 w-full rounded-md bg-emerald-500 px-4 py-3 text-sm font-bold text-civic-ink">Abrir trazabilidad</button>
     </Panel>
   );
 }
 
 export function AssistantPanel() {
   return (
-    <Panel title="Asistente urbano" badge="IA">
+    <Panel title="Analisis IA" badge="IA">
       <div className="rounded-md border border-white/10 bg-slate-950/60 p-4">
-        <p className="font-semibold text-white">Hola, Agustin.</p>
-        <p className="mt-1 text-sm text-slate-400">En que puedo ayudarte hoy?</p>
+        <p className="font-semibold text-white">Vinculacion normativa</p>
+        <p className="mt-1 text-sm text-slate-400">Cruza propuestas, CPU, audiencias y aportes ciudadanos.</p>
       </div>
       <div className="mt-3 space-y-2">
-        {["Que ordenanzas regulan la altura de edificios?", "Quiero mejorar el transito en Avenida Mate de Luna", "Casos de ciclovias en ciudades similares", "Normativa sobre espacios verdes"].map((prompt) => (
+        {["Que articulos del CPU aplican a este expediente?", "Resumir objeciones de la audiencia publica", "Vincular aportes Cidituc por barrio", "Detectar riesgos normativos de la propuesta"].map((prompt) => (
           <button key={prompt} className="urban-lift w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-3 text-left text-sm text-slate-300 hover:bg-white/[0.06]">{prompt}</button>
         ))}
       </div>
@@ -104,7 +104,7 @@ export function AssistantPanel() {
 
 export function CitizenActivityPanel() {
   return (
-    <Panel title="Actividad ciudadana" action="Ver todo">
+    <Panel title="Aportes desde Cidituc" action="Ver todo">
       <div className="space-y-3">
         {proposals.map((item) => (
           <div key={item.title} className="flex items-center gap-3 border-b border-white/6 pb-3 last:border-0">
@@ -117,14 +117,14 @@ export function CitizenActivityPanel() {
           </div>
         ))}
       </div>
-      <button className="urban-button mt-4 w-full rounded-md border border-emerald-300/40 py-2 text-sm font-semibold text-emerald-200">Nueva propuesta</button>
+      <button className="urban-button mt-4 w-full rounded-md border border-emerald-300/40 py-2 text-sm font-semibold text-emerald-200">Visualizar integracion</button>
     </Panel>
   );
 }
 
 export function RegulationsPanel({ items = regulations }: { items?: DashboardRegulation[] }) {
   return (
-    <Panel title="Normativa destacada" action="Ver todas">
+    <Panel title="Codigo de Planeamiento Urbano" action="Ver CPU">
       <div className="space-y-2">
         {items.map((item) => (
           <div key={item.number} className="urban-lift flex items-center gap-3 rounded-md border border-white/8 bg-white/[0.03] p-3">
@@ -143,8 +143,8 @@ export function RegulationsPanel({ items = regulations }: { items?: DashboardReg
 
 export function DataSourcesPanel() {
   return (
-    <Panel title="Fuentes de datos" action="Ver todas">
-      {["Municipalidad de San Miguel de Tucuman", "INDEC", "Secretaria de Planeamiento", "Datos Abiertos Tucuman"].map((item) => (
+    <Panel title="Fuentes institucionales" action="Ver todas">
+      {["Concejo Deliberante", "Codigo de Planeamiento Urbano", "Cidituc", "Actas de audiencias publicas", "Secretaria de Planeamiento"].map((item) => (
         <div key={item} className="urban-lift mb-3 flex items-center gap-3 rounded-md px-2 py-1 text-sm text-slate-300">
           <Database className="h-5 w-5 text-sky-300" />
           {item}
@@ -156,13 +156,13 @@ export function DataSourcesPanel() {
 
 export function CabinetPanel() {
   return (
-    <Panel title="Registro de gabinete" action="Preparado">
+    <Panel title="Audiencias publicas" action="Agenda">
       <div className="urban-lift rounded-md border border-white/10 bg-white/[0.03] p-4">
         <div className="flex items-center gap-3">
           <BookOpen className="h-5 w-5 text-amber-300" />
-          <p className="font-semibold text-white">Reunion semanal de gestion urbana</p>
+          <p className="font-semibold text-white">Audiencia sobre corredor norte</p>
         </div>
-        <p className="mt-2 text-sm leading-6 text-slate-400">Ideas, acuerdos y pendientes podran convertirse en propuestas urbanas para analisis IA e informes.</p>
+        <p className="mt-2 text-sm leading-6 text-slate-400">Registro de fecha, expediente asociado, participantes, acta, documentos y conclusiones para analisis posterior.</p>
       </div>
     </Panel>
   );
