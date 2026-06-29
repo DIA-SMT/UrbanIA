@@ -38,6 +38,10 @@ export type DashboardData = {
 };
 
 export async function getDashboardData(): Promise<DashboardData> {
+  if (!process.env.DATABASE_URL) {
+    return getFallbackDashboardData();
+  }
+
   try {
     const [
       activeProposalCount,
@@ -119,16 +123,19 @@ export async function getDashboardData(): Promise<DashboardData> {
       isLive: true
     };
   } catch (error) {
-    console.error("Dashboard data fallback:", error);
-
-    return {
-      metrics: fallbackMetrics,
-      regulations: fallbackRegulations,
-      successCases: fallbackSuccessCases,
-      cityComparison: fallbackCityComparison,
-      isLive: false
-    };
+    console.warn("Dashboard database unavailable; using demo data.", error instanceof Error ? error.message : error);
+    return getFallbackDashboardData();
   }
+}
+
+function getFallbackDashboardData(): DashboardData {
+  return {
+    metrics: fallbackMetrics,
+    regulations: fallbackRegulations,
+    successCases: fallbackSuccessCases,
+    cityComparison: fallbackCityComparison,
+    isLive: false
+  };
 }
 
 function formatInteger(value: number) {
