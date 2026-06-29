@@ -19,6 +19,11 @@ export type UrbanProject = {
   budget: string;
   timeline: string;
   position: [number, number];
+  codeRelation?: string;
+  technicalJustification?: string;
+  attachedDocuments?: string[];
+  reviewStatus?: string;
+  aiNormativeImpact?: string;
 };
 
 export const urbanProjects: UrbanProject[] = [

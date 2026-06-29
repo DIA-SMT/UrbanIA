@@ -32,9 +32,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             ))}
             <div className="urban-lift mt-6 rounded-md border border-emerald-300/20 bg-emerald-300/10 p-4">
-              <p className="font-semibold text-emerald-100">Construyamos juntos la ciudad que queremos</p>
-              <p className="mt-2 text-xs leading-5 text-slate-300">Tu opinion es fundamental para tomar mejores decisiones.</p>
-              <button className="urban-button mt-4 rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-civic-ink">Participar ahora</button>
+              <p className="font-semibold text-emerald-100">Trazabilidad para decidir mejor</p>
+              <p className="mt-2 text-xs leading-5 text-slate-300">Propuestas, normativa, audiencias y aportes ciudadanos en una misma lectura.</p>
+              <button className="urban-button mt-4 rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-civic-ink">Ver propuestas</button>
             </div>
           </div>
         </aside>

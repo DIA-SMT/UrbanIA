@@ -69,7 +69,7 @@ export function ModulePage({ moduleKey }: ModulePageProps) {
           </div>
 
           <div className="mt-5 space-y-3">
-            {["Estructura visual lista", "Modelo de datos inicial", "Integracion futura con IA"].map((item) => (
+            {["Estructura visual lista", "Modelo de datos inicial", "Vinculacion futura con IA"].map((item) => (
               <div key={item} className="urban-lift flex items-center gap-3 rounded-md border border-white/8 bg-white/[0.03] px-3 py-3 text-sm text-slate-300">
                 <Database className="h-4 w-4 text-emerald-300" />
                 {item}
@@ -82,7 +82,7 @@ export function ModulePage({ moduleKey }: ModulePageProps) {
               <Clock3 className="h-4 w-4" />
               Proxima etapa
             </div>
-            <p className="mt-2 text-sm leading-6 text-slate-300">Cuando tengamos fuentes definitivas, reemplazamos estos contenidos por consultas, filtros y formularios conectados a Supabase.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">Cuando tengamos fuentes definitivas, reemplazamos estos contenidos por consultas, filtros y formularios conectados a datos reales.</p>
           </div>
         </aside>
       </section>

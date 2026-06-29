@@ -5,12 +5,9 @@ import {
   AssistantPanel,
   CabinetPanel,
   CitizenActivityPanel,
-  CityComparisonPanel,
   DataSourcesPanel,
-  IndicatorsPanel,
   ProposalSimulatorPanel,
-  RegulationsPanel,
-  SuccessCasesPanel
+  RegulationsPanel
 } from "@/components/dashboard-panels";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +19,8 @@ export default async function Home() {
     <AppShell>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-950/35 px-4 py-3">
         <div>
-          <p className="text-sm font-bold text-white">Centro de inteligencia urbana</p>
-          <p className="text-xs text-slate-500">Vista ejecutiva para explorar datos, propuestas y decisiones.</p>
+          <p className="text-sm font-bold text-white">Mesa de deliberacion urbana</p>
+          <p className="text-xs text-slate-500">Propuestas oficiales, Codigo de Planeamiento, audiencias y aportes ciudadanos vinculados por IA.</p>
         </div>
         <div className={`rounded-md px-3 py-2 text-xs font-bold ${dashboard.isLive ? "bg-emerald-400/15 text-emerald-200" : "bg-amber-400/15 text-amber-200"}`}>
           {dashboard.isLive ? "Datos en vivo" : "Modo demo"}
@@ -38,16 +35,13 @@ export default async function Home() {
         <AssistantPanel />
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2 2xl:grid-cols-[260px_320px_minmax(380px,1fr)_300px]">
-        <IndicatorsPanel />
-        <CityComparisonPanel cities={dashboard.cityComparison} />
-        <SuccessCasesPanel cases={dashboard.successCases} />
+      <div className="mt-4 grid gap-4 lg:grid-cols-2 2xl:grid-cols-[minmax(360px,1fr)_320px_300px]">
+        <RegulationsPanel items={dashboard.regulations} />
+        <CabinetPanel />
         <CitizenActivityPanel />
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2 2xl:grid-cols-[400px_1fr_310px]">
-        <RegulationsPanel items={dashboard.regulations} />
-        <CabinetPanel />
+      <div className="mt-4">
         <DataSourcesPanel />
       </div>
     </AppShell>
