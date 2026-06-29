@@ -1,5 +1,10 @@
-import { ModulePage } from "@/components/modules/module-page";
+import { HearingsBoard } from "@/components/hearings/hearings-board";
+import { AppShell } from "@/components/shell";
 
 export default function AudienciasPage() {
-  return <ModulePage moduleKey="audiencias" />;
+  return (
+    <AppShell>
+      <HearingsBoard />
+    </AppShell>
+  );
 }
