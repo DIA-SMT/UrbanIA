@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import "leaflet/dist/leaflet.css";
 
@@ -50,7 +50,7 @@ export function UrbanLeafletMap() {
             <h1 className="text-xl font-black text-white">Mapa operativo de San Miguel de Tucuman</h1>
             <p className="mt-1 text-sm text-slate-400">Prueba funcional con OpenStreetMap, capas y proyectos demo.</p>
           </div>
-          <div className="rounded-md bg-emerald-400/15 px-3 py-2 text-xs font-bold text-emerald-200">
+          <div className="rounded-md bg-sky-400/15 px-3 py-2 text-xs font-bold text-sky-200">
             {visibleProjects.length} proyectos visibles
           </div>
         </div>
@@ -78,7 +78,7 @@ export function UrbanLeafletMap() {
                   key={layer}
                   onClick={() => toggleLayer(layer)}
                   className={`urban-button inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-bold ${
-                    isActive ? "bg-emerald-400/18 text-emerald-100" : "bg-white/7 text-slate-400"
+                    isActive ? "bg-sky-400/18 text-sky-100" : "bg-white/7 text-slate-400"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -110,7 +110,7 @@ export function UrbanLeafletMap() {
                 <span className="rounded-md px-3 py-1 text-xs font-black text-white" style={{ backgroundColor: layerStyles[selectedProject.layer].color }}>
                   {selectedProject.layer}
                 </span>
-                <span className="text-xs font-semibold text-emerald-300">{selectedProject.status}</span>
+                <span className="text-xs font-semibold text-sky-300">{selectedProject.status}</span>
               </div>
               <h3 className="text-xl font-black leading-tight text-white">{selectedProject.title}</h3>
               <p className="mt-3 text-sm leading-6 text-slate-300">{selectedProject.description}</p>
@@ -129,7 +129,7 @@ export function UrbanLeafletMap() {
               ))}
             </div>
 
-            <Link href={`/proyectos/${selectedProject.id}`} className="urban-button mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-3 text-sm font-black text-civic-ink">
+            <Link href={`/proyectos/${selectedProject.id}`} className="urban-button mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white">
               <CheckCircle2 className="h-4 w-4" />
               Abrir ficha del proyecto
             </Link>

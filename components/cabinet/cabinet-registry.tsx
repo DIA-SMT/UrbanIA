@@ -23,13 +23,13 @@ import { cabinetMeetings, cabinetSummary, type CabinetMeeting, type CabinetTopic
 const statusStyles: Record<CabinetTopicStatus, string> = {
   Pendiente: "border-slate-300/20 bg-slate-300/10 text-slate-200",
   "En analisis": "border-amber-300/20 bg-amber-300/10 text-amber-200",
-  Priorizado: "border-emerald-300/20 bg-emerald-300/10 text-emerald-200",
+  Priorizado: "border-sky-300/20 bg-sky-300/10 text-sky-200",
   Elevado: "border-cyan-300/20 bg-cyan-300/10 text-cyan-100"
 };
 
 const minutesStyles: Record<CabinetMeeting["minutesStatus"], string> = {
   Borrador: "bg-amber-300/10 text-amber-200",
-  Validada: "bg-emerald-300/10 text-emerald-200",
+  Validada: "bg-sky-300/10 text-sky-200",
   Pendiente: "bg-slate-300/10 text-slate-300"
 };
 
@@ -45,7 +45,7 @@ export function CabinetRegistry() {
       <section className="urban-card urban-lift overflow-hidden rounded-lg">
         <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-7">
           <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-emerald-200">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-sky-200">
               <BookOpen className="h-4 w-4" />
               Gestion interna
             </div>
@@ -54,7 +54,7 @@ export function CabinetRegistry() {
               Actas, agenda, responsables, decisiones y pendientes vinculados a propuestas urbanas, audiencias y escenarios de decision.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <button className="urban-button inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-3 text-sm font-black text-civic-ink">
+              <button className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white">
                 <Plus className="h-4 w-4" />
                 Nueva reunion
               </button>
@@ -91,7 +91,7 @@ export function CabinetRegistry() {
                   onClick={() => setSelectedMeetingId(meeting.id)}
                   aria-pressed={isSelected}
                   className={`urban-lift w-full rounded-lg border p-4 text-left transition ${
-                    isSelected ? "border-emerald-300/35 bg-emerald-300/10" : "border-white/10 bg-white/[0.03] hover:border-emerald-300/25"
+                    isSelected ? "border-sky-300/35 bg-sky-300/10" : "border-white/10 bg-white/[0.03] hover:border-sky-300/25"
                   }`}
                 >
                   <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
@@ -125,7 +125,7 @@ function MeetingDetail({ meeting }: { meeting: CabinetMeeting }) {
       <section className="urban-card rounded-lg p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-300">Acta seleccionada</p>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Acta seleccionada</p>
             <h2 className="mt-2 text-2xl font-black leading-tight text-white md:text-3xl">{meeting.title}</h2>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">{meeting.summary}</p>
           </div>
@@ -147,10 +147,10 @@ function MeetingDetail({ meeting }: { meeting: CabinetMeeting }) {
       <section className="urban-card urban-lift rounded-lg p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-lg font-black text-white">
-            <Sparkles className="h-5 w-5 text-emerald-300" />
+            <Sparkles className="h-5 w-5 text-sky-300" />
             Sintesis de conversacion
           </h2>
-          <span className="rounded-md border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-black text-emerald-200">Resumen IA mock</span>
+          <span className="rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-1 text-xs font-black text-sky-200">Resumen IA mock</span>
         </div>
         <p className="text-sm leading-7 text-slate-300">{meeting.conversationSummary}</p>
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -188,7 +188,7 @@ function MeetingDetail({ meeting }: { meeting: CabinetMeeting }) {
           <div className="grid gap-3 md:grid-cols-2">
             {meeting.documents.map((document) => (
               <div key={document} className="urban-lift flex items-center gap-3 rounded-md border border-white/8 bg-white/[0.03] p-3 text-sm font-semibold text-slate-300">
-                <FileText className="h-4 w-4 text-civic-mint" />
+                <FileText className="h-4 w-4 text-civic-sky" />
                 {document}
               </div>
             ))}
@@ -205,7 +205,7 @@ function MeetingDetail({ meeting }: { meeting: CabinetMeeting }) {
               </Link>
             ) : null}
             {meeting.linkedScenarioId ? (
-              <Link href={`/escenarios/${meeting.linkedScenarioId}`} className="urban-button inline-flex items-center justify-between gap-3 rounded-md bg-emerald-500 px-4 py-3 text-sm font-black text-civic-ink">
+              <Link href={`/escenarios/${meeting.linkedScenarioId}`} className="urban-button inline-flex items-center justify-between gap-3 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white">
                 Abrir escenario
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -225,7 +225,7 @@ function SummaryCard({ label, value, icon: Icon }: { label: string; value: strin
   return (
     <div className="urban-lift rounded-md border border-white/10 bg-slate-950/50 p-4">
       <div className="flex items-center justify-between gap-3">
-        <Icon className="h-5 w-5 text-civic-mint" />
+        <Icon className="h-5 w-5 text-civic-sky" />
         <p className="text-2xl font-black text-white">{value}</p>
       </div>
       <p className="mt-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p>
@@ -236,7 +236,7 @@ function SummaryCard({ label, value, icon: Icon }: { label: string; value: strin
 function InfoTile({ label, value, icon: Icon }: { label: string; value: string; icon: typeof FileText }) {
   return (
     <div className="urban-lift rounded-md border border-white/8 bg-white/[0.03] p-4">
-      <Icon className="mb-3 h-4 w-4 text-civic-mint" />
+      <Icon className="mb-3 h-4 w-4 text-civic-sky" />
       <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</p>
       <p className="mt-1 text-sm font-bold leading-5 text-slate-200">{value}</p>
     </div>
@@ -247,7 +247,7 @@ function Panel({ title, icon: Icon, children }: { title: string; icon: typeof Me
   return (
     <div className="urban-card urban-lift rounded-lg p-5">
       <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-white">
-        <Icon className="h-5 w-5 text-civic-mint" />
+        <Icon className="h-5 w-5 text-civic-sky" />
         {title}
       </h2>
       {children}
@@ -260,7 +260,7 @@ function OrderedList({ items }: { items: string[] }) {
     <div className="grid gap-3">
       {items.map((item, index) => (
         <div key={item} className="flex items-start gap-3 rounded-md border border-white/8 bg-white/[0.03] p-3 text-sm leading-6 text-slate-300">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-emerald-300/10 text-xs font-black text-emerald-200">{index + 1}</span>
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-sky-300/10 text-xs font-black text-sky-200">{index + 1}</span>
           {item}
         </div>
       ))}
@@ -269,7 +269,7 @@ function OrderedList({ items }: { items: string[] }) {
 }
 
 function Checklist({ items, tone }: { items: string[]; tone: "emerald" | "amber" }) {
-  const iconColor = tone === "emerald" ? "text-emerald-300" : "text-amber-300";
+  const iconColor = tone === "emerald" ? "text-sky-300" : "text-amber-300";
 
   return (
     <div className="space-y-3">

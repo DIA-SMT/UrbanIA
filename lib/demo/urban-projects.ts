@@ -1,5 +1,6 @@
 export type ProjectStatus = "Realizado" | "En ejecucion" | "Planificado" | "En analisis";
 export type ProjectLayer = "Transporte" | "Espacios verdes" | "Equipamiento" | "Zonificacion" | "Riesgos";
+export type ProjectOrigin = "Gabinete" | "Area tecnica" | "Concejo" | "Audiencia publica" | "Cidituc" | "Normativa" | "Caso comparado";
 
 export type UrbanProject = {
   id: string;
@@ -9,6 +10,9 @@ export type UrbanProject = {
   neighborhood: string;
   author: string;
   responsible: string;
+  origin: ProjectOrigin;
+  promoterArea: string;
+  linkedMeetingId?: string;
   description: string;
   objective: string;
   impact: string[];
@@ -35,11 +39,14 @@ export const urbanProjects: UrbanProject[] = [
     neighborhood: "Yerba Buena / Oeste",
     author: "Equipo tecnico",
     responsible: "Movilidad Urbana",
+    origin: "Area tecnica",
+    promoterArea: "Movilidad Urbana",
+    linkedMeetingId: "gabinete-2026-06-24",
     description: "Corredor de movilidad activa con impacto esperado en seguridad vial y conectividad.",
     objective: "Conectar zonas residenciales, equipamiento publico y corredores comerciales con infraestructura segura para bicicletas.",
     impact: ["Mejora de movilidad activa", "Reduccion de viajes cortos en auto", "Mayor seguridad vial"],
     risks: ["Conflictos con estacionamiento", "Necesidad de mantenimiento", "Aceptacion comercial inicial"],
-    nextSteps: ["Relevamiento vial", "Consulta ciudadana", "Anteproyecto tecnico", "Informe de factibilidad"],
+    nextSteps: ["Relevamiento vial", "Consulta institucional", "Anteproyecto tecnico", "Informe de factibilidad"],
     votes: 236,
     comments: 35,
     budget: "Medio",
@@ -52,13 +59,16 @@ export const urbanProjects: UrbanProject[] = [
     layer: "Espacios verdes",
     status: "Planificado",
     neighborhood: "Barrio Sur",
-    author: "Maria B.",
+    author: "Gabinete urbano",
     responsible: "Ambiente y Espacio Publico",
+    origin: "Gabinete",
+    promoterArea: "Ambiente y Espacio Publico",
+    linkedMeetingId: "gabinete-2026-06-18",
     description: "Intervencion barrial para aumentar cobertura verde y mejorar permanencia peatonal.",
     objective: "Recuperar un lote subutilizado como espacio verde de cercania con sombra, bancos y juegos.",
     impact: ["Aumento de espacios verdes", "Mejora de permanencia barrial", "Mayor actividad comunitaria"],
     risks: ["Disponibilidad dominial", "Costo de mantenimiento", "Seguridad nocturna"],
-    nextSteps: ["Validar titularidad", "Reunion barrial", "Diseno preliminar", "Presupuesto"],
+    nextSteps: ["Validar titularidad", "Cruzar aportes Cidituc", "Diseno preliminar", "Presupuesto"],
     votes: 88,
     comments: 18,
     budget: "Bajo / medio",
@@ -73,6 +83,8 @@ export const urbanProjects: UrbanProject[] = [
     neighborhood: "Norte",
     author: "Secretaria de Desarrollo",
     responsible: "Infraestructura Social",
+    origin: "Area tecnica",
+    promoterArea: "Infraestructura Social",
     description: "Equipamiento publico para actividades barriales, asistencia y gestion territorial.",
     objective: "Concentrar servicios comunitarios y actividades sociales en un nodo de acceso barrial.",
     impact: ["Mejor acceso a servicios", "Fortalecimiento barrial", "Uso intensivo de equipamiento publico"],
@@ -92,6 +104,9 @@ export const urbanProjects: UrbanProject[] = [
     neighborhood: "Centro / Norte",
     author: "Gabinete urbano",
     responsible: "Planeamiento Urbano",
+    origin: "Gabinete",
+    promoterArea: "Planeamiento Urbano",
+    linkedMeetingId: "gabinete-2026-06-11",
     description: "Zona de estudio para ordenar densidad, alturas y compatibilidad con servicios.",
     objective: "Actualizar criterios de densidad edilicia segun capacidad vial, servicios y caracter urbano.",
     impact: ["Mayor previsibilidad normativa", "Ordenamiento de inversiones", "Proteccion de areas sensibles"],
@@ -111,6 +126,8 @@ export const urbanProjects: UrbanProject[] = [
     neighborhood: "Este",
     author: "Defensa Civil",
     responsible: "Defensa Civil",
+    origin: "Area tecnica",
+    promoterArea: "Defensa Civil",
     description: "Puntos criticos para obras de drenaje, monitoreo y reduccion de vulnerabilidad.",
     objective: "Reducir vulnerabilidad hidrica en sectores cercanos al borde del Rio Sali.",
     impact: ["Menor riesgo ante lluvias", "Priorizacion de obras", "Mejor respuesta preventiva"],
@@ -130,6 +147,8 @@ export const urbanProjects: UrbanProject[] = [
     neighborhood: "Centro",
     author: "Movilidad Urbana",
     responsible: "Movilidad Urbana",
+    origin: "Gabinete",
+    promoterArea: "Movilidad Urbana",
     description: "Prueba de pacificacion vial para priorizar caminabilidad y actividad comercial.",
     objective: "Evaluar impacto de una calle con prioridad peatonal en comercio, seguridad y movilidad.",
     impact: ["Mas caminabilidad", "Mayor actividad comercial", "Menor conflicto vehicular"],

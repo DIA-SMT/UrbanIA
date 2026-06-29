@@ -12,13 +12,13 @@
 
 body {
   margin: 0;
-  background: #071118;
-  color: #edf7f2;
+  background: #06121f;
+  color: #eef7ff;
 }
 
 .urban-card {
   border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(12, 24, 32, 0.86);
+  background: rgba(8, 24, 40, 0.88);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
   transition:
     transform 180ms ease,
@@ -44,8 +44,8 @@ body {
 
 .urban-lift:hover {
   transform: translateY(-3px);
-  border-color: rgba(66, 211, 146, 0.36);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36), 0 0 28px rgba(66, 211, 146, 0.12);
+  border-color: rgba(31, 137, 246, 0.42);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36), 0 0 28px rgba(31, 137, 246, 0.14);
 }
 
 .urban-button {
@@ -60,7 +60,7 @@ body {
 
 .urban-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 32px rgba(16, 185, 129, 0.22);
+  box-shadow: 0 14px 32px rgba(31, 137, 246, 0.24);
 }
 
 .urban-button:active {
@@ -114,10 +114,10 @@ body {
 @keyframes urban-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(66, 211, 146, 0.24);
+    box-shadow: 0 0 0 0 rgba(31, 137, 246, 0.24);
   }
   50% {
-    box-shadow: 0 0 0 8px rgba(66, 211, 146, 0);
+    box-shadow: 0 0 0 8px rgba(31, 137, 246, 0);
   }
 }
 
@@ -142,7 +142,7 @@ body {
 }
 
 .leaflet-container {
-  background: #071118;
+  background: #06121f;
   color: #0f172a;
 }
 
@@ -161,4 +161,159 @@ body {
 
 .leaflet-popup-content {
   margin: 12px 14px;
+}
+
+html.urban-light {
+  color-scheme: light;
+}
+
+html.urban-light body {
+  background: #eaf2fb;
+  color: #0b1220;
+}
+
+html.urban-light .urban-card {
+  border-color: rgba(31, 137, 246, 0.24);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 46px rgba(15, 23, 42, 0.1);
+}
+
+html.urban-light .urban-lift:hover {
+  border-color: rgba(31, 137, 246, 0.34);
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.12), 0 0 24px rgba(31, 137, 246, 0.1);
+}
+
+html.urban-light .map-grid {
+  background-image:
+    linear-gradient(rgba(31, 137, 246, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 137, 246, 0.08) 1px, transparent 1px);
+}
+
+html.urban-light .text-white,
+html.urban-light .text-slate-100,
+html.urban-light .text-slate-200 {
+  color: #07111f !important;
+}
+
+html.urban-light .text-slate-300 {
+  color: #1f334d !important;
+}
+
+html.urban-light .text-slate-400,
+html.urban-light .text-slate-500 {
+  color: #475569 !important;
+}
+
+html.urban-light .text-sky-100,
+html.urban-light .text-sky-200,
+html.urban-light .text-sky-300,
+html.urban-light .text-civic-sky {
+  color: #0369a1 !important;
+}
+
+html.urban-light .text-amber-100,
+html.urban-light .text-amber-200,
+html.urban-light .text-amber-300 {
+  color: #92400e !important;
+}
+
+html.urban-light .text-violet-100,
+html.urban-light .text-violet-200 {
+  color: #5b21b6 !important;
+}
+
+html.urban-light .text-rose-100,
+html.urban-light .text-rose-200 {
+  color: #be123c !important;
+}
+
+html.urban-light .bg-civic-blue,
+html.urban-light .file\:bg-civic-blue::file-selector-button {
+  background-color: #1f89f6 !important;
+  color: #ffffff !important;
+}
+
+html.urban-light .bg-civic-blue.text-white,
+html.urban-light .bg-civic-blue .text-white,
+html.urban-light button.bg-civic-blue,
+html.urban-light a.bg-civic-blue {
+  color: #ffffff !important;
+}
+
+html.urban-light [class*="bg-slate-950"] {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+}
+
+html.urban-light [class*="bg-white/[0."],
+html.urban-light [class*="bg-white/["] {
+  background-color: rgba(248, 251, 255, 0.92) !important;
+}
+
+html.urban-light [class*="border-white/"],
+html.urban-light [class*="border-white\/"] {
+  border-color: rgba(31, 137, 246, 0.22) !important;
+}
+
+html.urban-light input,
+html.urban-light select,
+html.urban-light textarea {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(31, 137, 246, 0.18) !important;
+  color: #0f172a !important;
+}
+
+html.urban-light input::placeholder,
+html.urban-light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.urban-light .leaflet-container {
+  background: #eaf3fb;
+}
+
+html.urban-light .leaflet-control-zoom a,
+html.urban-light .leaflet-popup-content-wrapper,
+html.urban-light .leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: #0f172a !important;
+  border-color: rgba(31, 137, 246, 0.2) !important;
+}
+html.urban-light [class*="bg-sky-300/10"],
+html.urban-light [class*="bg-sky-400/15"],
+html.urban-light [class*="bg-sky-400/18"],
+html.urban-light [class*="bg-sky-400/20"] {
+  background-color: #dff3ff !important;
+}
+
+html.urban-light [class*="border-sky-300"] {
+  border-color: #9bd8ff !important;
+}
+
+html.urban-light [class*="bg-amber-300/10"],
+html.urban-light [class*="bg-amber-400/15"] {
+  background-color: #fff4d6 !important;
+}
+
+html.urban-light [class*="bg-violet-300/10"],
+html.urban-light [class*="bg-violet-400/15"] {
+  background-color: #f0e8ff !important;
+}
+
+html.urban-light [class*="bg-rose-300/10"],
+html.urban-light [class*="bg-rose-400/15"] {
+  background-color: #ffe5ee !important;
+}
+
+html.urban-light [class*="bg-orange-300/10"],
+html.urban-light [class*="bg-orange-400/15"] {
+  background-color: #ffeedc !important;
+}
+
+html.urban-light [class*="bg-slate-700"] {
+  background-color: #1e3a5f !important;
+  color: #ffffff !important;
+}
+
+html.urban-light .shadow-glow {
+  box-shadow: 0 0 32px rgba(31, 137, 246, 0.16) !important;
 }

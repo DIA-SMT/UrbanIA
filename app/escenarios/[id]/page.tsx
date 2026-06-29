@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -45,7 +45,7 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
           <ArrowLeft className="h-4 w-4" />
           Volver a propuestas
         </Link>
-        <Link href={`/proyectos/${project.id}`} className="urban-button inline-flex items-center gap-2 rounded-md border border-emerald-300/25 bg-emerald-300/10 px-3 py-2 text-sm font-black text-emerald-100">
+        <Link href={`/proyectos/${project.id}`} className="urban-button inline-flex items-center gap-2 rounded-md border border-sky-300/25 bg-sky-300/10 px-3 py-2 text-sm font-black text-sky-100">
           Abrir ficha del proyecto
           <ArrowRight className="h-4 w-4" />
         </Link>
@@ -54,14 +54,14 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
       <section className="urban-card urban-lift overflow-hidden rounded-lg">
         <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-7">
           <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-emerald-200">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-sky-200">
               <Sparkles className="h-4 w-4" />
               Escenario de decision
             </div>
             <h1 className="max-w-4xl text-3xl font-black leading-tight text-white md:text-5xl">{scenario.title}</h1>
             <p className="mt-4 max-w-4xl text-sm leading-7 text-slate-300 md:text-base">{scenario.executiveSummary}</p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <span className="rounded-md bg-emerald-400/15 px-3 py-2 text-xs font-black text-emerald-200">{project.status}</span>
+              <span className="rounded-md bg-sky-400/15 px-3 py-2 text-xs font-black text-sky-200">{project.status}</span>
               <span className="rounded-md bg-cyan-400/15 px-3 py-2 text-xs font-black text-cyan-100">{project.layer}</span>
               <span className="rounded-md bg-white/[0.06] px-3 py-2 text-xs font-black text-slate-300">{project.neighborhood}</span>
             </div>
@@ -69,7 +69,7 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
 
           <div className="rounded-lg border border-white/10 bg-slate-950/45 p-4">
             <p className="mb-3 flex items-center gap-2 text-sm font-black text-white">
-              <BarChart3 className="h-4 w-4 text-civic-mint" />
+              <BarChart3 className="h-4 w-4 text-civic-sky" />
               Matriz rapida
             </p>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -113,7 +113,7 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
 
           <div className="urban-card rounded-lg p-5 lg:col-span-2">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-white">
-              <Layers3 className="h-5 w-5 text-civic-mint" />
+              <Layers3 className="h-5 w-5 text-civic-sky" />
               Alternativas para gabinete
             </h2>
             <div className="grid gap-3 lg:grid-cols-3">
@@ -135,7 +135,7 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
         <aside className="space-y-4">
           <div className="urban-card urban-lift rounded-lg p-5">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-white">
-              <ClipboardList className="h-5 w-5 text-emerald-300" />
+              <ClipboardList className="h-5 w-5 text-sky-300" />
               Checklist de decision
             </h2>
             <List items={scenario.cabinetChecklist} color="emerald" />
@@ -147,7 +147,7 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
               Informe preliminar
             </h2>
             <p className="text-sm leading-7 text-slate-300">{scenario.recommendation}</p>
-            <button className="urban-button mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-3 text-sm font-black text-civic-ink">
+            <button className="urban-button mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white">
               <FileText className="h-4 w-4" />
               Generar informe para gabinete
             </button>
@@ -160,7 +160,7 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
 
 function CriterionCard({ criterion }: { criterion: ScenarioDecisionCriterion }) {
   const colors: Record<ScenarioDecisionCriterion["tone"], string> = {
-    emerald: "border-emerald-300/20 bg-emerald-300/10 text-emerald-100",
+    emerald: "border-sky-300/20 bg-sky-300/10 text-sky-100",
     amber: "border-amber-300/20 bg-amber-300/10 text-amber-100",
     cyan: "border-cyan-300/20 bg-cyan-300/10 text-cyan-100",
     rose: "border-rose-300/20 bg-rose-300/10 text-rose-100"
@@ -178,7 +178,7 @@ function Panel({ title, icon: Icon, children }: { title: string; icon: typeof Gi
   return (
     <div className="urban-card urban-lift rounded-lg p-5">
       <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-white">
-        <Icon className="h-5 w-5 text-civic-mint" />
+        <Icon className="h-5 w-5 text-civic-sky" />
         {title}
       </h2>
       {children}
@@ -187,7 +187,7 @@ function Panel({ title, icon: Icon, children }: { title: string; icon: typeof Gi
 }
 
 function List({ items, color }: { items: string[]; color: "emerald" | "amber" | "cyan" }) {
-  const iconColor = color === "emerald" ? "text-emerald-300" : color === "amber" ? "text-amber-300" : "text-cyan-300";
+  const iconColor = color === "emerald" ? "text-sky-300" : color === "amber" ? "text-amber-300" : "text-cyan-300";
 
   return (
     <div className="space-y-3">

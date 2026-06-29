@@ -32,7 +32,7 @@ const pins = [
     icon: Trees,
     label: "Espacios verdes",
     layer: "Espacios verdes",
-    className: "left-[70%] top-[31%] bg-emerald-500",
+    className: "left-[70%] top-[31%] bg-civic-blue",
     description: "Plazas, parques, arbolado y cobertura ambiental por zona.",
     status: "Capa ambiental activa"
   },
@@ -137,7 +137,7 @@ export function CityMap({ dashboardMetrics = metrics }: { dashboardMetrics?: Das
           <div className="mt-5 grid grid-cols-3 gap-2">
             {dashboardMetrics.map((metric) => (
               <div key={metric.label} className="urban-lift rounded-md border border-white/10 bg-white/5 p-3">
-                <p className="text-2xl font-black leading-tight text-civic-mint">{metric.value}</p>
+                <p className="text-2xl font-black leading-tight text-civic-sky">{metric.value}</p>
                 <p className="mt-2 text-xs leading-4 text-slate-300">{metric.label}</p>
               </div>
             ))}
@@ -188,7 +188,7 @@ export function CityMap({ dashboardMetrics = metrics }: { dashboardMetrics?: Das
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-black text-white">{selectedPin.label}</p>
-                  <p className="text-xs font-semibold text-emerald-300">{selectedPin.layer}</p>
+                  <p className="text-xs font-semibold text-sky-300">{selectedPin.layer}</p>
                 </div>
                 <button onClick={() => setSelectedPin(null)} className="urban-button rounded-md p-1 text-slate-400">
                   <X className="h-4 w-4" />
@@ -208,7 +208,7 @@ export function CityMap({ dashboardMetrics = metrics }: { dashboardMetrics?: Das
                   key={layer}
                   onClick={() => toggleLayer(layer)}
                   className={`urban-button rounded-md px-3 py-2 text-xs font-semibold ${
-                    isActive ? "bg-emerald-400/18 text-emerald-100" : "bg-white/7 text-slate-400"
+                    isActive ? "bg-sky-400/18 text-sky-100" : "bg-white/7 text-slate-400"
                   }`}
                 >
                   {layer}
