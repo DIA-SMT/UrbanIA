@@ -44,7 +44,7 @@ const actorTypes = ["Concejal", "Planeamiento Urbano", "Vecino", "Colegio profes
 
 const statusStyles: Record<HearingStatus, string> = {
   Programada: "border-cyan-300/20 bg-cyan-300/10 text-cyan-100",
-  "En curso": "border-emerald-300/20 bg-emerald-300/10 text-emerald-200",
+  "En curso": "border-sky-300/20 bg-sky-300/10 text-sky-200",
   Finalizada: "border-violet-300/20 bg-violet-300/10 text-violet-200",
   Reprogramada: "border-amber-300/20 bg-amber-300/10 text-amber-200",
   Suspendida: "border-rose-300/20 bg-rose-300/10 text-rose-200"
@@ -284,7 +284,7 @@ export function HearingsBoard() {
       <section className="urban-card overflow-hidden rounded-lg">
         <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-7">
           <div className="min-w-0">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-emerald-200">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-sky-200">
               <MessageSquareText className="h-4 w-4" />
               Memoria publica
             </div>
@@ -314,7 +314,7 @@ export function HearingsBoard() {
       <section ref={agendaRef} className="grid scroll-mt-4 gap-4 xl:grid-cols-[minmax(340px,0.78fr)_minmax(0,1.22fr)]">
         <div className="urban-card min-w-0 rounded-lg p-4 lg:p-5">
           <div className="mb-4">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-300">Agenda publica</p>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Agenda publica</p>
             <div className="mt-2 flex items-end justify-between gap-3">
               <h2 className="text-2xl font-black text-white">Audiencias por fecha</h2>
               <span className="text-xs font-semibold text-slate-500">{filteredHearings.length} resultados</span>
@@ -329,7 +329,7 @@ export function HearingsBoard() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Buscar audiencia, propuesta o expediente..."
-                className="h-11 w-full rounded-md border border-white/10 bg-slate-950/70 pl-10 pr-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-emerald-300/50"
+                className="h-11 w-full rounded-md border border-white/10 bg-slate-950/70 pl-10 pr-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-300/50"
               />
             </label>
             <SelectFilter value={status} options={statuses} onChange={(value) => setStatus(value as HearingStatus | "Todos")} label="Estado" />
@@ -367,7 +367,7 @@ function HearingCard({ hearing, selected, onSelect }: { hearing: PublicHearing; 
     <button
       onClick={onSelect}
       className={`urban-lift w-full min-w-0 rounded-md border p-4 text-left transition ${
-        selected ? "border-emerald-300/35 bg-emerald-300/[0.08]" : "border-white/8 bg-white/[0.025] hover:border-white/15"
+        selected ? "border-sky-300/35 bg-sky-300/[0.08]" : "border-white/8 bg-white/[0.025] hover:border-white/15"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -379,7 +379,7 @@ function HearingCard({ hearing, selected, onSelect }: { hearing: PublicHearing; 
           </div>
           <h3 className="mt-2 break-words text-base font-black leading-6 text-white">{hearing.title}</h3>
         </div>
-        <ChevronRight className={`mt-1 h-5 w-5 shrink-0 ${selected ? "text-emerald-300" : "text-slate-600"}`} />
+        <ChevronRight className={`mt-1 h-5 w-5 shrink-0 ${selected ? "text-sky-300" : "text-slate-600"}`} />
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         <StatusBadge status={hearing.status} />
@@ -422,7 +422,7 @@ function HearingDetail({ hearing, activeTab, onTabChange, onUpdate }: {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={hearing.status} />
-            <span className="rounded-md bg-emerald-400/15 px-2.5 py-1 text-xs font-black text-emerald-200">{hearing.mainTopic}</span>
+            <span className="rounded-md bg-sky-400/15 px-2.5 py-1 text-xs font-black text-sky-200">{hearing.mainTopic}</span>
             <span className="rounded-md bg-white/[0.06] px-2.5 py-1 text-xs font-bold text-slate-300">Origen: {hearing.proposalOrigin}</span>
           </div>
           {!isClosed ? (
@@ -453,7 +453,7 @@ function HearingDetail({ hearing, activeTab, onTabChange, onUpdate }: {
               key={label}
               onClick={() => onTabChange(label)}
               className={`urban-button inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-black ${
-                activeTab === label ? "bg-emerald-400/15 text-emerald-200" : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
+                activeTab === label ? "bg-sky-400/15 text-sky-200" : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -487,8 +487,8 @@ function SummaryTab({ hearing }: { hearing: PublicHearing }) {
         <DetailBlock label="Tematicas secundarias" value={hearing.secondaryTopics.join(", ") || "Sin tematicas secundarias"} />
       </div>
 
-      <div className="rounded-md border border-emerald-300/15 bg-emerald-300/[0.05] p-4">
-        <div className="flex items-center gap-2 text-sm font-black text-emerald-200"><Link2 className="h-4 w-4" /> Expediente relacionado</div>
+      <div className="rounded-md border border-sky-300/15 bg-sky-300/[0.05] p-4">
+        <div className="flex items-center gap-2 text-sm font-black text-sky-200"><Link2 className="h-4 w-4" /> Expediente relacionado</div>
         <h3 className="mt-3 text-xl font-black text-white">{hearing.recordNumber}</h3>
         <p className="mt-1 text-sm leading-6 text-slate-300">{hearing.recordTitle}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -560,9 +560,9 @@ function DebateTab({ hearing, isClosed, onUpdate }: { hearing: PublicHearing; is
       </div>
 
       {!isClosed ? (
-        <div className="rounded-md border border-emerald-300/15 bg-emerald-300/[0.04] p-3">
+        <div className="rounded-md border border-sky-300/15 bg-sky-300/[0.04] p-3">
           <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)_auto]">
-            <input value={author} onChange={(event) => setAuthor(event.target.value)} aria-label="Autor del mensaje" className="h-11 min-w-0 rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-100 outline-none focus:border-emerald-300/50" />
+            <input value={author} onChange={(event) => setAuthor(event.target.value)} aria-label="Autor del mensaje" className="h-11 min-w-0 rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-100 outline-none focus:border-sky-300/50" />
             <input
               value={message}
               onChange={(event) => setMessage(event.target.value)}
@@ -574,9 +574,9 @@ function DebateTab({ hearing, isClosed, onUpdate }: { hearing: PublicHearing; is
               }}
               aria-label="Mensaje para el debate"
               placeholder="Escribi una observacion para el debate..."
-              className="h-11 min-w-0 rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-100 outline-none placeholder:text-slate-600 focus:border-emerald-300/50"
+              className="h-11 min-w-0 rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-100 outline-none placeholder:text-slate-600 focus:border-sky-300/50"
             />
-            <button onClick={addMessage} disabled={!message.trim() || !author.trim()} aria-label="Enviar mensaje" className="urban-button grid h-11 w-11 place-items-center rounded-md bg-emerald-500 text-civic-ink disabled:cursor-not-allowed disabled:opacity-40"><Send className="h-4 w-4" /></button>
+            <button onClick={addMessage} disabled={!message.trim() || !author.trim()} aria-label="Enviar mensaje" className="urban-button grid h-11 w-11 place-items-center rounded-md bg-civic-blue text-white disabled:cursor-not-allowed disabled:opacity-40"><Send className="h-4 w-4" /></button>
           </div>
         </div>
       ) : null}
@@ -622,7 +622,7 @@ function ContributionsTab({ hearing, isClosed, onUpdate }: { hearing: PublicHear
     <div className="space-y-4">
       <SectionTitle eyebrow="Presentaciones formales" title="Aportes a la audiencia" />
       {!isClosed ? (
-        <div className="rounded-md border border-emerald-300/15 bg-emerald-300/[0.04] p-4">
+        <div className="rounded-md border border-sky-300/15 bg-sky-300/[0.04] p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <TextInput label="Autor del aporte" value={author} onChange={setAuthor} placeholder="Persona, institucion u organizacion" />
             <label className="grid gap-2">
@@ -634,7 +634,7 @@ function ContributionsTab({ hearing, isClosed, onUpdate }: { hearing: PublicHear
             <TextArea label="Contenido del aporte" value={content} onChange={setContent} />
           </div>
           <div className="mt-3 flex justify-end">
-            <button onClick={addContribution} disabled={!author.trim() || (!content.trim() && !fileNames.length)} className="urban-button inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2.5 text-sm font-black text-civic-ink disabled:cursor-not-allowed disabled:opacity-40"><Upload className="h-4 w-4" /> Publicar aporte</button>
+            <button onClick={addContribution} disabled={!author.trim() || (!content.trim() && !fileNames.length)} className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"><Upload className="h-4 w-4" /> Publicar aporte</button>
           </div>
         </div>
       ) : null}
@@ -688,13 +688,13 @@ function AiTab({ hearing, onUpdate }: { hearing: PublicHearing; onUpdate: (heari
         {hearing.aiSummary ? <button onClick={downloadReport} className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black text-slate-200"><Download className="h-4 w-4" /> Descargar reporte</button> : null}
       </div>
 
-      <div className="rounded-md border border-emerald-300/15 bg-emerald-300/[0.04] p-4">
+      <div className="rounded-md border border-sky-300/15 bg-sky-300/[0.04] p-4">
         <div className="flex items-start gap-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-emerald-400/15 text-emerald-200"><Sparkles className="h-5 w-5" /></div>
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-sky-400/15 text-sky-200"><Sparkles className="h-5 w-5" /></div>
           <div className="min-w-0 flex-1">
             <h3 className="font-black text-white">Resumen y puntos clave</h3>
             <p className="mt-1 text-sm leading-6 text-slate-400">Consolida el debate, los aportes, las conclusiones y los vinculos con el Codigo de Planeamiento Urbano.</p>
-            <button onClick={generateAnalysis} disabled={!hasSourceMaterial} className="urban-button mt-3 inline-flex items-center gap-2 rounded-md bg-emerald-500 px-3 py-2 text-xs font-black text-civic-ink disabled:cursor-not-allowed disabled:opacity-40"><Brain className="h-4 w-4" /> {hearing.aiSummary ? "Regenerar sintesis" : "Generar sintesis"}</button>
+            <button onClick={generateAnalysis} disabled={!hasSourceMaterial} className="urban-button mt-3 inline-flex items-center gap-2 rounded-md bg-civic-blue px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40"><Brain className="h-4 w-4" /> {hearing.aiSummary ? "Regenerar sintesis" : "Generar sintesis"}</button>
             {!hasSourceMaterial ? <p className="mt-2 text-xs text-amber-200">Se necesita al menos un mensaje o aporte para generar la sintesis.</p> : null}
           </div>
         </div>
@@ -731,7 +731,7 @@ function ParticipantsTab({ hearing }: { hearing: PublicHearing }) {
               <h3 className="break-words font-black text-white">{participant.name}</h3>
               <p className="mt-1 text-sm text-slate-400">{participant.institution}</p>
             </div>
-            <span className={`rounded-md px-2.5 py-1 text-xs font-bold ${participant.attended ? "bg-emerald-400/15 text-emerald-200" : "bg-amber-400/15 text-amber-100"}`}>
+            <span className={`rounded-md px-2.5 py-1 text-xs font-bold ${participant.attended ? "bg-sky-400/15 text-sky-200" : "bg-amber-400/15 text-amber-100"}`}>
               {participant.attended ? "Asistio" : "Convocado"}
             </span>
           </div>
@@ -835,7 +835,7 @@ function HearingFormPanel({ form, onClose, onSubmit, onUpdate }: {
     <section className="urban-card rounded-lg p-4 lg:p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-300">Nueva audiencia</p>
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Nueva audiencia</p>
           <h2 className="mt-2 text-2xl font-black text-white">Registro de deliberacion publica</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">Completa la convocatoria, el expediente y la memoria inicial. Las conclusiones pueden actualizarse al finalizar.</p>
         </div>
@@ -879,7 +879,7 @@ function HearingFormPanel({ form, onClose, onSubmit, onUpdate }: {
           <TextArea label="Intervencion prevista o realizada" value={form.participantIntervention} onChange={(value) => onUpdate("participantIntervention", value)} />
           <label className="grid gap-2">
             <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Documentos adjuntos</span>
-            <input type="file" multiple onChange={(event) => onUpdate("documents", Array.from(event.target.files ?? []).map((file) => file.name))} className="w-full rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm font-semibold text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-emerald-400/15 file:px-3 file:py-2 file:font-bold file:text-emerald-200" />
+            <input type="file" multiple onChange={(event) => onUpdate("documents", Array.from(event.target.files ?? []).map((file) => file.name))} className="w-full rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm font-semibold text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-sky-400/15 file:px-3 file:py-2 file:font-bold file:text-sky-200" />
             <span className="text-xs text-slate-500">Actas, informes, fotos, planos, mapas, dictamenes, notas o transcripciones.</span>
           </label>
         </FormSection>
@@ -903,7 +903,7 @@ function HearingFormPanel({ form, onClose, onSubmit, onUpdate }: {
 
         <div className="flex flex-wrap justify-end gap-3 border-t border-white/8 pt-5">
           <button type="button" onClick={onClose} className="urban-button rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-slate-300">Cancelar</button>
-          <button type="submit" className="urban-button inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-3 text-sm font-black text-civic-ink"><Plus className="h-4 w-4" /> Registrar audiencia</button>
+          <button type="submit" className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white"><Plus className="h-4 w-4" /> Registrar audiencia</button>
         </div>
       </form>
     </section>
@@ -911,11 +911,11 @@ function HearingFormPanel({ form, onClose, onSubmit, onUpdate }: {
 }
 
 function ActionButton({ icon: Icon, label, primary, onClick }: { icon: typeof Plus; label: string; primary?: boolean; onClick: () => void }) {
-  return <button onClick={onClick} className={`urban-button inline-flex items-center gap-2 rounded-md px-3.5 py-2.5 text-sm font-black ${primary ? "bg-emerald-500 text-civic-ink" : "border border-white/10 bg-white/[0.04] text-slate-200"}`}><Icon className="h-4 w-4" />{label}</button>;
+  return <button onClick={onClick} className={`urban-button inline-flex items-center gap-2 rounded-md px-3.5 py-2.5 text-sm font-black ${primary ? "bg-civic-blue text-white" : "border border-white/10 bg-white/[0.04] text-slate-200"}`}><Icon className="h-4 w-4" />{label}</button>;
 }
 
 function Metric({ label, value, icon: Icon }: { label: string; value: string; icon: typeof CalendarDays }) {
-  return <div className="urban-lift rounded-md border border-white/10 bg-slate-950/45 p-4"><Icon className="h-4 w-4 text-civic-mint" /><p className="mt-3 text-2xl font-black text-white">{value}</p><p className="mt-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p></div>;
+  return <div className="urban-lift rounded-md border border-white/10 bg-slate-950/45 p-4"><Icon className="h-4 w-4 text-civic-sky" /><p className="mt-3 text-2xl font-black text-white">{value}</p><p className="mt-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p></div>;
 }
 
 function StatusBadge({ status }: { status: HearingStatus }) {
@@ -923,11 +923,11 @@ function StatusBadge({ status }: { status: HearingStatus }) {
 }
 
 function InlineFact({ icon: Icon, text }: { icon: typeof CalendarDays; text: string }) {
-  return <span className="flex min-w-0 items-start gap-2"><Icon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" /><span className="break-words">{text}</span></span>;
+  return <span className="flex min-w-0 items-start gap-2"><Icon className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" /><span className="break-words">{text}</span></span>;
 }
 
 function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return <div><p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-300">{eyebrow}</p><h3 className="mt-1 text-xl font-black text-white">{title}</h3></div>;
+  return <div><p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">{eyebrow}</p><h3 className="mt-1 text-xl font-black text-white">{title}</h3></div>;
 }
 
 function DetailBlock({ label, value }: { label: string; value: string }) {
@@ -943,19 +943,19 @@ function FormSection({ title, children }: { title: string; children: React.React
 }
 
 function TextInput({ label, value, onChange, placeholder, required, type = "text" }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; required?: boolean; type?: string }) {
-  return <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</span><input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} className="h-11 w-full min-w-0 rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-emerald-300/50" /></label>;
+  return <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</span><input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} className="h-11 w-full min-w-0 rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-300/50" /></label>;
 }
 
 function TextArea({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</span><textarea rows={3} value={value} onChange={(event) => onChange(event.target.value)} className="w-full resize-y rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm font-semibold leading-6 text-slate-100 outline-none transition focus:border-emerald-300/50" /></label>;
+  return <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</span><textarea rows={3} value={value} onChange={(event) => onChange(event.target.value)} className="w-full resize-y rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm font-semibold leading-6 text-slate-100 outline-none transition focus:border-sky-300/50" /></label>;
 }
 
 function SelectInput({ label, value, options, onChange }: { label: string; value: string; options: readonly string[]; onChange: (value: string) => void }) {
-  return <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full min-w-0 rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-100 outline-none transition focus:border-emerald-300/50">{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>;
+  return <label className="grid gap-2"><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full min-w-0 rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-100 outline-none transition focus:border-sky-300/50">{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>;
 }
 
 function SelectFilter({ inputRef, label, value, options, onChange }: { inputRef?: React.RefObject<HTMLSelectElement | null>; label: string; value: string; options: readonly string[]; onChange: (value: string) => void }) {
-  return <label className="grid gap-1.5"><span className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</span><select ref={inputRef} value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-200 outline-none transition focus:border-emerald-300/50">{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>;
+  return <label className="grid gap-1.5"><span className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</span><select ref={inputRef} value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-200 outline-none transition focus:border-sky-300/50">{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>;
 }
 
 function formatDate(value: string) {
