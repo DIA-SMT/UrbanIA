@@ -1,5 +1,5 @@
-import { ModulePage } from "@/components/modules/module-page";
+import { UrbanMapShell } from "@/components/map/urban-map-shell";
 
 export default function MapaPage() {
-  return <ModulePage moduleKey="mapa" />;
+  return <UrbanMapShell />;
 }

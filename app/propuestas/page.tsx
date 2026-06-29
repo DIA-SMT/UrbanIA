@@ -1,5 +1,10 @@
-import { ModulePage } from "@/components/modules/module-page";
+﻿import { AppShell } from "@/components/shell";
+import { ProposalsBoard } from "@/components/proposals/proposals-board";
 
 export default function PropuestasPage() {
-  return <ModulePage moduleKey="propuestas" />;
+  return (
+    <AppShell>
+      <ProposalsBoard />
+    </AppShell>
+  );
 }
