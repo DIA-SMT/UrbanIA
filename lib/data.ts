@@ -4,6 +4,7 @@ import {
   Building2,
   CircleDot,
   CalendarDays,
+  ClipboardList,
   FileText,
   Layers3,
   Map,
@@ -16,6 +17,7 @@ export const navItems = [
   { label: "Propuestas", href: "/propuestas", icon: CircleDot },
   { label: "Codigo urbano", href: "/normativa", icon: FileText },
   { label: "Audiencias", href: "/audiencias", icon: CalendarDays },
+  { label: "Gabinete", href: "/gabinete", icon: ClipboardList },
   { label: "Aportes Cidituc", href: "/participacion", icon: Vote },
   { label: "Analisis IA", href: "/asistente", icon: BookOpen },
   { label: "Mapa", href: "/mapa", icon: Map }
@@ -28,6 +30,7 @@ export const sidebarSections = [
       { label: "Propuestas oficiales", href: "/propuestas", icon: CircleDot },
       { label: "Codigo de Planeamiento", href: "/normativa", icon: FileText },
       { label: "Audiencias publicas", href: "/audiencias", icon: CalendarDays },
+      { label: "Reuniones de gabinete", href: "/gabinete", icon: ClipboardList },
       { label: "Mapa interactivo", href: "/mapa", icon: Map },
       { label: "Proyectos vinculados", href: "/proyectos", icon: Building2 }
     ]

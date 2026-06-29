@@ -79,7 +79,7 @@ export function ProposalSimulatorPanel() {
           </div>
         ))}
       </div>
-      <button className="urban-button mt-5 w-full rounded-md bg-emerald-500 px-4 py-3 text-sm font-bold text-civic-ink">Abrir trazabilidad</button>
+      <Link href="/escenarios/codigo-alturas" className="urban-button mt-5 inline-flex w-full items-center justify-center rounded-md bg-emerald-500 px-4 py-3 text-sm font-bold text-civic-ink">Abrir trazabilidad</Link>
     </Panel>
   );
 }
@@ -158,7 +158,7 @@ export function DataSourcesPanel() {
 
 export function CabinetPanel() {
   return (
-    <Panel title="Registro de gabinete y audiencias" action="Agenda">
+    <Panel title="Registro de gabinete y audiencias" action="Abrir registro" actionHref="/gabinete">
       <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
         {[
           ["Reuniones", cabinetSummary.meetings.toString(), BookOpen],
@@ -265,12 +265,13 @@ function cabinetStatusClass(status: CabinetTopicStatus) {
   return styles[status];
 }
 
-function Panel({ title, action, badge, children }: { title: string; action?: string; badge?: string; children: React.ReactNode }) {
+function Panel({ title, action, actionHref, badge, children }: { title: string; action?: string; actionHref?: string; badge?: string; children: React.ReactNode }) {
   return (
     <section className="urban-card urban-lift min-w-0 rounded-lg p-4">
       <div className="mb-4 flex items-start justify-between gap-3">
         <h2 className="text-base font-bold leading-snug text-white">{title}</h2>
-        {action ? <button className="urban-button shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-emerald-300">{action}</button> : null}
+        {action && actionHref ? <Link href={actionHref} className="urban-button shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-emerald-300">{action}</Link> : null}
+        {action && !actionHref ? <button className="urban-button shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-emerald-300">{action}</button> : null}
         {badge ? <span className="urban-pulse shrink-0 rounded-md bg-emerald-400/15 px-2 py-1 text-xs font-bold text-emerald-200">{badge}</span> : null}
       </div>
       {children}

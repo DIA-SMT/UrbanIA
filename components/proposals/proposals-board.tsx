@@ -480,10 +480,10 @@ function ProposalDetail({ project }: { project: UrbanProject }) {
       </div>
 
       <div className="mt-5 grid gap-3">
-        <button className="urban-button inline-flex items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-3 text-sm font-black text-civic-ink">
+        <Link href={`/escenarios/${project.id}`} className="urban-button inline-flex items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-3 text-sm font-black text-civic-ink">
           <Sparkles className="h-4 w-4" />
           Convertir en escenario
-        </button>
+        </Link>
         <Link href={`/proyectos/${project.id}`} className="urban-button inline-flex items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-slate-200">
           Abrir ficha completa
           <ArrowUpRight className="h-4 w-4" />
