@@ -61,7 +61,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
       <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="grid gap-4 lg:grid-cols-2">
-          <InfoPanel title="Impactos esperados" icon={BarChart3} items={project.impact} tone="emerald" />
+          <InfoPanel title="Impactos esperados" icon={BarChart3} items={project.impact} tone="sky" />
           <InfoPanel title="Riesgos a gestionar" icon={ShieldAlert} items={project.risks} tone="amber" />
           <div className="urban-card urban-lift rounded-lg p-5 lg:col-span-2">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-white">
@@ -112,8 +112,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   );
 }
 
-function InfoPanel({ title, icon: Icon, items, tone }: { title: string; icon: typeof BarChart3; items: string[]; tone: "emerald" | "amber" }) {
-  const iconColor = tone === "emerald" ? "text-sky-300" : "text-amber-300";
+function InfoPanel({ title, icon: Icon, items, tone }: { title: string; icon: typeof BarChart3; items: string[]; tone: "sky" | "amber" }) {
+  const iconColor = tone === "sky" ? "text-sky-300" : "text-amber-300";
 
   return (
     <div className="urban-card urban-lift rounded-lg p-5">

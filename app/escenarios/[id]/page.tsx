@@ -96,7 +96,7 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
           </Panel>
 
           <Panel title="Evidencia disponible" icon={BookOpen}>
-            <List items={scenario.evidence} color="emerald" />
+            <List items={scenario.evidence} color="sky" />
           </Panel>
 
           <Panel title="Informacion faltante" icon={ShieldAlert}>
@@ -108,7 +108,7 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
           </Panel>
 
           <Panel title="Aportes ciudadanos vinculados" icon={MessageSquare}>
-            <List items={scenario.citizenInputs} color="emerald" />
+            <List items={scenario.citizenInputs} color="sky" />
           </Panel>
 
           <div className="urban-card rounded-lg p-5 lg:col-span-2">
@@ -138,7 +138,7 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
               <ClipboardList className="h-5 w-5 text-sky-300" />
               Checklist de decision
             </h2>
-            <List items={scenario.cabinetChecklist} color="emerald" />
+            <List items={scenario.cabinetChecklist} color="sky" />
           </div>
 
           <div className="urban-card rounded-lg p-5">
@@ -160,7 +160,7 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
 
 function CriterionCard({ criterion }: { criterion: ScenarioDecisionCriterion }) {
   const colors: Record<ScenarioDecisionCriterion["tone"], string> = {
-    emerald: "border-sky-300/20 bg-sky-300/10 text-sky-100",
+    sky: "border-sky-300/20 bg-sky-300/10 text-sky-100",
     amber: "border-amber-300/20 bg-amber-300/10 text-amber-100",
     cyan: "border-cyan-300/20 bg-cyan-300/10 text-cyan-100",
     rose: "border-rose-300/20 bg-rose-300/10 text-rose-100"
@@ -186,8 +186,8 @@ function Panel({ title, icon: Icon, children }: { title: string; icon: typeof Gi
   );
 }
 
-function List({ items, color }: { items: string[]; color: "emerald" | "amber" | "cyan" }) {
-  const iconColor = color === "emerald" ? "text-sky-300" : color === "amber" ? "text-amber-300" : "text-cyan-300";
+function List({ items, color }: { items: string[]; color: "sky" | "amber" | "cyan" }) {
+  const iconColor = color === "sky" ? "text-sky-300" : color === "amber" ? "text-amber-300" : "text-cyan-300";
 
   return (
     <div className="space-y-3">
