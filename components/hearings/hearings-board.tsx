@@ -292,7 +292,7 @@ export function HearingsBoard() {
             <p className="mt-4 max-w-4xl text-sm leading-7 text-slate-300 md:text-base">
               Consulta las audiencias vinculadas al Codigo de Planeamiento Urbano, sus expedientes, participantes, documentos, temas observados y conclusiones.
             </p>
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="mt-6 grid gap-2 sm:flex sm:flex-wrap">
               <ActionButton icon={Plus} label="Nueva audiencia" primary onClick={() => setIsFormOpen(true)} />
               <ActionButton icon={CalendarDays} label="Ver agenda" onClick={openAgenda} />
               <ActionButton icon={Filter} label="Filtrar por tematica" onClick={focusTopicFilter} />
@@ -300,7 +300,7 @@ export function HearingsBoard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Metric label="Audiencias" value={hearings.length.toString()} icon={CalendarDays} />
             <Metric label="Programadas" value={hearings.filter((item) => item.status === "Programada").length.toString()} icon={Clock3} />
             <Metric label="Participantes" value={participantCount.toString()} icon={Users} />
@@ -446,7 +446,7 @@ function HearingDetail({ hearing, activeTab, onTabChange, onUpdate }: {
         </div>
       ) : null}
 
-      <div className="overflow-x-auto border-b border-white/8 px-4 lg:px-5">
+      <div className="urban-scrollbar overflow-x-auto border-b border-white/8 px-4 lg:px-5">
         <div className="flex min-w-max gap-1 py-2">
           {tabs.map(({ label, icon: Icon, count }) => (
             <button
@@ -911,7 +911,7 @@ function HearingFormPanel({ form, onClose, onSubmit, onUpdate }: {
 }
 
 function ActionButton({ icon: Icon, label, primary, onClick }: { icon: typeof Plus; label: string; primary?: boolean; onClick: () => void }) {
-  return <button onClick={onClick} className={`urban-button inline-flex items-center gap-2 rounded-md px-3.5 py-2.5 text-sm font-black ${primary ? "bg-civic-blue text-white" : "border border-white/10 bg-white/[0.04] text-slate-200"}`}><Icon className="h-4 w-4" />{label}</button>;
+  return <button onClick={onClick} className={`urban-button inline-flex w-full items-center justify-center gap-2 rounded-md px-3.5 py-2.5 text-sm font-black sm:w-auto ${primary ? "bg-civic-blue text-white" : "border border-white/10 bg-white/[0.04] text-slate-200"}`}><Icon className="h-4 w-4" />{label}</button>;
 }
 
 function Metric({ label, value, icon: Icon }: { label: string; value: string; icon: typeof CalendarDays }) {

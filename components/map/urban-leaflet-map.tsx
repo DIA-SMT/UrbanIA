@@ -14,7 +14,7 @@ const layers: ProjectLayer[] = ["Transporte", "Espacios verdes", "Equipamiento",
 
 const layerStyles: Record<ProjectLayer, { color: string; icon: typeof Bike }> = {
   Transporte: { color: "#38bdf8", icon: Bike },
-  "Espacios verdes": { color: "#34d399", icon: Trees },
+  "Espacios verdes": { color: "#35aeea", icon: Trees },
   Equipamiento: { color: "#f59e0b", icon: Building2 },
   Zonificacion: { color: "#a78bfa", icon: Layers3 },
   Riesgos: { color: "#fb7185", icon: MapPin }
@@ -55,20 +55,20 @@ export function UrbanLeafletMap() {
           </div>
         </div>
 
-        <div className="relative h-[620px]">
+        <div className="relative h-[520px] md:h-[620px]">
           <MapContainer center={tucumanCenter} zoom={13} scrollWheelZoom className="h-full w-full">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <Polygon positions={studyArea} pathOptions={{ color: "#42d392", weight: 2, fillOpacity: 0.08 }} />
+            <Polygon positions={studyArea} pathOptions={{ color: "#1f89f6", weight: 2, fillOpacity: 0.08 }} />
             <MapFocus project={selectedProject} />
             {visibleProjects.map((project) => (
               <ProjectMarker key={project.id} project={project} onSelect={setSelectedProject} />
             ))}
           </MapContainer>
 
-          <div className="absolute left-4 top-4 z-[500] flex max-w-[calc(100%-2rem)] flex-wrap gap-2 rounded-md border border-white/10 bg-slate-950/80 p-2 backdrop-blur">
+          <div className="urban-scrollbar absolute left-4 top-4 z-[500] flex max-w-[calc(100%-2rem)] gap-2 overflow-x-auto rounded-md border border-white/10 bg-slate-950/80 p-2 backdrop-blur sm:flex-wrap sm:overflow-visible">
             {layers.map((layer) => {
               const isActive = activeLayers.includes(layer);
               const Icon = layerStyles[layer].icon;

@@ -20,12 +20,12 @@ export function ModulePage({ moduleKey }: ModulePageProps) {
             </div>
             <h1 className="max-w-3xl text-3xl font-black leading-tight text-white md:text-5xl">{page.title}</h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">{page.description}</p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-bold text-white">
+            <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
+              <button className="urban-button inline-flex w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-bold text-white sm:w-auto">
                 <Plus className="h-4 w-4" />
                 {page.primaryAction}
               </button>
-              <button className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200">
+              <button className="urban-button inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 sm:w-auto">
                 Ver tablero
                 <ArrowRight className="h-4 w-4" />
               </button>

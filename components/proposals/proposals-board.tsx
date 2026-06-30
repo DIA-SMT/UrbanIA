@@ -274,7 +274,7 @@ export function ProposalsBoard() {
             <SelectFilter label="Origen" value={origin} options={originOptions} onChange={(value) => setOrigin(value as ProjectOrigin | "Todas")} />
             <button
               onClick={() => setIsFormOpen(true)}
-              className="urban-button inline-flex h-14 items-center justify-center gap-2 rounded-md bg-civic-blue px-4 text-sm font-black text-white"
+              className="urban-button inline-flex h-14 w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 text-sm font-black text-white"
             >
               <Plus className="h-4 w-4" />
               Nueva
@@ -429,7 +429,7 @@ function ProposalCard({ project, selected, onSelect }: { project: UrbanProject; 
       </div>
       <h3 className="text-base font-black leading-6 text-white group-hover:text-sky-100">{project.title}</h3>
       <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-400">{project.description}</p>
-      <div className="mt-4 flex items-center justify-between gap-3 text-xs font-semibold text-slate-400">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs font-semibold text-slate-400">
         <span className="inline-flex items-center gap-1.5">
           <MapPin className="h-3.5 w-3.5" />
           {project.neighborhood}
@@ -456,7 +456,7 @@ function ProposalDetail({ project }: { project: UrbanProject }) {
 
       <p className="text-sm leading-6 text-slate-300">{project.objective}</p>
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
+      <div className="mt-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
         <MiniStat label="Apoyos" value={project.votes.toString()} icon={ThumbsUp} />
         <MiniStat label="Comentarios" value={project.comments.toString()} icon={MessageSquare} />
         <MiniStat label="Plazo" value={project.timeline} icon={Clock3} />

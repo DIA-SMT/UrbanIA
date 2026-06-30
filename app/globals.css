@@ -80,6 +80,25 @@ body {
   translate: 120% 0;
 }
 
+.urban-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(53, 174, 234, 0.45) rgba(15, 23, 42, 0.35);
+}
+
+.urban-scrollbar::-webkit-scrollbar {
+  height: 8px;
+}
+
+.urban-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.35);
+  border-radius: 999px;
+}
+
+.urban-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(53, 174, 234, 0.45);
+  border-radius: 999px;
+}
+
 .urban-pin {
   animation: urban-float 4s ease-in-out infinite;
   transition:

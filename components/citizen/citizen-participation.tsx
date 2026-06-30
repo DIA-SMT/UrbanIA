@@ -122,12 +122,12 @@ export function CitizenParticipation() {
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
               Espacio para registrar propuestas, priorizar ideas, reunir comentarios y alimentar decisiones urbanas con trazabilidad publica.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-bold text-white">
+            <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
+              <button className="urban-button inline-flex w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-bold text-white sm:w-auto">
                 <Plus className="h-4 w-4" />
                 Nueva propuesta
               </button>
-              <button className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200">
+              <button className="urban-button inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 sm:w-auto">
                 <Vote className="h-4 w-4" />
                 Abrir votacion
               </button>
@@ -153,7 +153,7 @@ export function CitizenParticipation() {
         <div className="space-y-4">
           <div className="urban-card rounded-lg p-4">
             <div className="flex flex-wrap items-center gap-3">
-              <label className="urban-lift flex min-w-64 flex-1 items-center gap-3 rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-slate-400">
+              <label className="urban-lift flex min-w-0 flex-1 basis-full items-center gap-3 rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-slate-400 md:basis-64">
                 <Search className="h-4 w-4" />
                 <input
                   value={query}
@@ -220,7 +220,7 @@ export function CitizenParticipation() {
             </div>
             <h3 className="text-xl font-black leading-tight text-white">{selectedProposal.title}</h3>
             <p className="mt-3 text-sm leading-6 text-slate-300">{selectedProposal.summary}</p>
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-4 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
               {[
                 ["Apoyos", selectedProposal.votes.toString()],
                 ["Comentarios", selectedProposal.comments.toString()],
