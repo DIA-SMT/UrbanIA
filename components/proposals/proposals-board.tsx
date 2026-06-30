@@ -39,7 +39,7 @@ const statusStyles: Record<ProjectStatus, string> = {
 
 const layerStyles: Record<ProjectLayer, string> = {
   Transporte: "bg-sky-400/15 text-sky-200",
-  "Espacios verdes": "bg-sky-400/15 text-sky-200",
+  "Espacios verdes": "bg-emerald-400/15 text-emerald-200",
   Equipamiento: "bg-orange-400/15 text-orange-200",
   Zonificacion: "bg-violet-400/15 text-violet-200",
   Riesgos: "bg-rose-400/15 text-rose-200"
@@ -480,6 +480,15 @@ function ProposalDetail({ project }: { project: UrbanProject }) {
           className="urban-button mt-5 inline-flex w-full items-center justify-between rounded-md border border-sky-300/25 bg-sky-300/10 px-4 py-3 text-sm font-black text-sky-100"
         >
           Ver reunion vinculada
+          <ArrowUpRight className="h-4 w-4" />
+        </Link>
+      ) : null}
+      {project.linkedHearingId ? (
+        <Link
+          href="/audiencias"
+          className="urban-button mt-3 inline-flex w-full items-center justify-between rounded-md border border-cyan-300/25 bg-cyan-300/10 px-4 py-3 text-sm font-black text-cyan-100"
+        >
+          Ver audiencia vinculada
           <ArrowUpRight className="h-4 w-4" />
         </Link>
       ) : null}

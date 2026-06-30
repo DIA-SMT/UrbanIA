@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BarChart3, CheckCircle2, Clock3, FileText, MapPin, MessageSquare, ShieldAlert, ThumbsUp } from "lucide-react";
+import { ArrowLeft, ArrowRight, BarChart3, CalendarDays, CheckCircle2, Clock3, ClipboardList, FileText, MapPin, MessageSquare, ShieldAlert, Sparkles, ThumbsUp } from "lucide-react";
 import { AppShell } from "@/components/shell";
 import { getUrbanProject, urbanProjects } from "@/lib/demo/urban-projects";
 
@@ -65,6 +65,19 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <InfoPanel title="Riesgos a gestionar" icon={ShieldAlert} items={project.risks} tone="amber" />
           <div className="urban-card urban-lift rounded-lg p-5 lg:col-span-2">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-white">
+              <FileText className="h-5 w-5 text-civic-sky" />
+              Revision normativa y tecnica
+            </h2>
+            <div className="grid gap-3 lg:grid-cols-2">
+              <FactBlock label="Relacion CPU" value={project.codeRelation ?? "Pendiente de carga normativa"} />
+              <FactBlock label="Estado de revision" value={project.reviewStatus ?? project.status} />
+              <div className="lg:col-span-2">
+                <FactBlock label="Justificacion tecnica" value={project.technicalJustification ?? project.objective} />
+              </div>
+            </div>
+          </div>
+          <div className="urban-card urban-lift rounded-lg p-5 lg:col-span-2">
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-white">
               <CheckCircle2 className="h-5 w-5 text-sky-300" />
               Proximos pasos
             </h2>
@@ -98,17 +111,40 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <div className="urban-card rounded-lg p-5">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-white">
               <MapPin className="h-5 w-5 text-cyan-300" />
-              Vinculaciones futuras
+              Trazabilidad
             </h2>
-            <div className="space-y-3 text-sm text-slate-300">
-              <div className="urban-lift rounded-md border border-white/8 bg-white/[0.03] p-3">Normativa relacionada</div>
-              <div className="urban-lift rounded-md border border-white/8 bg-white/[0.03] p-3">Comentarios ciudadanos</div>
-              <div className="urban-lift rounded-md border border-white/8 bg-white/[0.03] p-3">Informe IA de impacto</div>
+            <div className="grid gap-3">
+              {project.linkedMeetingId ? <TraceLink href="/gabinete" label="Acta de gabinete" icon={ClipboardList} /> : null}
+              {project.linkedHearingId ? <TraceLink href="/audiencias" label="Audiencia vinculada" icon={CalendarDays} /> : null}
+              <TraceLink href={`/escenarios/${project.id}`} label="Escenario de decision" icon={Sparkles} primary />
+              <TraceLink href="/mapa" label="Ver en mapa operativo" icon={MapPin} />
+              <TraceLink href="/asistente" label="Consultar al asistente IA" icon={MessageSquare} />
             </div>
           </div>
         </aside>
       </section>
     </AppShell>
+  );
+}
+
+function TraceLink({ href, label, icon: Icon, primary }: { href: string; label: string; icon: typeof ArrowRight; primary?: boolean }) {
+  return (
+    <Link href={href} className={`urban-button inline-flex items-center justify-between gap-3 rounded-md px-4 py-3 text-sm font-black ${primary ? "bg-civic-blue text-white" : "border border-white/10 bg-white/[0.04] text-slate-200"}`}>
+      <span className="inline-flex items-center gap-2">
+        <Icon className="h-4 w-4" />
+        {label}
+      </span>
+      <ArrowRight className="h-4 w-4" />
+    </Link>
+  );
+}
+
+function FactBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-white/8 bg-white/[0.03] p-4">
+      <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-300">{value}</p>
+    </div>
   );
 }
 

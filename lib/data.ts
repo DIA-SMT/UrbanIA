@@ -2,45 +2,29 @@ import {
   BarChart3,
   BookOpen,
   Building2,
-  CircleDot,
   CalendarDays,
-  ClipboardList,
   FileText,
-  Layers3,
-  Map,
-  MessageSquare,
-  Vote
+  Map
 } from "lucide-react";
 
 export const navItems = [
   { label: "Mesa urbana", href: "/", icon: BarChart3 },
-  { label: "Propuestas", href: "/propuestas", icon: CircleDot },
-  { label: "Codigo urbano", href: "/normativa", icon: FileText },
+  { label: "Codigo de Planeamiento", href: "/normativa", icon: FileText },
   { label: "Audiencias", href: "/audiencias", icon: CalendarDays },
-  { label: "Gabinete", href: "/gabinete", icon: ClipboardList },
-  { label: "Aportes Cidituc", href: "/participacion", icon: Vote },
-  { label: "Analisis IA", href: "/asistente", icon: BookOpen },
-  { label: "Mapa", href: "/mapa", icon: Map }
+  { label: "Mapa interactivo", href: "/mapa", icon: Map },
+  { label: "Proyectos", href: "/proyectos", icon: Building2 },
+  { label: "Analisis IA", href: "/asistente", icon: BookOpen }
 ];
 
 export const sidebarSections = [
   {
-    title: "Explorar",
+    title: "MVP UrbanIA",
     items: [
-      { label: "Propuestas oficiales", href: "/propuestas", icon: CircleDot },
       { label: "Codigo de Planeamiento", href: "/normativa", icon: FileText },
       { label: "Audiencias publicas", href: "/audiencias", icon: CalendarDays },
-      { label: "Reuniones de gabinete", href: "/gabinete", icon: ClipboardList },
       { label: "Mapa interactivo", href: "/mapa", icon: Map },
-      { label: "Proyectos vinculados", href: "/proyectos", icon: Building2 }
-    ]
-  },
-  {
-    title: "Deliberacion",
-    items: [
-      { label: "Aportes Cidituc", href: "/participacion", icon: MessageSquare },
-      { label: "Analisis IA", href: "/asistente", icon: BookOpen },
-      { label: "Fuentes y datos", href: "/datos", icon: Layers3 }
+      { label: "Proyectos vinculados", href: "/proyectos", icon: Building2 },
+      { label: "Analisis IA", href: "/asistente", icon: BookOpen }
     ]
   }
 ];

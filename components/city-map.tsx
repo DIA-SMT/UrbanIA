@@ -32,7 +32,7 @@ const pins = [
     icon: Trees,
     label: "Espacios verdes",
     layer: "Espacios verdes",
-    className: "left-[70%] top-[31%] bg-civic-blue",
+    className: "left-[70%] top-[31%] bg-emerald-500",
     description: "Plazas, parques, arbolado y cobertura ambiental por zona.",
     status: "Capa ambiental activa"
   },

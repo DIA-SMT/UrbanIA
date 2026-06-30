@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
   Brain,
@@ -8,12 +9,9 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronRight,
-  Clock3,
   ExternalLink,
   Download,
-  FileSearch,
   FileText,
-  Filter,
   Link2,
   ListChecks,
   Lock,
@@ -139,7 +137,8 @@ export function HearingsBoard() {
   const [topic, setTopic] = useState("Todas");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [form, setForm] = useState<HearingForm>(emptyForm);
-  const [detailTab, setDetailTab] = useState<DetailTab>("Resumen");
+  const [detailTab, setDetailTab] = useState<DetailTab>("IA");
+  const [processedHearingIds, setProcessedHearingIds] = useState<string[]>([]);
   const agendaRef = useRef<HTMLElement>(null);
   const queryRef = useRef<HTMLInputElement>(null);
   const topicRef = useRef<HTMLSelectElement>(null);
@@ -183,8 +182,7 @@ export function HearingsBoard() {
   }, [hearings, query, status, topic]);
 
   const selectedHearing = filteredHearings.find((hearing) => hearing.id === selectedId) ?? filteredHearings[0] ?? hearings[0];
-  const participantCount = hearings.reduce((total, hearing) => total + hearing.participants.length, 0);
-  const documentCount = hearings.reduce((total, hearing) => total + hearing.documents.length, 0);
+  const selectedHearingWasProcessed = selectedHearing ? processedHearingIds.includes(selectedHearing.id) || Boolean(selectedHearing.aiSummary) : false;
 
   function updateForm<K extends keyof HearingForm>(key: K, value: HearingForm[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -192,16 +190,6 @@ export function HearingsBoard() {
 
   function openAgenda() {
     agendaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function focusTopicFilter() {
-    openAgenda();
-    window.setTimeout(() => topicRef.current?.focus(), 300);
-  }
-
-  function focusRecordSearch() {
-    openAgenda();
-    window.setTimeout(() => queryRef.current?.focus(), 300);
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -267,7 +255,7 @@ export function HearingsBoard() {
 
     setHearings((current) => [hearing, ...current]);
     setSelectedId(hearing.id);
-    setDetailTab("Resumen");
+    setDetailTab("IA");
     setForm(emptyForm);
     setIsFormOpen(false);
     setQuery("");
@@ -279,35 +267,40 @@ export function HearingsBoard() {
     setHearings((current) => current.map((hearing) => hearing.id === nextHearing.id ? nextHearing : hearing));
   }
 
+  function handleAnalyze(nextHearing: PublicHearing) {
+    updateHearing(nextHearing);
+    setProcessedHearingIds((current) => current.includes(nextHearing.id) ? current : [...current, nextHearing.id]);
+    setDetailTab("IA");
+  }
+
   return (
     <div className="space-y-4">
       <section className="urban-card overflow-hidden rounded-lg">
         <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-7">
           <div className="min-w-0">
             <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-sky-200">
-              <MessageSquareText className="h-4 w-4" />
-              Memoria publica
+              <Brain className="h-4 w-4" />
+              Audiencias con IA
             </div>
-            <h1 className="max-w-4xl text-3xl font-black leading-tight text-white md:text-5xl">Audiencias y deliberacion publica</h1>
+            <h1 className="max-w-4xl text-3xl font-black leading-tight text-white md:text-5xl">Analisis inteligente de audiencias publicas</h1>
             <p className="mt-4 max-w-4xl text-sm leading-7 text-slate-300 md:text-base">
-              Consulta las audiencias vinculadas al Codigo de Planeamiento Urbano, sus expedientes, participantes, documentos, temas observados y conclusiones.
+              Carga una grabacion de audio o video para que UrbanIA ordene la audiencia: participantes, topicos, propuestas, puntos fuertes y relacion con el Codigo de Planeamiento Urbano.
             </p>
             <div className="mt-6 grid gap-2 sm:flex sm:flex-wrap">
               <ActionButton icon={Plus} label="Nueva audiencia" primary onClick={() => setIsFormOpen(true)} />
               <ActionButton icon={CalendarDays} label="Ver agenda" onClick={openAgenda} />
-              <ActionButton icon={Filter} label="Filtrar por tematica" onClick={focusTopicFilter} />
-              <ActionButton icon={FileSearch} label="Buscar expediente" onClick={focusRecordSearch} />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Metric label="Audiencias" value={hearings.length.toString()} icon={CalendarDays} />
-            <Metric label="Programadas" value={hearings.filter((item) => item.status === "Programada").length.toString()} icon={Clock3} />
-            <Metric label="Participantes" value={participantCount.toString()} icon={Users} />
-            <Metric label="Documentos" value={documentCount.toString()} icon={FileText} />
+          <div className="grid gap-3">
+            <WorkflowStep index="1" title="Subir grabacion" text="Audio o video de la audiencia." />
+            <WorkflowStep index="2" title="Procesar con IA" text="Transcripcion, actores y temas." />
+            <WorkflowStep index="3" title="Vincular decision" text="Codigo urbano, proyectos y mapa." />
           </div>
         </div>
       </section>
+
+      {selectedHearing ? <HearingAiIntake hearing={selectedHearing} onAnalyze={handleAnalyze} /> : null}
 
       {isFormOpen ? <HearingFormPanel form={form} onClose={() => setIsFormOpen(false)} onSubmit={handleSubmit} onUpdate={updateForm} /> : null}
 
@@ -344,7 +337,7 @@ export function HearingsBoard() {
                 selected={selectedHearing?.id === hearing.id}
                 onSelect={() => {
                   setSelectedId(hearing.id);
-                  setDetailTab("Resumen");
+                  setDetailTab("IA");
                 }}
               />
             ))}
@@ -356,7 +349,13 @@ export function HearingsBoard() {
           </div>
         </div>
 
-        {selectedHearing ? <HearingDetail hearing={selectedHearing} activeTab={detailTab} onTabChange={setDetailTab} onUpdate={updateHearing} /> : null}
+        {selectedHearing ? (
+          selectedHearingWasProcessed ? (
+            <HearingDetail hearing={selectedHearing} activeTab={detailTab} onTabChange={setDetailTab} onUpdate={updateHearing} />
+          ) : (
+            <PendingAnalysisPanel hearing={selectedHearing} />
+          )
+        ) : null}
       </section>
     </div>
   );
@@ -393,6 +392,113 @@ function HearingCard({ hearing, selected, onSelect }: { hearing: PublicHearing; 
   );
 }
 
+function WorkflowStep({ index, title, text }: { index: string; title: string; text: string }) {
+  return (
+    <div className="urban-lift rounded-md border border-white/10 bg-slate-950/45 p-4">
+      <div className="flex items-start gap-3">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-sky-300/10 text-sm font-black text-sky-200">{index}</span>
+        <div>
+          <h3 className="text-sm font-black text-white">{title}</h3>
+          <p className="mt-1 text-xs leading-5 text-slate-400">{text}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HearingAiIntake({ hearing, onAnalyze }: { hearing: PublicHearing; onAnalyze: (hearing: PublicHearing) => void }) {
+  const [fileName, setFileName] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  function analyzeRecording() {
+    if (!fileName) return;
+    setIsAnalyzing(true);
+    window.setTimeout(() => {
+      const analysis = buildHearingAiAnalysis(hearing);
+      onAnalyze({ ...hearing, aiSummary: analysis.summary, aiKeyPoints: analysis.keyPoints });
+      setIsAnalyzing(false);
+    }, 650);
+  }
+
+  const analysisReady = Boolean(hearing.aiSummary);
+
+  return (
+    <section className="urban-card rounded-lg p-4 lg:p-5">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)]">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Procesamiento de audiencia</p>
+          <h2 className="mt-2 text-2xl font-black text-white">Grabacion a memoria publica</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+            La carga queda preparada para conectar transcripcion real. En esta version, el analisis simula el resultado estructurado sobre la audiencia seleccionada.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <label className="urban-button flex min-h-14 cursor-pointer items-center gap-3 rounded-md border border-dashed border-sky-300/25 bg-sky-300/[0.04] px-4 py-3">
+              <Upload className="h-5 w-5 shrink-0 text-sky-200" />
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-black text-white">{fileName || "Subir audio o video"}</span>
+                <span className="block text-xs text-slate-500">MP3, WAV, MP4, MOV</span>
+              </span>
+              <input
+                type="file"
+                accept="audio/*,video/*"
+                className="hidden"
+                onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")}
+              />
+            </label>
+            <button
+              onClick={analyzeRecording}
+              disabled={!fileName || isAnalyzing}
+              className="urban-button inline-flex min-h-14 items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Sparkles className="h-4 w-4" />
+              {isAnalyzing ? "Analizando..." : analysisReady ? "Reanalizar" : "Analizar con IA"}
+            </button>
+          </div>
+          {!fileName ? <p className="mt-2 text-xs font-semibold text-amber-200">Primero subi una grabacion para habilitar el analisis.</p> : null}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <AnalysisResultCard icon={Users} label="Participantes" value={`${hearing.participants.length} detectados`} active={analysisReady} />
+          <AnalysisResultCard icon={MessageSquareText} label="Topicos" value={`${1 + hearing.secondaryTopics.length} temas`} active={analysisReady} />
+          <AnalysisResultCard icon={ListChecks} label="Propuestas" value={hearing.relatedProposal || "Pendiente"} active={analysisReady} />
+          <AnalysisResultCard icon={BookOpen} label="Codigo urbano" value={hearing.relatedArticles[0] ?? "Sin articulo"} active={analysisReady} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PendingAnalysisPanel({ hearing }: { hearing: PublicHearing }) {
+  return (
+    <article className="urban-card min-w-0 rounded-lg p-5">
+      <div className="flex min-h-[420px] flex-col items-center justify-center rounded-lg border border-dashed border-white/12 bg-white/[0.02] p-6 text-center">
+        <div className="grid h-14 w-14 place-items-center rounded-lg bg-sky-300/10 text-sky-200">
+          <Upload className="h-7 w-7" />
+        </div>
+        <p className="mt-5 text-xs font-black uppercase tracking-[0.14em] text-sky-300">Pendiente de procesamiento</p>
+        <h2 className="mt-2 max-w-xl text-2xl font-black leading-tight text-white">{hearing.title}</h2>
+        <p className="mt-3 max-w-lg text-sm leading-7 text-slate-400">
+          Los participantes, topicos, propuestas, puntos fuertes y relacion normativa se van a mostrar cuando cargues una grabacion arriba y ejecutes el analisis IA.
+        </p>
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          <span className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-slate-300">{hearing.recordNumber}</span>
+          <span className="rounded-md border border-sky-300/15 bg-sky-300/[0.06] px-3 py-2 text-xs font-bold text-sky-100">{hearing.mainTopic}</span>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function AnalysisResultCard({ icon: Icon, label, value, active }: { icon: typeof Users; label: string; value: string; active: boolean }) {
+  return (
+    <div className={`rounded-md border p-4 ${active ? "border-sky-300/20 bg-sky-300/[0.05]" : "border-white/8 bg-white/[0.025]"}`}>
+      <Icon className={`h-5 w-5 ${active ? "text-sky-200" : "text-slate-500"}`} />
+      <p className="mt-3 text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</p>
+      <p className="mt-1 line-clamp-2 text-sm font-black leading-5 text-white">{value}</p>
+    </div>
+  );
+}
+
 function HearingDetail({ hearing, activeTab, onTabChange, onUpdate }: {
   hearing: PublicHearing;
   activeTab: DetailTab;
@@ -401,14 +507,11 @@ function HearingDetail({ hearing, activeTab, onTabChange, onUpdate }: {
 }) {
   const isClosed = hearing.status === "Finalizada" || hearing.status === "Suspendida";
   const tabs: Array<{ label: DetailTab; icon: typeof Users; count?: number }> = [
-    { label: "Resumen", icon: BookOpen },
-    { label: "Debate", icon: MessageSquareText, count: hearing.debateMessages?.length ?? 0 },
-    { label: "Aportes", icon: FileText, count: hearing.contributions?.length ?? 0 },
+    { label: "IA", icon: Brain },
     { label: "Participantes", icon: Users, count: hearing.participants.length },
-    { label: "Documentos", icon: Paperclip, count: hearing.documents.length },
-    { label: "Conclusiones", icon: CheckCircle2 },
     { label: "Temas observados", icon: AlertTriangle, count: hearing.observedTopics.length },
-    { label: "IA", icon: Brain }
+    { label: "Conclusiones", icon: CheckCircle2 },
+    { label: "Resumen", icon: BookOpen }
   ];
 
   function closeHearing() {
@@ -457,7 +560,7 @@ function HearingDetail({ hearing, activeTab, onTabChange, onUpdate }: {
               }`}
             >
               <Icon className="h-4 w-4" />
-              {label}
+              {label === "IA" ? "Analisis IA" : label}
               {count !== undefined ? <span className="rounded bg-black/20 px-1.5 py-0.5 text-[10px]">{count}</span> : null}
             </button>
           ))}
@@ -497,6 +600,15 @@ function SummaryTab({ hearing }: { hearing: PublicHearing }) {
           <DetailBlock label="Estado del expediente" value={hearing.recordStatus} />
           <DetailBlock label="Documento o enlace" value={hearing.recordDocument || "Sin documento adjunto"} />
         </div>
+        {hearing.linkedProjectId ? (
+          <Link
+            href={`/proyectos/${hearing.linkedProjectId}`}
+            className="urban-button mt-4 inline-flex w-full items-center justify-between rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white sm:w-auto sm:min-w-64"
+          >
+            Abrir ficha de proyecto
+            <ExternalLink className="h-4 w-4" />
+          </Link>
+        ) : null}
       </div>
 
       <div>
@@ -662,10 +774,7 @@ function ContributionsTab({ hearing, isClosed, onUpdate }: { hearing: PublicHear
 }
 
 function AiTab({ hearing, onUpdate }: { hearing: PublicHearing; onUpdate: (hearing: PublicHearing) => void }) {
-  const hasSourceMaterial = (hearing.debateMessages?.length ?? 0) + (hearing.contributions?.length ?? 0) > 0;
-
   function generateAnalysis() {
-    if (!hasSourceMaterial) return;
     const analysis = buildHearingAiAnalysis(hearing);
     onUpdate({ ...hearing, aiSummary: analysis.summary, aiKeyPoints: analysis.keyPoints });
   }
@@ -692,12 +801,50 @@ function AiTab({ hearing, onUpdate }: { hearing: PublicHearing; onUpdate: (heari
         <div className="flex items-start gap-3">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-sky-400/15 text-sky-200"><Sparkles className="h-5 w-5" /></div>
           <div className="min-w-0 flex-1">
-            <h3 className="font-black text-white">Resumen y puntos clave</h3>
-            <p className="mt-1 text-sm leading-6 text-slate-400">Consolida el debate, los aportes, las conclusiones y los vinculos con el Codigo de Planeamiento Urbano.</p>
-            <button onClick={generateAnalysis} disabled={!hasSourceMaterial} className="urban-button mt-3 inline-flex items-center gap-2 rounded-md bg-civic-blue px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40"><Brain className="h-4 w-4" /> {hearing.aiSummary ? "Regenerar sintesis" : "Generar sintesis"}</button>
-            {!hasSourceMaterial ? <p className="mt-2 text-xs text-amber-200">Se necesita al menos un mensaje o aporte para generar la sintesis.</p> : null}
+            <h3 className="font-black text-white">Resultado esperado del analisis</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-400">La IA organiza la grabacion en participantes, topicos, propuestas, puntos fuertes y relacion normativa.</p>
+            <button onClick={generateAnalysis} className="urban-button mt-3 inline-flex items-center gap-2 rounded-md bg-civic-blue px-3 py-2 text-xs font-black text-white"><Brain className="h-4 w-4" /> {hearing.aiSummary ? "Regenerar sintesis" : "Generar sintesis"}</button>
           </div>
         </div>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <AiFindingCard
+          title="Participantes"
+          icon={Users}
+          items={hearing.participants.map((participant) => `${participant.name} - ${participant.actorType}`)}
+          empty="Sin participantes detectados."
+        />
+        <AiFindingCard
+          title="Topicos"
+          icon={MessageSquareText}
+          items={[hearing.mainTopic, ...hearing.secondaryTopics]}
+          empty="Sin topicos detectados."
+        />
+        <AiFindingCard
+          title="Propuestas"
+          icon={ListChecks}
+          items={[hearing.relatedProposal, hearing.conclusions.nextSteps].filter(Boolean)}
+          empty="Sin propuestas extraidas."
+        />
+        <AiFindingCard
+          title="Puntos fuertes"
+          icon={CheckCircle2}
+          items={[hearing.conclusions.agreements, hearing.conclusions.technicalRecommendations].filter(Boolean)}
+          empty="Sin puntos fuertes identificados."
+        />
+      </div>
+
+      <div className="rounded-md border border-cyan-300/15 bg-cyan-300/[0.05] p-4">
+        <div className="flex items-center gap-2 text-sm font-black text-cyan-100"><BookOpen className="h-4 w-4" /> Relacion con Codigo de Planeamiento Urbano</div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {hearing.relatedArticles.length ? hearing.relatedArticles.map((article) => (
+            <span key={article} className="rounded-md border border-cyan-300/15 bg-cyan-300/[0.08] px-3 py-2 text-xs font-bold text-cyan-100">{article}</span>
+          )) : <span className="text-sm text-slate-400">Sin articulos vinculados.</span>}
+        </div>
+        <p className="mt-3 text-sm leading-6 text-slate-300">
+          {hearing.observedTopics[0]?.technicalObservation ?? "El cruce normativo queda pendiente de completar cuando se incorpore la base estructurada del Codigo de Planeamiento."}
+        </p>
       </div>
 
       {hearing.aiSummary ? (
@@ -714,6 +861,24 @@ function AiTab({ hearing, onUpdate }: { hearing: PublicHearing; onUpdate: (heari
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function AiFindingCard({ title, icon: Icon, items, empty }: { title: string; icon: typeof Users; items: string[]; empty: string }) {
+  const visibleItems = items.filter(Boolean).slice(0, 4);
+
+  return (
+    <div className="rounded-md border border-white/8 bg-white/[0.025] p-4">
+      <div className="flex items-center gap-2 text-sm font-black text-white"><Icon className="h-4 w-4 text-sky-200" /> {title}</div>
+      <div className="mt-3 space-y-2">
+        {visibleItems.length ? visibleItems.map((item, index) => (
+          <div key={`${item}-${index}`} className="flex items-start gap-2 text-sm leading-6 text-slate-300">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-sky-300" />
+            <span>{item}</span>
+          </div>
+        )) : <p className="text-sm text-slate-500">{empty}</p>}
+      </div>
     </div>
   );
 }
@@ -992,16 +1157,18 @@ function buildHearingAiAnalysis(hearing: PublicHearing) {
   const messages = hearing.debateMessages ?? [];
   const contributions = hearing.contributions ?? [];
   const actors = Array.from(new Set([
+    ...hearing.participants.map((item) => item.name),
     ...messages.map((item) => item.authorName),
     ...contributions.map((item) => item.participantName)
   ]));
   const criticalTopics = hearing.observedTopics.filter((item) => item.importance === "Alto" || item.importance === "Critico");
   const sourceCount = messages.length + contributions.length;
   const articleText = hearing.relatedArticles.length ? hearing.relatedArticles.join(", ") : "sin articulos asociados";
-  const summary = `La memoria de la audiencia ${hearing.recordNumber} consolida ${sourceCount} intervenciones de ${actors.length} actores. El intercambio se concentra en ${hearing.mainTopic.toLowerCase()} y su relacion con ${articleText}. ${hearing.conclusions.summary} La revision automatica recomienda contrastar los acuerdos y desacuerdos con las observaciones tecnicas y ciudadanas antes de modificar el estado del expediente.`;
+  const summary = `La memoria de la audiencia ${hearing.recordNumber} consolida ${actors.length} participantes detectados${sourceCount ? ` y ${sourceCount} intervenciones registradas` : ""}. El intercambio se concentra en ${hearing.mainTopic.toLowerCase()} y su relacion con ${articleText}. ${hearing.conclusions.summary} La revision automatica recomienda contrastar propuestas, puntos fuertes y observaciones normativas antes de modificar el estado del expediente.`;
   const keyPoints = [
-    `${messages.length} mensajes de debate y ${contributions.length} aportes formales registrados.`,
+    `${actors.length} participantes identificados: ${actors.slice(0, 4).join(", ")}${actors.length > 4 ? "..." : ""}.`,
     criticalTopics.length ? `Temas prioritarios: ${criticalTopics.map((item) => item.topic).join(", ")}.` : `Tema principal: ${hearing.mainTopic}.`,
+    `Propuesta vinculada: ${hearing.relatedProposal}.`,
     `Normativa vinculada: ${articleText}.`,
     `Proximo paso institucional: ${hearing.conclusions.nextSteps}`
   ];

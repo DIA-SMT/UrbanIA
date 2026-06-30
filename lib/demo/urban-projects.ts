@@ -13,6 +13,7 @@ export type UrbanProject = {
   origin: ProjectOrigin;
   promoterArea: string;
   linkedMeetingId?: string;
+  linkedHearingId?: string;
   description: string;
   objective: string;
   impact: string[];
@@ -42,6 +43,7 @@ export const urbanProjects: UrbanProject[] = [
     origin: "Area tecnica",
     promoterArea: "Movilidad Urbana",
     linkedMeetingId: "gabinete-2026-06-24",
+    linkedHearingId: "aud-ciclovia-aconquija",
     description: "Corredor de movilidad activa con impacto esperado en seguridad vial y conectividad.",
     objective: "Conectar zonas residenciales, equipamiento publico y corredores comerciales con infraestructura segura para bicicletas.",
     impact: ["Mejora de movilidad activa", "Reduccion de viajes cortos en auto", "Mayor seguridad vial"],
@@ -51,7 +53,12 @@ export const urbanProjects: UrbanProject[] = [
     comments: 35,
     budget: "Medio",
     timeline: "90 dias de anteproyecto",
-    position: [-26.8168, -65.2362]
+    position: [-26.8168, -65.2362],
+    codeRelation: "CPU Art. 12, Art. 18 y Art. 24: jerarquia vial, perfiles urbanos y estacionamiento",
+    technicalJustification: "El corredor concentra viajes cortos, siniestralidad leve y demanda de conexion con equipamiento educativo y comercial.",
+    attachedDocuments: ["Relevamiento vial Aconquija.pdf", "Conteo preliminar de estacionamiento.xlsx", "Mapa de tramos piloto.geojson"],
+    reviewStatus: "En revision normativa",
+    aiNormativeImpact: "La propuesta es viable como piloto si se delimita por tramos, se preserva carga y descarga comercial y se acompana con audiencia o mesa sectorial previa. Requiere contrastar perfil vial, estacionamiento y seguridad peatonal antes de obra definitiva."
   },
   {
     id: "plaza-barrio-sur",
@@ -64,6 +71,7 @@ export const urbanProjects: UrbanProject[] = [
     origin: "Gabinete",
     promoterArea: "Ambiente y Espacio Publico",
     linkedMeetingId: "gabinete-2026-06-18",
+    linkedHearingId: "aud-arbolado-barrios",
     description: "Intervencion barrial para aumentar cobertura verde y mejorar permanencia peatonal.",
     objective: "Recuperar un lote subutilizado como espacio verde de cercania con sombra, bancos y juegos.",
     impact: ["Aumento de espacios verdes", "Mejora de permanencia barrial", "Mayor actividad comunitaria"],
@@ -73,7 +81,12 @@ export const urbanProjects: UrbanProject[] = [
     comments: 18,
     budget: "Bajo / medio",
     timeline: "60 dias de diseno",
-    position: [-26.8354, -65.2172]
+    position: [-26.8354, -65.2172],
+    codeRelation: "CPU Art. 29 y Art. 31: espacio publico, veredas, accesibilidad y arbolado urbano",
+    technicalJustification: "Barrio Sur presenta baja cobertura de sombra, demanda vecinal recurrente y oportunidad de recuperar suelo subutilizado.",
+    attachedDocuments: ["Inventario lotes Barrio Sur.xlsx", "Mapa deficit sombra.pdf", "Aportes Cidituc plaza bolsillo.csv"],
+    reviewStatus: "Apta para escenario",
+    aiNormativeImpact: "El caso puede avanzar como intervencion de bajo riesgo si se valida dominio del suelo y mantenimiento. Conviene vincularlo con el programa de veredas y arbolado para evitar una plaza aislada sin continuidad peatonal."
   },
   {
     id: "centro-comunitario",
@@ -94,7 +107,12 @@ export const urbanProjects: UrbanProject[] = [
     comments: 12,
     budget: "Alto",
     timeline: "En obra",
-    position: [-26.8072, -65.2138]
+    position: [-26.8072, -65.2138],
+    codeRelation: "CPU Art. 33 y Art. 36: equipamiento comunitario, accesibilidad y compatibilidad de uso",
+    technicalJustification: "El sector norte concentra demanda social y requiere un nodo de servicios con acceso barrial y agenda compartida.",
+    attachedDocuments: ["Plan operativo centro norte.docx", "Cronograma obra comunitario.xlsx", "Informe accesibilidad barrial.pdf"],
+    reviewStatus: "Elevada a gabinete",
+    aiNormativeImpact: "La intervencion no presenta conflicto normativo principal, pero exige plan operativo y medicion de demanda para evitar sobrecarga del equipamiento al momento de apertura."
   },
   {
     id: "codigo-alturas",
@@ -107,6 +125,7 @@ export const urbanProjects: UrbanProject[] = [
     origin: "Gabinete",
     promoterArea: "Planeamiento Urbano",
     linkedMeetingId: "gabinete-2026-06-11",
+    linkedHearingId: "aud-movilidad-2026",
     description: "Zona de estudio para ordenar densidad, alturas y compatibilidad con servicios.",
     objective: "Actualizar criterios de densidad edilicia segun capacidad vial, servicios y caracter urbano.",
     impact: ["Mayor previsibilidad normativa", "Ordenamiento de inversiones", "Proteccion de areas sensibles"],
@@ -116,7 +135,12 @@ export const urbanProjects: UrbanProject[] = [
     comments: 21,
     budget: "Tecnico",
     timeline: "120 dias de analisis",
-    position: [-26.8268, -65.205]
+    position: [-26.8268, -65.205],
+    codeRelation: "CPU Art. 18, Art. 21 y Art. 24: alturas, retiros, capacidad de servicios y estacionamiento",
+    technicalJustification: "La presion inmobiliaria sobre Centro / Norte requiere criterios verificables para evitar decisiones parcela por parcela.",
+    attachedDocuments: ["Matriz alturas centro norte.xlsx", "Dictamen legal preliminar.docx", "Mapa capacidad servicios.geojson"],
+    reviewStatus: "Observada",
+    aiNormativeImpact: "La revision necesita expediente robusto, matriz tecnica y audiencia publica. El riesgo principal es aprobar incrementos sin demostrar capacidad vial, sanitaria y de espacio publico."
   },
   {
     id: "drenaje-sali",
@@ -137,7 +161,12 @@ export const urbanProjects: UrbanProject[] = [
     comments: 42,
     budget: "Alto",
     timeline: "180 dias de proyecto",
-    position: [-26.8466, -65.1902]
+    position: [-26.8466, -65.1902],
+    codeRelation: "CPU Art. 45 y Art. 48: areas de riesgo, drenaje urbano y restricciones de ocupacion",
+    technicalJustification: "El borde del Rio Sali combina vulnerabilidad hidrica, infraestructura critica y necesidad de coordinacion interjurisdiccional.",
+    attachedDocuments: ["Mapa amenaza hidrica Rio Sali.pdf", "Inspeccion canales este.xlsx", "Convenio drenaje provincia borrador.docx"],
+    reviewStatus: "En revision normativa",
+    aiNormativeImpact: "La propuesta debe tratarse como mitigacion de riesgo antes que como obra aislada. Requiere priorizacion por amenaza, mantenimiento y competencias compartidas con Provincia."
   },
   {
     id: "peatonal-centro",
@@ -158,7 +187,12 @@ export const urbanProjects: UrbanProject[] = [
     comments: 29,
     budget: "Medio",
     timeline: "Piloto completado",
-    position: [-26.8297, -65.2038]
+    position: [-26.8297, -65.2038],
+    codeRelation: "CPU Art. 12 y Art. 29: jerarquia vial, espacio publico y prioridad peatonal",
+    technicalJustification: "El piloto permitio medir permanencia peatonal, actividad comercial y desvio vehicular antes de definir permanencia.",
+    attachedDocuments: ["Informe post piloto 25 de Mayo.pdf", "Encuesta comercial peatonalizacion.xlsx"],
+    reviewStatus: "Validada",
+    aiNormativeImpact: "La medicion posterior muestra condiciones favorables para consolidar la prioridad peatonal si se formalizan horarios de carga, fiscalizacion y mantenimiento del espacio publico."
   }
 ];
 

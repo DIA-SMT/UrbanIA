@@ -19,6 +19,7 @@ import {
   Users
 } from "lucide-react";
 import { cabinetMeetings, cabinetSummary, type CabinetMeeting, type CabinetTopicStatus } from "@/lib/demo/cabinet-meetings";
+import { getUrbanProject } from "@/lib/demo/urban-projects";
 
 const statusStyles: Record<CabinetTopicStatus, string> = {
   Pendiente: "border-slate-300/20 bg-slate-300/10 text-slate-200",
@@ -120,6 +121,8 @@ export function CabinetRegistry() {
 }
 
 function MeetingDetail({ meeting }: { meeting: CabinetMeeting }) {
+  const linkedProject = meeting.linkedProjectId ? getUrbanProject(meeting.linkedProjectId) : undefined;
+
   return (
     <div className="grid gap-4">
       <section className="urban-card rounded-lg p-5">
@@ -201,6 +204,12 @@ function MeetingDetail({ meeting }: { meeting: CabinetMeeting }) {
             {meeting.linkedProjectId ? (
               <Link href={`/proyectos/${meeting.linkedProjectId}`} className="urban-button inline-flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-slate-200">
                 Ver proyecto vinculado
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : null}
+            {linkedProject?.linkedHearingId ? (
+              <Link href="/audiencias" className="urban-button inline-flex items-center justify-between gap-3 rounded-md border border-cyan-300/25 bg-cyan-300/10 px-4 py-3 text-sm font-black text-cyan-100">
+                Ver audiencia vinculada
                 <ArrowRight className="h-4 w-4" />
               </Link>
             ) : null}

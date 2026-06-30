@@ -62,6 +62,7 @@ export type PublicHearing = {
   promotingArea: string;
   recordStatus: string;
   recordDocument?: string;
+  linkedProjectId?: string;
   relatedArticles: string[];
   participants: HearingParticipant[];
   documents: HearingDocument[];
@@ -84,21 +85,22 @@ export type PublicHearing = {
 export const publicHearings: PublicHearing[] = [
   {
     id: "aud-movilidad-2026",
-    title: "Movilidad urbana y espacio publico",
+    title: "Densificacion, movilidad y espacio publico",
     date: "2026-08-12",
     time: "10:00",
     place: "Concejo Deliberante - Salon de Sesiones",
     modality: "Mixta",
     status: "Programada",
-    mainTopic: "Movilidad",
-    secondaryTopics: ["Espacio publico", "Accesibilidad", "Estacionamiento"],
+    mainTopic: "Zonificacion",
+    secondaryTopics: ["Movilidad", "Espacio publico", "Estacionamiento"],
     recordNumber: "EXP-2026-00451",
     recordTitle: "Reforma de criterios de altura sobre avenidas principales",
-    relatedProposal: "Corredores urbanos de densificacion equilibrada",
+    relatedProposal: "Revision de alturas permitidas",
     proposalOrigin: "Concejo",
     promotingArea: "Comision de Planeamiento Urbano",
     recordStatus: "En tratamiento",
     recordDocument: "Expediente digital 00451/2026",
+    linkedProjectId: "codigo-alturas",
     relatedArticles: ["Articulo 12", "Articulo 18", "Articulo 24"],
     participants: [
       {
@@ -151,7 +153,7 @@ export const publicHearings: PublicHearing[] = [
         description: "Relacion entre incremento de altura, ancho de avenida y capacidad de infraestructura.",
         importance: "Alto",
         relatedArticle: "Articulo 18",
-        relatedProposal: "Corredores urbanos de densificacion equilibrada",
+        relatedProposal: "Revision de alturas permitidas",
         technicalObservation: "Se requiere modelar asoleamiento, movilidad y demanda de servicios.",
         citizenObservation: "Preocupacion por cambios de escala y congestion en barrios residenciales."
       },
@@ -160,9 +162,92 @@ export const publicHearings: PublicHearing[] = [
         description: "Demanda adicional de estacionamiento y ocupacion del espacio publico.",
         importance: "Medio",
         relatedArticle: "Articulo 24",
-        relatedProposal: "Corredores urbanos de densificacion equilibrada",
+        relatedProposal: "Revision de alturas permitidas",
         technicalObservation: "Revisar exigencias segun accesibilidad al transporte publico.",
         citizenObservation: "Priorizar veredas y arbolado frente a nuevos espacios vehiculares."
+      }
+    ]
+  },
+  {
+    id: "aud-ciclovia-aconquija",
+    title: "Ciclovia Aconquija y ordenamiento de estacionamiento",
+    date: "2026-08-26",
+    time: "17:30",
+    place: "Centro Vecinal Oeste - Salon multiuso",
+    modality: "Mixta",
+    status: "Programada",
+    mainTopic: "Movilidad",
+    secondaryTopics: ["Comercio barrial", "Seguridad vial", "Espacio publico"],
+    recordNumber: "EXP-2026-00488",
+    recordTitle: "Piloto de movilidad activa en corredor Aconquija",
+    relatedProposal: "Nueva ciclovia en Av. Aconquija",
+    proposalOrigin: "Codigo urbano",
+    promotingArea: "Direccion de Movilidad Urbana",
+    recordStatus: "Convocatoria publicada",
+    recordDocument: "Convocatoria audiencia 00488/2026",
+    linkedProjectId: "ciclovia-aconquija",
+    relatedArticles: ["Articulo 12", "Articulo 24", "Articulo 31"],
+    participants: [
+      {
+        name: "Camara de comerciantes del corredor oeste",
+        institution: "Comercios Aconquija",
+        role: "Actor afectado",
+        actorType: "Camara empresarial",
+        attended: false,
+        intervention: "Presentara observaciones sobre carga y descarga, estacionamiento y comunicacion previa al piloto."
+      },
+      {
+        name: "Colectivo movilidad segura",
+        institution: "Organizacion ciudadana",
+        role: "Participante ciudadano",
+        actorType: "Organizacion barrial",
+        attended: false,
+        intervention: "Solicitara criterios de seguridad vial, continuidad ciclista y medicion antes/despues."
+      }
+    ],
+    documents: [
+      {
+        name: "Relevamiento vial Aconquija.pdf",
+        type: "Informe tecnico",
+        uploadedAt: "2026-08-08",
+        uploadedBy: "Movilidad Urbana",
+        description: "Conteo preliminar de estacionamiento, siniestralidad y tramos posibles para piloto."
+      },
+      {
+        name: "Mapa de tramos piloto.geojson",
+        type: "Mapa",
+        uploadedAt: "2026-08-09",
+        uploadedBy: "Planeamiento Urbano",
+        description: "Trazas alternativas para evaluar continuidad, cruces y puntos de conflicto."
+      }
+    ],
+    debateMessages: [
+      {
+        id: "debate-ciclovia-1",
+        authorName: "Movilidad Urbana",
+        content: "La audiencia debe validar si el piloto empieza por tramo corto, con indicadores de seguridad y ocupacion de estacionamiento.",
+        createdAt: "2026-08-10T14:20:00.000Z"
+      }
+    ],
+    contributions: [],
+    conclusions: {
+      summary: "Audiencia programada para ordenar observaciones tecnicas, comerciales y ciudadanas antes de definir el tramo piloto.",
+      agreements: "Pendiente de deliberacion.",
+      disagreements: "Pendiente de deliberacion.",
+      nextSteps: "Confirmar exposiciones, publicar tramos alternativos y abrir recepcion de aportes.",
+      technicalRecommendations: "Medir flujo ciclista, carga y descarga, siniestralidad y ocupacion de estacionamiento por tramo.",
+      decisions: "Sin decisiones registradas.",
+      proposalStatusAfter: "En revision normativa"
+    },
+    observedTopics: [
+      {
+        topic: "Estacionamiento comercial",
+        description: "Compatibilidad entre ciclovia, carga y descarga y permanencia comercial.",
+        importance: "Alto",
+        relatedArticle: "Articulo 24",
+        relatedProposal: "Nueva ciclovia en Av. Aconquija",
+        technicalObservation: "Definir ventanas horarias y zonas de carga antes del piloto.",
+        citizenObservation: "Pedir comunicacion temprana y evaluacion por tramos para evitar rechazo inicial."
       }
     ]
   },
@@ -183,6 +268,7 @@ export const publicHearings: PublicHearing[] = [
     promotingArea: "Comision de Patrimonio y Urbanismo",
     recordStatus: "Con dictamen tecnico",
     recordDocument: "Proyecto de ordenanza 217/2026",
+    linkedProjectId: "codigo-alturas",
     relatedArticles: ["Articulo 41", "Articulo 43"],
     participants: [
       {
@@ -286,6 +372,7 @@ export const publicHearings: PublicHearing[] = [
     promotingArea: "Mesa de aportes Cidituc",
     recordStatus: "En consulta publica",
     recordDocument: "Nota ciudadana consolidada 508/2026",
+    linkedProjectId: "plaza-barrio-sur",
     relatedArticles: ["Articulo 29", "Articulo 31"],
     participants: [
       {
