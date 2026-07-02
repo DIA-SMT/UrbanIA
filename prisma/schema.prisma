@@ -45,43 +45,43 @@ model DocumentChunk {
 }
 
 model City {
-  id           String         @id @default(cuid())
-  name         String
-  province     String?
-  country      String
-  population   Int?
-  areaKm2      Float?
-  density      Float?
-  climate      String?
-  description  String?
-  similarity   Int            @default(0)
-  caseStudies  CaseStudy[]
-  indicators   UrbanIndicator[]
+  id          String           @id @default(cuid())
+  name        String
+  province    String?
+  country     String
+  population  Int?
+  areaKm2     Float?
+  density     Float?
+  climate     String?
+  description String?
+  similarity  Int              @default(0)
+  caseStudies CaseStudy[]
+  indicators  UrbanIndicator[]
 }
 
 model CaseStudy {
-  id          String   @id @default(cuid())
-  cityId      String
-  title       String
-  problem     String
-  solution    String
-  results     String?
-  cost        String?
-  sourceUrl   String?
-  tags        String[]
-  createdAt   DateTime @default(now())
-  city        City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  cityId    String
+  title     String
+  problem   String
+  solution  String
+  results   String?
+  cost      String?
+  sourceUrl String?
+  tags      String[]
+  createdAt DateTime @default(now())
+  city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
 }
 
 model UrbanIndicator {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   cityId    String
   name      String
   value     Float
   unit      String
   year      Int
   sourceUrl String?
-  city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  city      City    @relation(fields: [cityId], references: [id], onDelete: Cascade)
 }
 
 model UrbanLayer {
@@ -95,13 +95,13 @@ model UrbanLayer {
 }
 
 model MapFeature {
-  id          String     @id @default(cuid())
+  id          String                  @id @default(cuid())
   layerId     String
   name        String
   description String?
-  properties  Json       @default("{}")
+  properties  Json                    @default("{}")
   geometry    Unsupported("geometry")
-  layer       UrbanLayer @relation(fields: [layerId], references: [id], onDelete: Cascade)
+  layer       UrbanLayer              @relation(fields: [layerId], references: [id], onDelete: Cascade)
 }
 
 model Proposal {
@@ -172,6 +172,157 @@ model AiQuery {
   createdAt DateTime @default(now())
 }
 
+model KnowledgeSource {
+  id          String              @id @default(cuid())
+  kind        KnowledgeSourceKind
+  externalId  String?
+  title       String
+  sourceUrl   String?
+  filePath    String?
+  mimeType    String?
+  status      ProcessingStatus    @default(PENDING)
+  rawText     String?
+  summary     String?
+  metadata    Json                @default("{}")
+  wordCount   Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  processedAt DateTime?
+  chunks      KnowledgeChunk[]
+
+  @@unique([kind, externalId])
+  @@index([kind])
+  @@index([status])
+}
+
+model KnowledgeChunk {
+  id            String                       @id @default(cuid())
+  sourceId      String
+  chunkIndex    Int
+  content       String
+  tokenEstimate Int                          @default(0)
+  metadata      Json                         @default("{}")
+  embedding     Unsupported("vector(1536)")?
+  createdAt     DateTime                     @default(now())
+  source        KnowledgeSource              @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, chunkIndex])
+  @@index([sourceId, chunkIndex])
+}
+
+model Meeting {
+  id                 String               @id @default(cuid())
+  title              String
+  kind               MeetingKind          @default(MEETING)
+  status             ProcessingStatus     @default(PENDING)
+  occurredAt         DateTime?
+  location           String?
+  description        String?
+  language           String               @default("es")
+  metadata           Json                 @default("{}")
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  mediaFiles         MeetingMedia[]
+  participants       MeetingParticipant[]
+  transcriptSegments TranscriptSegment[]
+  analyses           MeetingAnalysis[]
+  insights           MeetingInsight[]
+  actionItems        MeetingActionItem[]
+}
+
+model MeetingMedia {
+  id           String           @id @default(cuid())
+  meetingId    String
+  kind         MediaKind
+  fileName     String
+  storagePath  String
+  mimeType     String
+  sizeBytes    BigInt?
+  durationSec  Int?
+  status       ProcessingStatus @default(PENDING)
+  errorMessage String?
+  createdAt    DateTime         @default(now())
+  meeting      Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@index([status])
+}
+
+model MeetingParticipant {
+  id          String  @id @default(cuid())
+  meetingId   String
+  displayName String
+  role        String?
+  email       String?
+  metadata    Json    @default("{}")
+  meeting     Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+}
+
+model TranscriptSegment {
+  id            String   @id @default(cuid())
+  meetingId     String
+  participantId String?
+  speakerLabel  String?
+  startMs       Int
+  endMs         Int
+  content       String
+  confidence    Float?
+  metadata      Json     @default("{}")
+  createdAt     DateTime @default(now())
+  meeting       Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId, startMs])
+}
+
+model MeetingAnalysis {
+  id          String   @id @default(cuid())
+  meetingId   String
+  provider    String?
+  model       String?
+  version     Int      @default(1)
+  summary     String
+  conclusions Json     @default("[]")
+  topics      Json     @default("[]")
+  risks       Json     @default("[]")
+  citations   Json     @default("[]")
+  createdAt   DateTime @default(now())
+  meeting     Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, version])
+}
+
+model MeetingInsight {
+  id          String             @id @default(cuid())
+  meetingId   String
+  kind        MeetingInsightKind
+  title       String
+  description String
+  importance  Int                @default(3)
+  evidence    Json               @default("[]")
+  createdAt   DateTime           @default(now())
+  meeting     Meeting            @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId, kind])
+}
+
+model MeetingActionItem {
+  id          String           @id @default(cuid())
+  meetingId   String
+  title       String
+  description String?
+  assignee    String?
+  dueDate     DateTime?
+  status      ActionItemStatus @default(OPEN)
+  evidence    Json             @default("[]")
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  meeting     Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId, status])
+}
+
 enum UserRole {
   ADMIN
   OFFICIAL
@@ -219,4 +370,48 @@ enum IdeaStatus {
   ANALYZING
   CONVERTED_TO_PROPOSAL
   DISCARDED
+}
+
+enum KnowledgeSourceKind {
+  REGULATION
+  REPORT
+  WEB_PAGE
+  MEETING
+  FILE
+  MANUAL
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  READY
+  ERROR
+}
+
+enum MeetingKind {
+  MEETING
+  PUBLIC_HEARING
+  CABINET
+  TECHNICAL_COMMITTEE
+}
+
+enum MediaKind {
+  AUDIO
+  VIDEO
+}
+
+enum MeetingInsightKind {
+  DECISION
+  COMMITMENT
+  RISK
+  QUESTION
+  CONFLICT
+  REGULATION_REFERENCE
+}
+
+enum ActionItemStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
