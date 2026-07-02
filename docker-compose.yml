@@ -1,6 +1,9 @@
 services:
   postgres:
-    image: postgis/postgis:16-3.4
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+    image: urbania/postgres:16-postgis-pgvector
     container_name: urbania-postgres
     environment:
       POSTGRES_USER: urbania
