@@ -19,6 +19,7 @@ import {
   Users
 } from "lucide-react";
 import { cabinetMeetings, cabinetSummary, type CabinetMeeting, type CabinetTopicStatus } from "@/lib/demo/cabinet-meetings";
+import { getUrbanProject } from "@/lib/demo/urban-projects";
 
 const statusStyles: Record<CabinetTopicStatus, string> = {
   Pendiente: "border-slate-300/20 bg-slate-300/10 text-slate-200",
@@ -120,6 +121,8 @@ export function CabinetRegistry() {
 }
 
 function MeetingDetail({ meeting }: { meeting: CabinetMeeting }) {
+  const linkedProject = meeting.linkedProjectId ? getUrbanProject(meeting.linkedProjectId) : undefined;
+
   return (
     <div className="grid gap-4">
       <section className="urban-card rounded-lg p-5">
@@ -156,7 +159,7 @@ function MeetingDetail({ meeting }: { meeting: CabinetMeeting }) {
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           <div className="rounded-lg border border-white/8 bg-white/[0.03] p-4">
             <p className="mb-3 text-sm font-black text-white">Posturas por area</p>
-            <Checklist items={meeting.keyPositions} tone="emerald" />
+            <Checklist items={meeting.keyPositions} tone="sky" />
           </div>
           <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-4">
             <p className="mb-3 text-sm font-black text-amber-100">Riesgos conversados</p>
@@ -176,7 +179,7 @@ function MeetingDetail({ meeting }: { meeting: CabinetMeeting }) {
           </div>
         </Panel>
         <Panel title="Decisiones tomadas" icon={CheckCircle2}>
-          <Checklist items={meeting.decisions} tone="emerald" />
+          <Checklist items={meeting.decisions} tone="sky" />
         </Panel>
         <Panel title="Pendientes" icon={Clock3}>
           <Checklist items={meeting.pending} tone="amber" />
@@ -201,6 +204,12 @@ function MeetingDetail({ meeting }: { meeting: CabinetMeeting }) {
             {meeting.linkedProjectId ? (
               <Link href={`/proyectos/${meeting.linkedProjectId}`} className="urban-button inline-flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-slate-200">
                 Ver proyecto vinculado
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : null}
+            {linkedProject?.linkedHearingId ? (
+              <Link href="/audiencias" className="urban-button inline-flex items-center justify-between gap-3 rounded-md border border-cyan-300/25 bg-cyan-300/10 px-4 py-3 text-sm font-black text-cyan-100">
+                Ver audiencia vinculada
                 <ArrowRight className="h-4 w-4" />
               </Link>
             ) : null}
@@ -268,8 +277,8 @@ function OrderedList({ items }: { items: string[] }) {
   );
 }
 
-function Checklist({ items, tone }: { items: string[]; tone: "emerald" | "amber" }) {
-  const iconColor = tone === "emerald" ? "text-sky-300" : "text-amber-300";
+function Checklist({ items, tone }: { items: string[]; tone: "sky" | "amber" }) {
+  const iconColor = tone === "sky" ? "text-sky-300" : "text-amber-300";
 
   return (
     <div className="space-y-3">

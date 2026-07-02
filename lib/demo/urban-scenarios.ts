@@ -11,7 +11,7 @@ export type ScenarioAlternative = {
 export type ScenarioDecisionCriterion = {
   label: string;
   value: string;
-  tone: "emerald" | "amber" | "cyan" | "rose";
+  tone: "sky" | "amber" | "cyan" | "rose";
 };
 
 export type UrbanScenario = {
@@ -87,9 +87,9 @@ function buildScenario(project: UrbanProject): UrbanScenario {
     normativeChecks,
     alternatives: buildAlternatives(project),
     criteria: [
-      { label: "Viabilidad tecnica", value: project.status === "Realizado" ? "Alta" : "Media", tone: "emerald" },
+      { label: "Viabilidad tecnica", value: project.status === "Realizado" ? "Alta" : "Media", tone: "sky" },
       { label: "Riesgo normativo", value: project.layer === "Zonificacion" ? "Alto" : "Medio", tone: project.layer === "Zonificacion" ? "rose" : "amber" },
-      { label: "Consenso inicial", value: project.votes > 150 ? "Favorable" : "A construir", tone: project.votes > 150 ? "emerald" : "cyan" },
+      { label: "Consenso inicial", value: project.votes > 150 ? "Favorable" : "A construir", tone: project.votes > 150 ? "sky" : "cyan" },
       { label: "Datos faltantes", value: "4 puntos", tone: "amber" }
     ],
     cabinetChecklist: [

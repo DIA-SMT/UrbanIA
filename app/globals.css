@@ -80,6 +80,25 @@ body {
   translate: 120% 0;
 }
 
+.urban-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(53, 174, 234, 0.45) rgba(15, 23, 42, 0.35);
+}
+
+.urban-scrollbar::-webkit-scrollbar {
+  height: 8px;
+}
+
+.urban-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.35);
+  border-radius: 999px;
+}
+
+.urban-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(53, 174, 234, 0.45);
+  border-radius: 999px;
+}
+
 .urban-pin {
   animation: urban-float 4s ease-in-out infinite;
   transition:
@@ -211,6 +230,12 @@ html.urban-light .text-civic-sky {
   color: #0369a1 !important;
 }
 
+html.urban-light .text-emerald-100,
+html.urban-light .text-emerald-200,
+html.urban-light .text-emerald-300 {
+  color: #047857 !important;
+}
+
 html.urban-light .text-amber-100,
 html.urban-light .text-amber-200,
 html.urban-light .text-amber-300 {
@@ -287,6 +312,16 @@ html.urban-light [class*="bg-sky-400/20"] {
 
 html.urban-light [class*="border-sky-300"] {
   border-color: #9bd8ff !important;
+}
+
+html.urban-light [class*="bg-emerald-300/10"],
+html.urban-light [class*="bg-emerald-400/15"],
+html.urban-light [class*="bg-emerald-500"] {
+  background-color: #dcfce7 !important;
+}
+
+html.urban-light [class*="border-emerald-300"] {
+  border-color: #86efac !important;
 }
 
 html.urban-light [class*="bg-amber-300/10"],

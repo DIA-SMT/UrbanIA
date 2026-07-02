@@ -69,7 +69,7 @@ export function SuccessCasesPanel({ cases = successCases }: { cases?: DashboardS
 export function ProposalSimulatorPanel() {
   return (
     <Panel title="Propuesta oficial en analisis" badge="Concejo">
-      <div className="h-32 rounded-md bg-[linear-gradient(135deg,rgba(16,185,129,0.25),rgba(14,165,233,0.20)),url('https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=800&q=80')] bg-cover bg-center" />
+      <div className="h-32 rounded-md bg-[linear-gradient(135deg,rgba(31,137,246,0.30),rgba(14,165,233,0.20)),url('https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=800&q=80')] bg-cover bg-center" />
       <h3 className="mt-4 font-bold text-white">Expte. 1482-CD: revision de alturas en corredor norte</h3>
       <div className="mt-4 space-y-3 text-sm">
         {["Uso del suelo: requiere dictamen", "Alturas: conflicto probable", "Audiencia publica: pendiente", "Aportes Cidituc: 42 vinculados"].map((item) => (
@@ -180,7 +180,7 @@ export function CabinetPanel() {
 
       <div className="mt-4 grid gap-3 2xl:grid-cols-3">
         {cabinetMeetings.map((meeting) => (
-          <article key={meeting.id} className="urban-lift group min-w-0 overflow-hidden rounded-lg border border-white/10 bg-[linear-gradient(145deg,rgba(15,23,42,0.82),rgba(15,118,110,0.10))]">
+          <article key={meeting.id} className="urban-lift group min-w-0 overflow-hidden rounded-lg border border-white/10 bg-[linear-gradient(145deg,rgba(15,23,42,0.82),rgba(31,137,246,0.12))]">
             <div className="border-b border-white/8 p-4">
               <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
                 <span className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.04] px-2 py-1">

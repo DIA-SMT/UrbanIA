@@ -55,7 +55,7 @@ export function UrbanLeafletMap() {
           </div>
         </div>
 
-        <div className="relative h-[620px]">
+        <div className="relative h-[520px] md:h-[620px]">
           <MapContainer center={tucumanCenter} zoom={13} scrollWheelZoom className="h-full w-full">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -68,7 +68,7 @@ export function UrbanLeafletMap() {
             ))}
           </MapContainer>
 
-          <div className="absolute left-4 top-4 z-[500] flex max-w-[calc(100%-2rem)] flex-wrap gap-2 rounded-md border border-white/10 bg-slate-950/80 p-2 backdrop-blur">
+          <div className="urban-scrollbar absolute left-4 top-4 z-[500] flex max-w-[calc(100%-2rem)] gap-2 overflow-x-auto rounded-md border border-white/10 bg-slate-950/80 p-2 backdrop-blur sm:flex-wrap sm:overflow-visible">
             {layers.map((layer) => {
               const isActive = activeLayers.includes(layer);
               const Icon = layerStyles[layer].icon;

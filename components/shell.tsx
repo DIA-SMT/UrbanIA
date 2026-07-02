@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           : "min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(31,137,246,0.22),transparent_34%),#06121f] p-3 text-slate-100 md:p-4"
       }
     >
-      <div className="mx-auto flex max-w-[1540px] gap-4 overflow-hidden">
+      <div className="mx-auto flex max-w-[1540px] items-start gap-4">
         <aside className="hidden w-56 shrink-0 xl:block">
           <div className="mb-4 px-2 pt-2">
             <Brand />
@@ -63,7 +63,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </aside>
 
         <section className="min-w-0 flex-1">
-          <header className="mb-4 flex flex-wrap items-center gap-3 2xl:flex-nowrap">
+          <header className="mb-3 flex flex-wrap items-center gap-3 2xl:flex-nowrap">
             <div className="lg:hidden">
               <Brand />
             </div>
@@ -94,6 +94,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <ChevronDown className="h-4 w-4" />
             </button>
           </header>
+          <nav aria-label="Navegacion principal" className="mb-4 xl:hidden">
+            <div className="urban-scrollbar flex gap-2 overflow-x-auto rounded-lg border border-white/10 bg-slate-950/45 p-2">
+              {navItems.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`urban-button inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
+                    isActive(pathname, item.href) ? "bg-sky-400/20 text-sky-100" : "text-slate-300 hover:bg-white/5"
+                  }`}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </nav>
           {children}
         </section>
       </div>

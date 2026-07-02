@@ -5,11 +5,13 @@ import {
   ArrowRight,
   BarChart3,
   BookOpen,
+  CalendarDays,
   CheckCircle2,
   ClipboardList,
   FileText,
   GitBranch,
   Layers3,
+  MapPin,
   MessageSquare,
   Scale,
   ShieldAlert,
@@ -45,10 +47,18 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
           <ArrowLeft className="h-4 w-4" />
           Volver a propuestas
         </Link>
-        <Link href={`/proyectos/${project.id}`} className="urban-button inline-flex items-center gap-2 rounded-md border border-sky-300/25 bg-sky-300/10 px-3 py-2 text-sm font-black text-sky-100">
-          Abrir ficha del proyecto
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          {project.linkedHearingId ? (
+            <Link href="/audiencias" className="urban-button inline-flex items-center gap-2 rounded-md border border-cyan-300/25 bg-cyan-300/10 px-3 py-2 text-sm font-black text-cyan-100">
+              Audiencia vinculada
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : null}
+          <Link href={`/proyectos/${project.id}`} className="urban-button inline-flex items-center gap-2 rounded-md border border-sky-300/25 bg-sky-300/10 px-3 py-2 text-sm font-black text-sky-100">
+            Abrir ficha del proyecto
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
 
       <section className="urban-card urban-lift overflow-hidden rounded-lg">
@@ -96,7 +106,7 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
           </Panel>
 
           <Panel title="Evidencia disponible" icon={BookOpen}>
-            <List items={scenario.evidence} color="emerald" />
+            <List items={scenario.evidence} color="sky" />
           </Panel>
 
           <Panel title="Informacion faltante" icon={ShieldAlert}>
@@ -108,7 +118,7 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
           </Panel>
 
           <Panel title="Aportes ciudadanos vinculados" icon={MessageSquare}>
-            <List items={scenario.citizenInputs} color="emerald" />
+            <List items={scenario.citizenInputs} color="sky" />
           </Panel>
 
           <div className="urban-card rounded-lg p-5 lg:col-span-2">
@@ -133,12 +143,25 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
         </div>
 
         <aside className="space-y-4">
+          <div className="urban-card rounded-lg p-5">
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-white">
+              <GitBranch className="h-5 w-5 text-civic-sky" />
+              Trazabilidad del escenario
+            </h2>
+            <div className="grid gap-3">
+              <TraceLink href={`/proyectos/${project.id}`} label="Ficha del proyecto" icon={FileText} />
+              {project.linkedMeetingId ? <TraceLink href="/gabinete" label="Acta de gabinete" icon={ClipboardList} /> : null}
+              {project.linkedHearingId ? <TraceLink href="/audiencias" label="Audiencia publica" icon={CalendarDays} /> : null}
+              <TraceLink href="/mapa" label="Ubicacion territorial" icon={MapPin} />
+            </div>
+          </div>
+
           <div className="urban-card urban-lift rounded-lg p-5">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-white">
               <ClipboardList className="h-5 w-5 text-sky-300" />
               Checklist de decision
             </h2>
-            <List items={scenario.cabinetChecklist} color="emerald" />
+            <List items={scenario.cabinetChecklist} color="sky" />
           </div>
 
           <div className="urban-card rounded-lg p-5">
@@ -160,7 +183,7 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
 
 function CriterionCard({ criterion }: { criterion: ScenarioDecisionCriterion }) {
   const colors: Record<ScenarioDecisionCriterion["tone"], string> = {
-    emerald: "border-sky-300/20 bg-sky-300/10 text-sky-100",
+    sky: "border-sky-300/20 bg-sky-300/10 text-sky-100",
     amber: "border-amber-300/20 bg-amber-300/10 text-amber-100",
     cyan: "border-cyan-300/20 bg-cyan-300/10 text-cyan-100",
     rose: "border-rose-300/20 bg-rose-300/10 text-rose-100"
@@ -171,6 +194,18 @@ function CriterionCard({ criterion }: { criterion: ScenarioDecisionCriterion }) 
       <p className="text-[11px] font-black uppercase tracking-[0.12em] opacity-75">{criterion.label}</p>
       <p className="mt-1 text-lg font-black">{criterion.value}</p>
     </div>
+  );
+}
+
+function TraceLink({ href, label, icon: Icon }: { href: string; label: string; icon: typeof FileText }) {
+  return (
+    <Link href={href} className="urban-button inline-flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-slate-200">
+      <span className="inline-flex items-center gap-2">
+        <Icon className="h-4 w-4 text-civic-sky" />
+        {label}
+      </span>
+      <ArrowRight className="h-4 w-4" />
+    </Link>
   );
 }
 
@@ -186,8 +221,8 @@ function Panel({ title, icon: Icon, children }: { title: string; icon: typeof Gi
   );
 }
 
-function List({ items, color }: { items: string[]; color: "emerald" | "amber" | "cyan" }) {
-  const iconColor = color === "emerald" ? "text-sky-300" : color === "amber" ? "text-amber-300" : "text-cyan-300";
+function List({ items, color }: { items: string[]; color: "sky" | "amber" | "cyan" }) {
+  const iconColor = color === "sky" ? "text-sky-300" : color === "amber" ? "text-amber-300" : "text-cyan-300";
 
   return (
     <div className="space-y-3">

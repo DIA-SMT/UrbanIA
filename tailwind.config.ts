@@ -15,7 +15,6 @@ const config: Config = {
           line: "#1f3550",
           blue: "#1f89f6",
           sky: "#35aeea",
-          mint: "#81fc87",
           aqua: "#35aeea",
           amber: "#f6d500",
           rose: "#ef5b85"

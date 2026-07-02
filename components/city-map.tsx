@@ -32,7 +32,7 @@ const pins = [
     icon: Trees,
     label: "Espacios verdes",
     layer: "Espacios verdes",
-    className: "left-[70%] top-[31%] bg-civic-blue",
+    className: "left-[70%] top-[31%] bg-emerald-500",
     description: "Plazas, parques, arbolado y cobertura ambiental por zona.",
     status: "Capa ambiental activa"
   },
@@ -103,7 +103,7 @@ export function CityMap({ dashboardMetrics = metrics }: { dashboardMetrics?: Das
   }
 
   return (
-    <section className="urban-card urban-lift relative min-h-[430px] overflow-hidden rounded-lg">
+    <section className="urban-card urban-lift relative min-h-[560px] overflow-hidden rounded-lg md:min-h-[430px]">
       <div
         className={`absolute inset-0 bg-cover bg-center transition duration-500 ${
           mode === "3D"
@@ -112,9 +112,9 @@ export function CityMap({ dashboardMetrics = metrics }: { dashboardMetrics?: Das
         }`}
       />
       <div className={`absolute inset-0 map-grid transition ${mode === "3D" ? "opacity-20" : "opacity-40"}`} />
-      <div className="relative z-10 grid min-h-[430px] grid-cols-1 lg:grid-cols-[340px_1fr]">
+      <div className="relative z-10 grid min-h-[560px] grid-cols-1 md:min-h-[430px] lg:grid-cols-[340px_1fr]">
         <div className="m-4 rounded-lg border border-white/10 bg-slate-950/62 p-5 backdrop-blur md:m-5">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-black leading-tight text-white">San Miguel de Tucuman</h1>
             <span className="text-amber-300">21 C</span>
           </div>
@@ -134,7 +134,7 @@ export function CityMap({ dashboardMetrics = metrics }: { dashboardMetrics?: Das
               <Search className="h-4 w-4" />
             )}
           </label>
-          <div className="mt-5 grid grid-cols-3 gap-2">
+          <div className="mt-5 grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
             {dashboardMetrics.map((metric) => (
               <div key={metric.label} className="urban-lift rounded-md border border-white/10 bg-white/5 p-3">
                 <p className="text-2xl font-black leading-tight text-civic-sky">{metric.value}</p>
@@ -199,7 +199,7 @@ export function CityMap({ dashboardMetrics = metrics }: { dashboardMetrics?: Das
             </div>
           ) : null}
 
-          <div className="absolute bottom-5 left-1/2 flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 flex-wrap justify-center gap-2 rounded-md border border-white/10 bg-slate-950/72 p-2 backdrop-blur">
+          <div className="urban-scrollbar absolute bottom-5 left-1/2 flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 gap-2 overflow-x-auto rounded-md border border-white/10 bg-slate-950/72 p-2 backdrop-blur sm:flex-wrap sm:justify-center sm:overflow-visible">
             {layers.map((layer) => {
               const isActive = activeLayers.includes(layer);
 
