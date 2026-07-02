@@ -22,7 +22,7 @@ export default async function Home() {
           <p className="text-sm font-bold text-white">Mesa de deliberacion urbana</p>
           <p className="text-xs text-slate-500">Propuestas oficiales, Codigo de Planeamiento, audiencias y aportes ciudadanos vinculados por IA.</p>
         </div>
-        <div className={`rounded-md px-3 py-2 text-xs font-bold ${dashboard.isLive ? "bg-emerald-400/15 text-emerald-200" : "bg-amber-400/15 text-amber-200"}`}>
+        <div className={`rounded-md px-3 py-2 text-xs font-bold ${dashboard.isLive ? "bg-sky-400/15 text-sky-200" : "bg-amber-400/15 text-amber-200"}`}>
           {dashboard.isLive ? "Datos en vivo" : "Modo demo"}
         </div>
       </div>

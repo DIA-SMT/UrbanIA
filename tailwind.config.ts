@@ -10,17 +10,18 @@ const config: Config = {
     extend: {
       colors: {
         civic: {
-          ink: "#071118",
-          panel: "#101a22",
-          line: "#22313d",
-          mint: "#42d392",
-          aqua: "#44c7d8",
-          amber: "#f0a84b",
+          ink: "#06121f",
+          panel: "#0d1b2a",
+          line: "#1f3550",
+          blue: "#1f89f6",
+          sky: "#35aeea",
+          aqua: "#35aeea",
+          amber: "#f6d500",
           rose: "#ef5b85"
         }
       },
       boxShadow: {
-        glow: "0 0 40px rgba(66, 211, 146, 0.18)"
+        glow: "0 0 40px rgba(31, 137, 246, 0.2)"
       }
     }
   },

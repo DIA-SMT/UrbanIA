@@ -114,7 +114,7 @@ export function CitizenParticipation() {
       <section className="urban-card urban-lift overflow-hidden rounded-lg">
         <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:p-7">
           <div>
-            <div className="urban-pulse mb-4 inline-flex items-center gap-2 rounded-md border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-emerald-200">
+            <div className="urban-pulse mb-4 inline-flex items-center gap-2 rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-sky-200">
               <Users className="h-4 w-4" />
               Ciudadania activa
             </div>
@@ -122,12 +122,12 @@ export function CitizenParticipation() {
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
               Espacio para registrar propuestas, priorizar ideas, reunir comentarios y alimentar decisiones urbanas con trazabilidad publica.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button className="urban-button inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-3 text-sm font-bold text-civic-ink">
+            <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
+              <button className="urban-button inline-flex w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-bold text-white sm:w-auto">
                 <Plus className="h-4 w-4" />
                 Nueva propuesta
               </button>
-              <button className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200">
+              <button className="urban-button inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 sm:w-auto">
                 <Vote className="h-4 w-4" />
                 Abrir votacion
               </button>
@@ -141,7 +141,7 @@ export function CitizenParticipation() {
               ["Propuestas", "128"]
             ].map(([label, value]) => (
               <div key={label} className="urban-lift rounded-md border border-white/10 bg-slate-950/50 p-4">
-                <p className="text-2xl font-black text-civic-mint">{value}</p>
+                <p className="text-2xl font-black text-civic-sky">{value}</p>
                 <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
               </div>
             ))}
@@ -153,7 +153,7 @@ export function CitizenParticipation() {
         <div className="space-y-4">
           <div className="urban-card rounded-lg p-4">
             <div className="flex flex-wrap items-center gap-3">
-              <label className="urban-lift flex min-w-64 flex-1 items-center gap-3 rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-slate-400">
+              <label className="urban-lift flex min-w-0 flex-1 basis-full items-center gap-3 rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-slate-400 md:basis-64">
                 <Search className="h-4 w-4" />
                 <input
                   value={query}
@@ -168,7 +168,7 @@ export function CitizenParticipation() {
                     key={item}
                     onClick={() => setStatus(item)}
                     className={`urban-button rounded-md px-3 py-2 text-xs font-bold ${
-                      status === item ? "bg-emerald-400/18 text-emerald-100" : "bg-white/[0.04] text-slate-400"
+                      status === item ? "bg-sky-400/18 text-sky-100" : "bg-white/[0.04] text-slate-400"
                     }`}
                   >
                     {item}
@@ -184,7 +184,7 @@ export function CitizenParticipation() {
                 key={proposal.id}
                 onClick={() => setSelectedProposal(proposal)}
                 className={`urban-card urban-lift min-w-0 rounded-lg p-5 text-left ${
-                  selectedProposal.id === proposal.id ? "border-emerald-300/40" : ""
+                  selectedProposal.id === proposal.id ? "border-sky-300/40" : ""
                 }`}
               >
                 <div className="mb-4 flex items-start justify-between gap-3">
@@ -192,7 +192,7 @@ export function CitizenParticipation() {
                     <span className="rounded-md bg-white/[0.06] px-3 py-1 text-xs font-bold text-slate-300">{proposal.area}</span>
                     <h2 className="mt-3 text-lg font-black leading-tight text-white">{proposal.title}</h2>
                   </div>
-                  <span className="shrink-0 rounded-md bg-emerald-400/15 px-2 py-1 text-xs font-bold text-emerald-200">{proposal.status}</span>
+                  <span className="shrink-0 rounded-md bg-sky-400/15 px-2 py-1 text-xs font-bold text-sky-200">{proposal.status}</span>
                 </div>
                 <p className="text-sm leading-6 text-slate-400">{proposal.summary}</p>
                 <div className="mt-5 flex items-center justify-between gap-3 text-xs text-slate-400">
@@ -210,7 +210,7 @@ export function CitizenParticipation() {
         <aside className="space-y-4">
           <div className="urban-card urban-lift rounded-lg p-5">
             <div className="mb-4 flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-md bg-emerald-400/15 text-emerald-200">
+              <div className="grid h-10 w-10 place-items-center rounded-md bg-sky-400/15 text-sky-200">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
@@ -220,7 +220,7 @@ export function CitizenParticipation() {
             </div>
             <h3 className="text-xl font-black leading-tight text-white">{selectedProposal.title}</h3>
             <p className="mt-3 text-sm leading-6 text-slate-300">{selectedProposal.summary}</p>
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-4 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
               {[
                 ["Apoyos", selectedProposal.votes.toString()],
                 ["Comentarios", selectedProposal.comments.toString()],
@@ -233,7 +233,7 @@ export function CitizenParticipation() {
                 </div>
               ))}
             </div>
-            <button className="urban-button mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-3 text-sm font-black text-civic-ink">
+            <button className="urban-button mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white">
               <CheckCircle2 className="h-4 w-4" />
               Enviar a evaluacion
             </button>
