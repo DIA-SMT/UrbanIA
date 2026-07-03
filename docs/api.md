@@ -13,6 +13,21 @@
 - POST /api/assistant/query
 - POST /api/assistant/generate-impact-brief
 
+### POST /api/assistant/query
+
+Consulta a Migue usando OpenRouter.
+
+Body:
+
+```json
+{
+  "question": "Que normativa deberia revisar para una propuesta de ciclovia?",
+  "context": "Contexto opcional de UrbanIA"
+}
+```
+
+Requiere `OPENROUTER_API_KEY` en el entorno del servidor.
+
 ## Propuestas
 
 - GET /api/proposals

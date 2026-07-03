@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, ChevronDown, Moon, Search, Sun } from "lucide-react";
+import { MigueFloatingChat } from "@/components/assistant/migue-floating-chat";
 import { Brand } from "@/components/brand";
 import { navItems, sidebarSections } from "@/lib/data";
 
@@ -113,6 +114,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </section>
       </div>
+      <MigueFloatingChat />
     </main>
   );
 }
