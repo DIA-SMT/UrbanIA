@@ -5,8 +5,14 @@ import Link from "next/link";
 import { ArrowLeft, LockKeyhole, LogIn, UserPlus } from "lucide-react";
 import { useState } from "react";
 
-export function LoginPage() {
-  const [mode, setMode] = useState<"login" | "register">("login");
+const errorMessages: Record<string, string> = {
+  missing: "Completá todos los campos. La contraseña debe tener al menos 6 caracteres.",
+  credentials: "El correo o la contraseña no son correctos. Si tu cuenta todavía no tiene contraseña, elegí Registrarte para activarla.",
+  exists: "Esta cuenta ya tiene una contraseña. Ingresá con tus credenciales."
+};
+
+export function LoginPage({ initialMode = "login", error }: { initialMode?: "login" | "register"; error?: string }) {
+  const [mode, setMode] = useState<"login" | "register">(initialMode);
 
   return (
     <main className="min-h-screen bg-[#eff7fb] px-4 py-6 text-slate-950">
@@ -41,6 +47,7 @@ export function LoginPage() {
                 Ingresar
               </div>
               <h1 className="text-2xl font-black leading-tight text-slate-950">Ingresar</h1>
+              {error && <AuthError message={errorMessages[error] ?? "No se pudo completar el ingreso."} />}
 
               <form action="/api/auth/login" method="post" className="mt-6 space-y-4">
                 <TextField label="Correo electronico" name="email" type="email" placeholder="nombre@correo.com" />
@@ -72,6 +79,7 @@ export function LoginPage() {
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 Las cuentas nuevas se crean como usuario comun.
               </p>
+              {error && <AuthError message={errorMessages[error] ?? "No se pudo completar el registro."} />}
 
               <form action="/api/auth/register" method="post" className="mt-6 space-y-4">
                 <TextField label="Nombre y apellido" name="name" type="text" placeholder="Tu nombre completo" />
@@ -99,6 +107,10 @@ export function LoginPage() {
       </div>
     </main>
   );
+}
+
+function AuthError({ message }: { message: string }) {
+  return <div role="alert" className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm leading-5 text-amber-900">{message}</div>;
 }
 
 function TextField({ label, name, type, placeholder }: { label: string; name: string; type: string; placeholder: string }) {

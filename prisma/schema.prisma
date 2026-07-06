@@ -45,6 +45,153 @@ model DocumentChunk {
   regulation   Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
 }
 
+model NormativeDocument {
+  id              String              @id
+  title           String
+  documentType    String
+  ordinanceNumber String?
+  versionDate     DateTime?
+  jurisdiction    String
+  sourceName      String
+  sourcePath      String?
+  status          NormativeStatus     @default(HISTORICAL_REFERENCE)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  chapters        NormativeChapter[]
+  articles        NormativeArticle[]
+  ordinances      Ordinance[]         @relation("SourceNormativeDocument")
+
+  @@index([ordinanceNumber])
+  @@index([versionDate])
+}
+
+model NormativeChapter {
+  id            String             @id
+  documentId    String
+  chapterNumber String
+  title         String
+  description   String?
+  displayOrder  Int
+  document      NormativeDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  articles      NormativeArticle[]
+
+  @@unique([documentId, chapterNumber])
+  @@index([documentId, displayOrder])
+}
+
+model NormativeArticle {
+  id                String             @id
+  documentId        String
+  chapterId         String?
+  articleNumber     String
+  title             String?
+  content           String
+  normalizedContent String
+  metadata          Json               @default("{}")
+  status            NormativeStatus    @default(HISTORICAL_REFERENCE)
+  displayOrder      Int
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  document          NormativeDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  chapter           NormativeChapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  versions          ArticleVersion[]
+  sourceDistricts   District[]
+  landUseRules      DistrictLandUseRule[]
+  links             NormativeLink[]
+
+  @@unique([documentId, articleNumber])
+  @@index([documentId, displayOrder])
+  @@index([chapterId])
+}
+
+model Ordinance {
+  id               String             @id
+  number           String             @unique
+  title            String
+  description      String?
+  sanctionDate     DateTime?
+  effectiveDate    DateTime?
+  status           NormativeStatus    @default(UNKNOWN)
+  sourceDocumentId String?
+  sourceDocument   NormativeDocument? @relation("SourceNormativeDocument", fields: [sourceDocumentId], references: [id], onDelete: SetNull)
+  articleVersions  ArticleVersion[]
+}
+
+model ArticleVersion {
+  id            String           @id @default(cuid())
+  articleId     String
+  ordinanceId   String?
+  content       String
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+  changeType    NormativeChangeType
+  notes         String?
+  article       NormativeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  ordinance     Ordinance?       @relation(fields: [ordinanceId], references: [id], onDelete: SetNull)
+
+  @@index([articleId, effectiveFrom])
+  @@index([ordinanceId])
+}
+
+model District {
+  id                   String                  @id
+  code                 String                  @unique
+  name                 String?
+  category             String?
+  description          String?
+  characterDescription String?
+  geometry             Unsupported("geometry")?
+  sourceArticleId      String?
+  sourceArticle        NormativeArticle?       @relation(fields: [sourceArticleId], references: [id], onDelete: SetNull)
+  landUseRules         DistrictLandUseRule[]
+
+  @@index([sourceArticleId])
+}
+
+model LandUse {
+  id          String                  @id @default(cuid())
+  name        String
+  category    String?
+  description String?
+  rules       DistrictLandUseRule[]
+
+  @@unique([name, category])
+}
+
+model DistrictLandUseRule {
+  id                  String             @id @default(cuid())
+  districtId          String
+  landUseId           String
+  status              LandUseRuleStatus  @default(UNKNOWN)
+  conditions          String?
+  parkingRequirements String?
+  loadingRequirements String?
+  sourceArticleId     String?
+  sourceReference     String?
+  district            District           @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  landUse             LandUse            @relation(fields: [landUseId], references: [id], onDelete: Cascade)
+  sourceArticle       NormativeArticle?   @relation(fields: [sourceArticleId], references: [id], onDelete: SetNull)
+
+  @@unique([districtId, landUseId, sourceReference])
+  @@index([sourceArticleId])
+}
+
+model NormativeLink {
+  id               String                    @id @default(cuid())
+  sourceType       String
+  sourceId         String
+  articleId        String
+  relationshipType NormativeRelationshipType
+  notes            String?
+  createdBy        String?
+  createdAt        DateTime                  @default(now())
+  article          NormativeArticle          @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceType, sourceId, articleId, relationshipType])
+  @@index([articleId])
+  @@index([sourceType, sourceId])
+}
+
 model City {
   id          String           @id @default(cuid())
   name        String
@@ -337,6 +484,40 @@ enum RegulationType {
   URBAN_CODE
   BUILDING_CODE
   REPORT
+}
+
+enum NormativeStatus {
+  DRAFT
+  HISTORICAL_REFERENCE
+  CURRENT
+  MODIFIED
+  REPEALED
+  UNKNOWN
+}
+
+enum NormativeChangeType {
+  CREATED
+  MODIFIED
+  PARTIALLY_MODIFIED
+  REPEALED
+  REPLACED
+}
+
+enum LandUseRuleStatus {
+  ALLOWED
+  CONDITIONAL
+  RESTRICTED
+  NOT_ALLOWED
+  UNKNOWN
+}
+
+enum NormativeRelationshipType {
+  APPLIES
+  MODIFIES
+  REFERENCES
+  POTENTIAL_CONFLICT
+  SUPPORTS
+  REQUIRES_REVIEW
 }
 
 enum GeometryType {

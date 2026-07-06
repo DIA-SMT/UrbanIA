@@ -1,0 +1,40 @@
+CREATE TYPE "NormativeStatus" AS ENUM ('DRAFT', 'HISTORICAL_REFERENCE', 'CURRENT', 'MODIFIED', 'REPEALED', 'UNKNOWN');
+CREATE TYPE "NormativeChangeType" AS ENUM ('CREATED', 'MODIFIED', 'PARTIALLY_MODIFIED', 'REPEALED', 'REPLACED');
+CREATE TYPE "LandUseRuleStatus" AS ENUM ('ALLOWED', 'CONDITIONAL', 'RESTRICTED', 'NOT_ALLOWED', 'UNKNOWN');
+CREATE TYPE "NormativeRelationshipType" AS ENUM ('APPLIES', 'MODIFIES', 'REFERENCES', 'POTENTIAL_CONFLICT', 'SUPPORTS', 'REQUIRES_REVIEW');
+
+CREATE TABLE "NormativeDocument" ("id" TEXT PRIMARY KEY, "title" TEXT NOT NULL, "documentType" TEXT NOT NULL, "ordinanceNumber" TEXT, "versionDate" TIMESTAMP(3), "jurisdiction" TEXT NOT NULL, "sourceName" TEXT NOT NULL, "sourcePath" TEXT, "status" "NormativeStatus" NOT NULL DEFAULT 'HISTORICAL_REFERENCE', "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL);
+CREATE TABLE "NormativeChapter" ("id" TEXT PRIMARY KEY, "documentId" TEXT NOT NULL, "chapterNumber" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "displayOrder" INTEGER NOT NULL);
+CREATE TABLE "NormativeArticle" ("id" TEXT PRIMARY KEY, "documentId" TEXT NOT NULL, "chapterId" TEXT, "articleNumber" TEXT NOT NULL, "title" TEXT, "content" TEXT NOT NULL, "normalizedContent" TEXT NOT NULL, "metadata" JSONB NOT NULL DEFAULT '{}', "status" "NormativeStatus" NOT NULL DEFAULT 'HISTORICAL_REFERENCE', "displayOrder" INTEGER NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL);
+CREATE TABLE "Ordinance" ("id" TEXT PRIMARY KEY, "number" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "sanctionDate" TIMESTAMP(3), "effectiveDate" TIMESTAMP(3), "status" "NormativeStatus" NOT NULL DEFAULT 'UNKNOWN', "sourceDocumentId" TEXT);
+CREATE TABLE "ArticleVersion" ("id" TEXT PRIMARY KEY, "articleId" TEXT NOT NULL, "ordinanceId" TEXT, "content" TEXT NOT NULL, "effectiveFrom" TIMESTAMP(3), "effectiveTo" TIMESTAMP(3), "changeType" "NormativeChangeType" NOT NULL, "notes" TEXT);
+CREATE TABLE "District" ("id" TEXT PRIMARY KEY, "code" TEXT NOT NULL, "name" TEXT, "category" TEXT, "description" TEXT, "characterDescription" TEXT, "geometry" geometry, "sourceArticleId" TEXT);
+CREATE TABLE "LandUse" ("id" TEXT PRIMARY KEY, "name" TEXT NOT NULL, "category" TEXT, "description" TEXT);
+CREATE TABLE "DistrictLandUseRule" ("id" TEXT PRIMARY KEY, "districtId" TEXT NOT NULL, "landUseId" TEXT NOT NULL, "status" "LandUseRuleStatus" NOT NULL DEFAULT 'UNKNOWN', "conditions" TEXT, "parkingRequirements" TEXT, "loadingRequirements" TEXT, "sourceArticleId" TEXT, "sourceReference" TEXT);
+CREATE TABLE "NormativeLink" ("id" TEXT PRIMARY KEY, "sourceType" TEXT NOT NULL, "sourceId" TEXT NOT NULL, "articleId" TEXT NOT NULL, "relationshipType" "NormativeRelationshipType" NOT NULL, "notes" TEXT, "createdBy" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP);
+
+CREATE UNIQUE INDEX "NormativeChapter_documentId_chapterNumber_key" ON "NormativeChapter"("documentId", "chapterNumber");
+CREATE INDEX "NormativeChapter_documentId_displayOrder_idx" ON "NormativeChapter"("documentId", "displayOrder");
+CREATE UNIQUE INDEX "NormativeArticle_documentId_articleNumber_key" ON "NormativeArticle"("documentId", "articleNumber");
+CREATE INDEX "NormativeArticle_documentId_displayOrder_idx" ON "NormativeArticle"("documentId", "displayOrder");
+CREATE INDEX "NormativeArticle_chapterId_idx" ON "NormativeArticle"("chapterId");
+CREATE UNIQUE INDEX "Ordinance_number_key" ON "Ordinance"("number");
+CREATE INDEX "ArticleVersion_articleId_effectiveFrom_idx" ON "ArticleVersion"("articleId", "effectiveFrom");
+CREATE UNIQUE INDEX "District_code_key" ON "District"("code");
+CREATE UNIQUE INDEX "LandUse_name_category_key" ON "LandUse"("name", "category");
+CREATE UNIQUE INDEX "DistrictLandUseRule_districtId_landUseId_sourceReference_key" ON "DistrictLandUseRule"("districtId", "landUseId", "sourceReference");
+CREATE INDEX "NormativeLink_articleId_idx" ON "NormativeLink"("articleId");
+CREATE INDEX "NormativeLink_sourceType_sourceId_idx" ON "NormativeLink"("sourceType", "sourceId");
+CREATE UNIQUE INDEX "NormativeLink_sourceType_sourceId_articleId_relationshipType_key" ON "NormativeLink"("sourceType", "sourceId", "articleId", "relationshipType");
+
+ALTER TABLE "NormativeChapter" ADD CONSTRAINT "NormativeChapter_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "NormativeDocument"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "NormativeArticle" ADD CONSTRAINT "NormativeArticle_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "NormativeDocument"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "NormativeArticle" ADD CONSTRAINT "NormativeArticle_chapterId_fkey" FOREIGN KEY ("chapterId") REFERENCES "NormativeChapter"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Ordinance" ADD CONSTRAINT "Ordinance_sourceDocumentId_fkey" FOREIGN KEY ("sourceDocumentId") REFERENCES "NormativeDocument"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "ArticleVersion" ADD CONSTRAINT "ArticleVersion_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "NormativeArticle"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ArticleVersion" ADD CONSTRAINT "ArticleVersion_ordinanceId_fkey" FOREIGN KEY ("ordinanceId") REFERENCES "Ordinance"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "District" ADD CONSTRAINT "District_sourceArticleId_fkey" FOREIGN KEY ("sourceArticleId") REFERENCES "NormativeArticle"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "DistrictLandUseRule" ADD CONSTRAINT "DistrictLandUseRule_districtId_fkey" FOREIGN KEY ("districtId") REFERENCES "District"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "DistrictLandUseRule" ADD CONSTRAINT "DistrictLandUseRule_landUseId_fkey" FOREIGN KEY ("landUseId") REFERENCES "LandUse"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "DistrictLandUseRule" ADD CONSTRAINT "DistrictLandUseRule_sourceArticleId_fkey" FOREIGN KEY ("sourceArticleId") REFERENCES "NormativeArticle"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "NormativeLink" ADD CONSTRAINT "NormativeLink_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "NormativeArticle"("id") ON DELETE CASCADE ON UPDATE CASCADE;

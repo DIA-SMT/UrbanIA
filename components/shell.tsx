@@ -49,9 +49,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
           className="fixed inset-y-0 left-0 z-40 hidden border-r border-slate-200/80 bg-white/95 p-3 shadow-[8px_0_32px_rgba(15,23,42,0.04)] backdrop-blur-xl lg:flex lg:flex-col dark:border-white/10 dark:bg-[#091725]/95"
         >
-          <div className={`flex h-16 items-center ${collapsed ? "justify-center" : "justify-between px-2"}`}>
+          <div className={`relative flex h-16 items-center ${collapsed ? "justify-center" : "justify-between px-2"}`}>
             <div className={collapsed ? "[&>div>div:last-child]:hidden" : ""}><Brand /></div>
             {!collapsed && <button onClick={toggleSidebar} className="icon-button" aria-label="Colapsar navegacion"><ChevronLeft className="h-4 w-4" /></button>}
+            {collapsed && (
+              <button
+                onClick={toggleSidebar}
+                className="absolute -right-6 top-1/2 z-50 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-md transition hover:border-sky-300 hover:text-sky-700 dark:border-white/10 dark:bg-[#102235] dark:text-slate-200"
+                aria-label="Expandir navegacion"
+                title="Expandir navegacion"
+              >
+                <ChevronLeft className="h-4 w-4 rotate-180" />
+              </button>
+            )}
           </div>
           <nav className="urban-scrollbar mt-3 flex-1 overflow-y-auto pb-4" aria-label="Navegacion principal">
             <SidebarLink href="/" label="Resumen" icon={sidebarSections[3].items[1].icon} active={pathname === "/"} collapsed={collapsed} />
