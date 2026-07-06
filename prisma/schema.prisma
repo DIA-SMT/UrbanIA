@@ -118,7 +118,30 @@ model Proposal {
   updatedAt   DateTime       @updatedAt
   createdBy   User?          @relation(fields: [createdById], references: [id])
   comments    Comment[]
+  citizenContributions CitizenContribution[]
   votes       Vote[]
+}
+
+model CitizenContribution {
+  id          String                    @id @default(cuid())
+  kind        CitizenContributionKind
+  name        String
+  dni         String
+  zone        String
+  text        String
+  fileName    String?
+  axis        String
+  confidence  String
+  status      CitizenContributionStatus @default(NEW)
+  proposalId  String?
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  proposal    Proposal?                 @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([kind])
+  @@index([status])
+  @@index([proposalId])
 }
 
 model Comment {
@@ -364,6 +387,20 @@ enum ProposalSource {
   OFFICIAL
   CABINET
   TECHNICAL_TEAM
+}
+
+enum CitizenContributionKind {
+  PROPOSAL
+  CLAIM
+  CONTRIBUTION
+}
+
+enum CitizenContributionStatus {
+  NEW
+  LINKED_TO_PROPOSAL
+  UNDER_REVIEW
+  RESOLVED
+  ARCHIVED
 }
 
 enum IdeaStatus {

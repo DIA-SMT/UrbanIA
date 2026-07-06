@@ -80,6 +80,102 @@ body {
   translate: 120% 0;
 }
 
+.migue-avatar {
+  position: relative;
+  width: 3.5rem;
+  height: 3.5rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 9999px;
+  border: 1px solid rgba(125, 211, 252, 0.42);
+  background: #082033;
+  box-shadow: 0 14px 28px rgba(2, 6, 23, 0.28);
+}
+
+.migue-avatar-bg,
+.migue-launcher-bg,
+.migue-launcher-frame,
+.migue-launcher-badge {
+  position: absolute;
+}
+
+.migue-avatar-bg {
+  inset: 0;
+  background: radial-gradient(circle at 50% 32%, rgba(56, 189, 248, 0.45), rgba(8, 47, 73, 0.88) 58%, rgba(2, 6, 23, 0.98));
+}
+
+.migue-avatar-image {
+  position: absolute;
+  bottom: -1.55rem;
+  left: 50%;
+  height: 5.15rem;
+  transform: translateX(-50%);
+  object-fit: contain;
+}
+
+.migue-launcher {
+  position: relative;
+  width: 4.5rem;
+  height: 4.5rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  border: 1px solid rgba(125, 211, 252, 0.55);
+  background: #082033;
+  box-shadow: 0 18px 42px rgba(2, 6, 23, 0.42), 0 0 0 4px rgba(14, 165, 233, 0.08);
+}
+
+.migue-launcher-bg {
+  inset: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(56, 189, 248, 0.48), rgba(8, 47, 73, 0.9) 58%, rgba(2, 6, 23, 0.98));
+}
+
+.migue-launcher-frame {
+  inset: 0.44rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.migue-launcher-image {
+  position: absolute;
+  bottom: -2.75rem;
+  left: 50%;
+  height: 7.45rem;
+  transform: translateX(-50%);
+  object-fit: contain;
+  transition: transform 180ms ease;
+}
+
+.migue-launcher:hover .migue-launcher-image {
+  transform: translateX(-50%) scale(1.05);
+}
+
+.migue-launcher-badge {
+  right: -0.125rem;
+  bottom: -0.125rem;
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 9999px;
+  border: 2px solid #082033;
+  background: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(2, 6, 23, 0.32);
+}
+
+@media (min-width: 768px) {
+  .migue-launcher {
+    width: 5rem;
+    height: 5rem;
+  }
+
+  .migue-launcher-image {
+    bottom: -3rem;
+    height: 8.25rem;
+  }
+}
+
 .urban-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(53, 174, 234, 0.45) rgba(15, 23, 42, 0.35);
@@ -351,4 +447,34 @@ html.urban-light [class*="bg-slate-700"] {
 
 html.urban-light .shadow-glow {
   box-shadow: 0 0 32px rgba(31, 137, 246, 0.16) !important;
+}
+
+.migue-theme-light .migue-avatar {
+  border-color: #bae6fd;
+  background: #ffffff;
+  box-shadow: 0 12px 26px rgba(2, 132, 199, 0.16);
+}
+
+.migue-theme-light .migue-avatar-bg {
+  background: radial-gradient(circle at 50% 32%, rgba(240, 249, 255, 1), rgba(186, 230, 253, 0.9) 58%, rgba(255, 255, 255, 0.98));
+}
+
+.migue-theme-light .migue-launcher {
+  border-color: #bae6fd;
+  background: #ffffff;
+  box-shadow: 0 16px 36px rgba(2, 132, 199, 0.22), 0 0 0 4px rgba(186, 230, 253, 0.28);
+}
+
+.migue-theme-light .migue-launcher-bg {
+  background: radial-gradient(circle at 50% 30%, rgba(240, 249, 255, 1), rgba(186, 230, 253, 0.92) 56%, rgba(255, 255, 255, 0.98));
+}
+
+.migue-theme-light .migue-launcher-frame {
+  border-color: #e0f2fe;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.migue-theme-light .migue-launcher-badge {
+  border-color: #ffffff;
+  box-shadow: 0 10px 22px rgba(2, 132, 199, 0.28);
 }

@@ -114,7 +114,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </section>
       </div>
-      <MigueFloatingChat />
+      <MigueFloatingChat appearance={theme} />
     </main>
   );
 }

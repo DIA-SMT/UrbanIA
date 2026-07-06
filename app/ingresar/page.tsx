@@ -5,6 +5,15 @@ export const metadata = {
   description: "Acceso a la gestion interna de UrbanIA."
 };
 
-export default function IngresarPage() {
-  return <LoginPage />;
+type IngresarPageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    mode?: string;
+  }>;
+};
+
+export default async function IngresarPage({ searchParams }: IngresarPageProps) {
+  const params = await searchParams;
+
+  return <LoginPage initialError={params?.error} initialMode={params?.mode === "register" ? "register" : "login"} />;
 }

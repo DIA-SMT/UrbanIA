@@ -1,6 +1,6 @@
 export type ProjectStatus = "Realizado" | "En ejecucion" | "Planificado" | "En analisis";
 export type ProjectLayer = "Transporte" | "Espacios verdes" | "Equipamiento" | "Zonificacion" | "Riesgos";
-export type ProjectOrigin = "Gabinete" | "Area tecnica" | "Concejo" | "Audiencia publica" | "Cidituc" | "Normativa" | "Caso comparado";
+export type ProjectOrigin = "Gabinete" | "Area tecnica" | "Concejo" | "Audiencia publica" | "Cidituc" | "Landing ciudadana" | "Normativa" | "Caso comparado";
 
 export type UrbanProject = {
   id: string;

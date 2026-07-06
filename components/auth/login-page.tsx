@@ -5,8 +5,23 @@ import Link from "next/link";
 import { ArrowLeft, LockKeyhole, LogIn, UserPlus } from "lucide-react";
 import { useState } from "react";
 
-export function LoginPage() {
-  const [mode, setMode] = useState<"login" | "register">("login");
+type LoginMode = "login" | "register";
+
+type LoginPageProps = {
+  initialError?: string;
+  initialMode?: LoginMode;
+};
+
+const errorMessages: Record<string, string> = {
+  missing: "Completá todos los campos para continuar.",
+  credentials: "El correo o la contrasena no son correctos.",
+  exists: "Ya existe una cuenta registrada con ese correo.",
+  unavailable: "El acceso no esta disponible por un problema de configuracion del servidor."
+};
+
+export function LoginPage({ initialError, initialMode = "login" }: LoginPageProps) {
+  const [mode, setMode] = useState<LoginMode>(initialMode);
+  const errorMessage = initialError ? errorMessages[initialError] : null;
 
   return (
     <main className="min-h-screen bg-[#eff7fb] px-4 py-6 text-slate-950">
@@ -41,6 +56,7 @@ export function LoginPage() {
                 Ingresar
               </div>
               <h1 className="text-2xl font-black leading-tight text-slate-950">Ingresar</h1>
+              {errorMessage ? <AuthErrorMessage message={errorMessage} /> : null}
 
               <form action="/api/auth/login" method="post" className="mt-6 space-y-4">
                 <TextField label="Correo electronico" name="email" type="email" placeholder="nombre@correo.com" />
@@ -72,6 +88,7 @@ export function LoginPage() {
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 Las cuentas nuevas se crean como usuario comun.
               </p>
+              {errorMessage ? <AuthErrorMessage message={errorMessage} /> : null}
 
               <form action="/api/auth/register" method="post" className="mt-6 space-y-4">
                 <TextField label="Nombre y apellido" name="name" type="text" placeholder="Tu nombre completo" />
@@ -98,6 +115,14 @@ export function LoginPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function AuthErrorMessage({ message }: { message: string }) {
+  return (
+    <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold leading-5 text-red-800">
+      {message}
+    </div>
   );
 }
 
