@@ -244,7 +244,7 @@ export function CitizenParticipation() {
             <div className="space-y-3">
               {comments.map((comment) => (
                 <div key={`${comment.author}-${comment.proposal}`} className="urban-lift rounded-md border border-white/8 bg-white/[0.03] p-3">
-                  <p className="text-sm leading-6 text-slate-300">"{comment.text}"</p>
+                  <p className="text-sm leading-6 text-slate-300">&ldquo;{comment.text}&rdquo;</p>
                   <p className="mt-2 text-xs text-slate-500">{comment.author} - {comment.proposal}</p>
                 </div>
               ))}

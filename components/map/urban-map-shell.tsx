@@ -18,6 +18,11 @@ const UrbanLeafletMap = dynamic(
 export function UrbanMapShell() {
   return (
     <AppShell>
+      <div className="mb-5">
+        <p className="eyebrow">Territorio y evidencia</p>
+        <h1 className="mt-2 text-3xl font-black tracking-[-0.035em] text-slate-950 dark:text-white">Mapa territorial</h1>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Herramienta operativa para explorar capas, proyectos y contexto urbano.</p>
+      </div>
       <UrbanLeafletMap />
     </AppShell>
   );

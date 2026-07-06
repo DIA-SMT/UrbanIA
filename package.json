@@ -11,7 +11,9 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx --env-file=.env prisma/seed.ts",
-    "db:import:planning-code": "tsx --env-file=.env prisma/import-planning-code.ts",
+    "db:import:planning-code": "tsx --env-file=.env.local prisma/import-planning-code.ts",
+    "db:verify:planning-code": "tsx prisma/verify-planning-code.ts",
+    "db:verify:planning-code-db": "tsx --env-file=.env.local prisma/verify-planning-code-db.ts",
     "dev:turbo": "next dev --turbo"
   },
   "dependencies": {
@@ -20,6 +22,7 @@
     "@types/leaflet": "^1.9.21",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.42.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.468.0",
     "next": "^15.0.3",

@@ -3,28 +3,57 @@ import {
   BookOpen,
   Building2,
   CalendarDays,
+  ClipboardList,
+  FileArchive,
   FileText,
-  Map
+  GitBranch,
+  Landmark,
+  Map,
+  MessageSquareText,
+  Settings2,
+  Users
 } from "lucide-react";
 
 export const navItems = [
-  { label: "Mesa urbana", href: "/", icon: BarChart3 },
-  { label: "Codigo de Planeamiento", href: "/normativa", icon: FileText },
-  { label: "Audiencias", href: "/audiencias", icon: CalendarDays },
-  { label: "Mapa interactivo", href: "/mapa", icon: Map },
+  { label: "Resumen", href: "/", icon: BarChart3 },
+  { label: "Mapa territorial", href: "/mapa", icon: Map },
+  { label: "Propuestas", href: "/propuestas", icon: ClipboardList },
   { label: "Proyectos", href: "/proyectos", icon: Building2 },
-  { label: "Analisis IA", href: "/asistente", icon: BookOpen }
+  { label: "Audiencias", href: "/audiencias", icon: CalendarDays },
+  { label: "Asistente IA", href: "/asistente", icon: BookOpen }
 ];
 
 export const sidebarSections = [
   {
-    title: "MVP UrbanIA",
+    title: "Planificacion",
     items: [
-      { label: "Codigo de Planeamiento", href: "/normativa", icon: FileText },
-      { label: "Audiencias publicas", href: "/audiencias", icon: CalendarDays },
-      { label: "Mapa interactivo", href: "/mapa", icon: Map },
-      { label: "Proyectos vinculados", href: "/proyectos", icon: Building2 },
-      { label: "Analisis IA", href: "/asistente", icon: BookOpen }
+      { label: "Mapa territorial", href: "/mapa", icon: Map },
+      { label: "Propuestas", href: "/propuestas", icon: ClipboardList },
+      { label: "Proyectos", href: "/proyectos", icon: Building2 }
+    ]
+  },
+  {
+    title: "Participacion",
+    items: [
+      { label: "Audiencias", href: "/audiencias", icon: CalendarDays },
+      { label: "Aportes ciudadanos", href: "/participacion", icon: Users },
+      { label: "Gabinete", href: "/gabinete", icon: Landmark }
+    ]
+  },
+  {
+    title: "Inteligencia",
+    items: [
+      { label: "Escenarios", href: "/escenarios", icon: GitBranch },
+      { label: "Asistente IA", href: "/asistente", icon: MessageSquareText },
+      { label: "Normativa", href: "/normativa", icon: FileText }
+    ]
+  },
+  {
+    title: "Gestion",
+    items: [
+      { label: "Documentos y datos", href: "/datos", icon: FileArchive },
+      { label: "Indicadores", href: "/indicadores", icon: BarChart3 },
+      { label: "Configuracion", href: "/infraestructura", icon: Settings2 }
     ]
   }
 ];

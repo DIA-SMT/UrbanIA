@@ -16,18 +16,14 @@ export async function POST(request: Request) {
 
   const existingUser = await prisma.user.findUnique({ where: { email } });
 
-  if (existingUser) {
+  if (existingUser?.passwordHash) {
     return NextResponse.redirect(new URL("/ingresar?mode=register&error=exists", request.url), 303);
   }
 
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      passwordHash: await hashPassword(password),
-      role: UserRole.CITIZEN
-    }
-  });
+  const passwordHash = await hashPassword(password);
+  const user = existingUser
+    ? await prisma.user.update({ where: { id: existingUser.id }, data: { name: existingUser.name || name, passwordHash } })
+    : await prisma.user.create({ data: { name, email, passwordHash, role: UserRole.CITIZEN } });
   const response = NextResponse.redirect(new URL("/", request.url), 303);
   const token = await createSessionToken({ userId: user.id, role: user.role });
 
