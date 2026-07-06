@@ -110,7 +110,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }} className="mx-auto max-w-[1600px] p-4 md:p-6 xl:p-8">{children}</motion.div>
         </div>
       </div>
-      <MigueFloatingChat />
+      <MigueFloatingChat appearance={theme} />
     </main>
   );
 }

@@ -10,7 +10,6 @@ import {
   FileText,
   GitBranch,
   MessageSquare,
-  Scale,
   Search,
   Send,
   ShieldAlert,
@@ -18,8 +17,9 @@ import {
 } from "lucide-react";
 import { MigueCard } from "@/components/assistant/migue-card";
 import { MarkdownText } from "@/components/assistant/markdown-text";
+import { migueCapabilities, type MigueModule } from "@/lib/ai/migue";
 
-type AssistantMode = "normativa" | "gabinete" | "escenario";
+type AssistantMode = "natural" | "normativa" | "gabinete" | "escenario" | "audiencias" | "documentos";
 
 type AssistantPrompt = {
   id: string;
@@ -45,6 +45,12 @@ type LiveAssistantAnswer = {
 
 const prompts: AssistantPrompt[] = [
   {
+    id: "lenguaje-natural",
+    mode: "natural",
+    label: "Lenguaje natural",
+    query: "Migue, tengo una idea medio desordenada sobre mejorar una plaza barrial. Ayudame a convertirla en una propuesta clara."
+  },
+  {
     id: "cpu-alturas",
     mode: "normativa",
     label: "CPU y alturas",
@@ -67,10 +73,44 @@ const prompts: AssistantPrompt[] = [
     mode: "gabinete",
     label: "Aportes ciudadanos",
     query: "Que aportes ciudadanos deberiamos mirar antes de elevar una propuesta a audiencia publica?"
+  },
+  {
+    id: "audiencia-plaza",
+    mode: "audiencias",
+    label: "Audiencia publica",
+    query: "Resumi una audiencia sobre renovacion de una plaza y separa reclamos, compromisos, objeciones y preguntas pendientes."
+  },
+  {
+    id: "documentos-aportados",
+    mode: "documentos",
+    label: "Documentos",
+    query: "Analiza documentos aportados por vecinos sobre arbolado urbano y extrae puntos clave, evidencia y datos faltantes."
   }
 ];
 
 const answers: Record<string, AssistantAnswer> = {
+  "lenguaje-natural": {
+    title: "Idea ciudadana convertida en propuesta",
+    summary:
+      "Migue puede recibir una frase informal y transformarla en una propuesta presentable: problema, ubicacion, solucion, beneficiarios, evidencia necesaria y proximos pasos.",
+    findings: [
+      "No exige comandos: interpreta lenguaje natural y ordena la intencion del usuario.",
+      "Si faltan datos, pide solo lo necesario: barrio, ubicacion, problema y evidencia disponible.",
+      "Puede adaptar la salida para vecino, empleado o administrador.",
+      "La respuesta debe separar dato aportado, inferencia y recomendacion."
+    ],
+    sources: [
+      { label: "Modo ciudadano", detail: "Guia simple para participacion publica", href: "/participacion" },
+      { label: "Propuestas", detail: "Estructura esperada para ideas ciudadanas", href: "/propuestas" },
+      { label: "Migue", detail: "Entrada libre en lenguaje natural", href: "/asistente" }
+    ],
+    actions: [
+      { label: "Crear borrador de propuesta", href: "/propuestas" },
+      { label: "Revisar participacion", href: "/participacion" },
+      { label: "Pedir datos faltantes" }
+    ],
+    caveat: "Migue ordena y sugiere. La propuesta final debe ser enviada o validada por el usuario responsable."
+  },
   "cpu-alturas": {
     title: "Revision normativa preliminar sobre alturas",
     summary:
@@ -91,7 +131,7 @@ const answers: Record<string, AssistantAnswer> = {
       { label: "Revisar acta de gabinete", href: "/gabinete" },
       { label: "Preparar matriz legal" }
     ],
-    caveat: "Análisis preliminar: debe validarse contra los artículos vigentes del CPU y la documentación oficial."
+    caveat: "Respuesta demo. En produccion debe citar articulos reales del CPU y documentos oficiales cargados."
   },
   "resumen-gabinete": {
     title: "Sintesis ejecutiva de reunion",
@@ -113,7 +153,7 @@ const answers: Record<string, AssistantAnswer> = {
       { label: "Abrir escenario", href: "/escenarios/ciclovia-aconquija" },
       { label: "Generar informe de reunion" }
     ],
-    caveat: "Síntesis preliminar: requiere validación contra el acta, la transcripción y los documentos adjuntos."
+    caveat: "Respuesta generada desde mocks de acta. Luego deberia salir de transcripcion, notas y documentos adjuntos."
   },
   "escenario-aconquija": {
     title: "Recomendacion ejecutiva para escenario Aconquija",
@@ -158,13 +198,69 @@ const answers: Record<string, AssistantAnswer> = {
       { label: "Crear resumen ciudadano" }
     ],
     caveat: "Cuando exista conexion con Cidituc, esta lectura deberia usar datos reales y filtros por territorio."
+  },
+  "audiencia-plaza": {
+    title: "Procesamiento inteligente de audiencias",
+    summary:
+      "Migue puede trabajar sobre transcripciones, actas o notas de audiencia para convertir intervenciones dispersas en una minuta clara con trazabilidad.",
+    findings: [
+      "Extrae temas principales, participantes, reclamos, compromisos, objeciones y preguntas sin responder.",
+      "Clasifica posiciones: apoyo, objecion, neutral o requiere revision.",
+      "Vincula menciones a barrios, calles, proyectos, propuestas y documentos cargados.",
+      "Genera una version ciudadana y otra ejecutiva para equipos internos."
+    ],
+    sources: [
+      { label: "Audiencias", detail: "Agenda deliberativa y materiales asociados", href: "/audiencias" },
+      { label: "Gabinete", detail: "Decisiones, riesgos y pendientes", href: "/gabinete" },
+      { label: "Documentos", detail: "Actas, anexos y transcripciones aportadas" }
+    ],
+    actions: [
+      { label: "Abrir audiencias", href: "/audiencias" },
+      { label: "Generar minuta ejecutiva" },
+      { label: "Listar acciones pendientes" }
+    ],
+    caveat: "Para citar con precision necesita transcripcion, acta o documentos cargados. Sin fuente real, solo puede proponer una estructura de analisis."
+  },
+  "documentos-aportados": {
+    title: "Lectura de documentos aportados",
+    summary:
+      "Migue puede resumir documentacion, extraer entidades y responder preguntas con evidencia, cuidando no inventar datos ni reemplazar dictamen tecnico o legal.",
+    findings: [
+      "Procesa PDFs, actas, informes, notas vecinales, ordenanzas, anexos y memorias descriptivas.",
+      "Extrae fechas, responsables, calles, barrios, instituciones, obligaciones y riesgos.",
+      "Compara documentos para detectar contradicciones o informacion faltante.",
+      "Crea versiones simples para vecinos y sintesis tecnicas para equipos municipales."
+    ],
+    sources: [
+      { label: "Normativa", detail: "Ordenanzas y Codigo de Planeamiento", href: "/normativa" },
+      { label: "Audiencias", detail: "Documentacion presentada por participantes", href: "/audiencias" },
+      { label: "RAG", detail: "Base documental pendiente de conexion vectorial" }
+    ],
+    actions: [
+      { label: "Preparar resumen documental" },
+      { label: "Extraer evidencia citada" },
+      { label: "Detectar datos faltantes" }
+    ],
+    caveat: "Cuando se conecte el repositorio documental, cada respuesta debe incluir fuente, fragmento o referencia verificable."
   }
 };
 
 const modeStyles: Record<AssistantMode, string> = {
+  natural: "border-emerald-300/20 bg-emerald-300/10 text-emerald-100",
   normativa: "border-cyan-300/20 bg-cyan-300/10 text-cyan-100",
   gabinete: "border-sky-300/20 bg-sky-300/10 text-sky-100",
-  escenario: "border-amber-300/20 bg-amber-300/10 text-amber-100"
+  escenario: "border-amber-300/20 bg-amber-300/10 text-amber-100",
+  audiencias: "border-violet-300/20 bg-violet-300/10 text-violet-100",
+  documentos: "border-rose-300/20 bg-rose-300/10 text-rose-100"
+};
+
+const moduleByMode: Record<AssistantMode, MigueModule> = {
+  natural: "asistente",
+  normativa: "planeamiento",
+  gabinete: "dashboard",
+  escenario: "gemelo_digital",
+  audiencias: "audiencias",
+  documentos: "documentos"
 };
 
 export function AiAssistantWorkbench() {
@@ -210,6 +306,13 @@ export function AiAssistantWorkbench() {
         },
         body: JSON.stringify({
           question,
+          assistantContext: {
+            mode: "internal",
+            module: moduleByMode[selectedPrompt.mode],
+            role: "admin",
+            page: "Analisis IA de UrbanIA",
+            intent: selectedPrompt.label
+          },
           context: "Pantalla de Analisis IA de UrbanIA. El sistema trabaja con propuestas, normativa, gabinete, audiencias, mapa urbano, escenarios y participacion ciudadana."
         })
       });
@@ -238,7 +341,7 @@ export function AiAssistantWorkbench() {
             </div>
             <h1 className="max-w-4xl text-3xl font-black leading-tight text-white md:text-5xl">Migue, IA para decisiones urbanas</h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 md:text-base">
-              Consulta normativa, propuestas, reuniones, audiencias y escenarios con un asistente pensado para lenguaje municipal claro.
+              Consulta en lenguaje natural normativa, propuestas, reuniones, audiencias, documentos y escenarios con un asistente pensado para gestion municipal clara.
             </p>
           </div>
 
@@ -247,16 +350,44 @@ export function AiAssistantWorkbench() {
       </section>
 
       <section className="grid gap-3 md:grid-cols-3">
-        <StatusItem label="Estado" value="Análisis disponible" icon={Sparkles} />
-        <StatusItem label="Fuentes consultadas" value="CPU, gabinete, escenarios" icon={BookOpen} />
-        <StatusItem label="Criterio" value="Requiere validación técnica" icon={GitBranch} />
+        <StatusItem label="Entrada" value="Lenguaje natural" icon={MessageSquare} />
+        <StatusItem label="Fuentes objetivo" value="Audiencias, docs, CPU" icon={BookOpen} />
+        <StatusItem label="Proxima etapa" value="RAG + citas reales" icon={GitBranch} />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_300px]">
+      <section className="urban-card rounded-lg p-5">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Funciones de Migue</p>
+            <h2 className="mt-2 text-2xl font-black leading-tight text-white">Capacidades principales</h2>
+          </div>
+          <span className="rounded-md border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs font-black text-emerald-100">
+            Manejo por lenguaje natural
+          </span>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {migueCapabilities.map((capability) => (
+            <div key={capability.title} className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+              <h3 className="text-base font-black text-white">{capability.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-400">{capability.summary}</p>
+              <div className="mt-4 space-y-2">
+                {capability.items.map((item) => (
+                  <div key={item} className="flex items-start gap-2 text-sm leading-5 text-slate-300">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="urban-card rounded-lg p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-lg font-black text-white">Consultas sugeridas</h2>
-            <span className="rounded-md bg-white/[0.06] px-2 py-1 text-xs font-bold text-slate-300">Historial</span>
+            <span className="rounded-md bg-white/[0.06] px-2 py-1 text-xs font-bold text-slate-300">Lenguaje natural</span>
           </div>
           <div className="space-y-3">
             {prompts.map((prompt) => {
@@ -321,7 +452,7 @@ export function AiAssistantWorkbench() {
                 </h2>
                 {liveAnswer ? (
                   <span className="rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-1 text-xs font-black text-sky-100">
-                    Análisis actualizado
+                    OpenRouter - {liveAnswer.model}
                   </span>
                 ) : null}
               </div>
@@ -339,13 +470,20 @@ export function AiAssistantWorkbench() {
                 <Sparkles className="h-5 w-5 text-sky-300" />
                 {answer.title}
               </h2>
-              <span className={`rounded-md border px-3 py-1 text-xs font-black ${modeStyles[selectedPrompt.mode]}`}>Análisis preliminar</span>
+              <span className={`rounded-md border px-3 py-1 text-xs font-black ${modeStyles[selectedPrompt.mode]}`}>Respuesta simulada</span>
             </div>
             <p className="text-sm leading-7 text-slate-300">{answer.summary}</p>
 
-            <div className="mt-5 grid gap-4">
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
               <Panel title="Hallazgos" icon={CheckCircle2}>
                 <List items={answer.findings} />
+              </Panel>
+              <Panel title="Fuentes citadas" icon={FileText}>
+                <div className="grid gap-3">
+                  {answer.sources.map((source) => (
+                    <SourceCard key={source.label} source={source} />
+                  ))}
+                </div>
               </Panel>
             </div>
           </section>
@@ -393,16 +531,6 @@ export function AiAssistantWorkbench() {
             </section>
           ) : null}
         </div>
-        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
-          <Panel title="Fuentes y evidencia" icon={FileText}>
-            <div className="grid gap-3">{answer.sources.map((source) => <SourceCard key={source.label} source={source} />)}</div>
-          </Panel>
-          <div className="surface-panel p-4">
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Nivel de confianza</p>
-            <p className="mt-2 text-sm font-black text-amber-600 dark:text-amber-200">Requiere validación técnica</p>
-            <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">La evidencia vinculada orienta el análisis, pero no reemplaza el dictamen del área competente.</p>
-          </div>
-        </aside>
       </section>
     </div>
   );
