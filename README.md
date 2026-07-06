@@ -13,13 +13,24 @@ Centralizar normativa, mapas urbanos, casos de exito, ciudades comparables y un 
 - Tailwind CSS
 - PostgreSQL + PostGIS
 - Prisma
-- OpenAI API para RAG
+- OpenRouter para IA compatible con modelos tipo OpenAI
 
 ## Primeros comandos
 
 ```bash
 npm install
 npm run dev
+```
+
+## Variables IA
+
+Para activar respuestas reales del asistente:
+
+```bash
+OPENROUTER_API_KEY=""
+OPENROUTER_MODEL="openai/gpt-4o-mini"
+OPENROUTER_SITE_URL="http://localhost:3000"
+OPENROUTER_APP_NAME="UrbanIA"
 ```
 
 ## Modulos MVP

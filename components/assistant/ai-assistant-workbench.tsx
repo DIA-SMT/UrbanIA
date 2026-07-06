@@ -16,6 +16,8 @@ import {
   ShieldAlert,
   Sparkles
 } from "lucide-react";
+import { MigueCard } from "@/components/assistant/migue-card";
+import { MarkdownText } from "@/components/assistant/markdown-text";
 
 type AssistantMode = "normativa" | "gabinete" | "escenario";
 
@@ -33,6 +35,12 @@ type AssistantAnswer = {
   sources: Array<{ label: string; detail: string; href?: string }>;
   actions: Array<{ label: string; href?: string }>;
   caveat: string;
+};
+
+type LiveAssistantAnswer = {
+  answer: string;
+  model: string;
+  provider: "openrouter";
 };
 
 const prompts: AssistantPrompt[] = [
@@ -161,6 +169,10 @@ const modeStyles: Record<AssistantMode, string> = {
 
 export function AiAssistantWorkbench() {
   const [selectedPromptId, setSelectedPromptId] = useState(prompts[0].id);
+  const [customQuestion, setCustomQuestion] = useState(prompts[0].query);
+  const [liveAnswer, setLiveAnswer] = useState<LiveAssistantAnswer | null>(null);
+  const [liveError, setLiveError] = useState("");
+  const [isAsking, setIsAsking] = useState(false);
   const selectedPrompt = prompts.find((prompt) => prompt.id === selectedPromptId) ?? prompts[0];
   const answer = answers[selectedPrompt.id];
 
@@ -169,6 +181,52 @@ export function AiAssistantWorkbench() {
     [selectedPrompt]
   );
 
+  function selectPrompt(prompt: AssistantPrompt) {
+    setSelectedPromptId(prompt.id);
+    setCustomQuestion(prompt.query);
+    setLiveAnswer(null);
+    setLiveError("");
+  }
+
+  async function handleLiveQuestion(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const question = customQuestion.trim();
+
+    if (question.length < 3) {
+      setLiveError("Escribi una consulta un poco mas especifica para Migue.");
+      return;
+    }
+
+    setIsAsking(true);
+    setLiveError("");
+    setLiveAnswer(null);
+
+    try {
+      const response = await fetch("/api/assistant/query", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          question,
+          context: "Pantalla de Analisis IA de UrbanIA. El sistema trabaja con propuestas, normativa, gabinete, audiencias, mapa urbano, escenarios y participacion ciudadana."
+        })
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.detail || payload?.error || "No se pudo consultar a Migue.");
+      }
+
+      setLiveAnswer(payload as LiveAssistantAnswer);
+    } catch (error) {
+      setLiveError(error instanceof Error ? error.message : "No se pudo consultar a Migue.");
+    } finally {
+      setIsAsking(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <section className="urban-card urban-lift overflow-hidden rounded-lg">
@@ -176,23 +234,22 @@ export function AiAssistantWorkbench() {
           <div>
             <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-sky-200">
               <Bot className="h-4 w-4" />
-              Asistente IA mock
+              Migue conectado
             </div>
-            <h1 className="max-w-4xl text-3xl font-black leading-tight text-white md:text-5xl">Analisis IA para decisiones urbanas</h1>
+            <h1 className="max-w-4xl text-3xl font-black leading-tight text-white md:text-5xl">Migue, IA para decisiones urbanas</h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 md:text-base">
-              Simula como UrbanIA va a vincular propuestas, reuniones, normativa, audiencias y escenarios para preparar respuestas trazables para gabinete.
+              Consulta normativa, propuestas, reuniones, audiencias y escenarios con un asistente pensado para lenguaje municipal claro.
             </p>
           </div>
 
-          <div className="rounded-lg border border-white/10 bg-slate-950/45 p-4">
-            <p className="mb-3 text-sm font-black text-white">Estado del asistente</p>
-            <div className="grid gap-3">
-              <StatusItem label="Modo" value="Demo sin API" icon={Sparkles} />
-              <StatusItem label="Fuentes mock" value="CPU, gabinete, escenarios" icon={BookOpen} />
-              <StatusItem label="Proxima etapa" value="RAG + citas reales" icon={GitBranch} />
-            </div>
-          </div>
+          <MigueCard />
         </div>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-3">
+        <StatusItem label="Conexion" value="OpenRouter listo" icon={Sparkles} />
+        <StatusItem label="Fuentes actuales" value="CPU, gabinete, escenarios" icon={BookOpen} />
+        <StatusItem label="Proxima etapa" value="RAG + citas reales" icon={GitBranch} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
@@ -209,7 +266,7 @@ export function AiAssistantWorkbench() {
                 <button
                   key={prompt.id}
                   type="button"
-                  onClick={() => setSelectedPromptId(prompt.id)}
+              onClick={() => selectPrompt(prompt)}
                   className={`urban-lift w-full rounded-lg border p-4 text-left transition ${
                     isSelected ? "border-sky-300/35 bg-sky-300/10" : "border-white/10 bg-white/[0.03] hover:border-sky-300/25"
                   }`}
@@ -236,12 +293,45 @@ export function AiAssistantWorkbench() {
                 <p className="mt-2 text-lg font-black leading-7 text-white">{selectedPrompt.query}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 rounded-md border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-500">
+            <form onSubmit={handleLiveQuestion} className="flex items-center gap-2 rounded-md border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-500">
               <Search className="h-4 w-4 text-slate-500" />
-              <span className="flex-1">Escribi una consulta urbana, normativa o de gabinete...</span>
-              <Send className="h-4 w-4 text-slate-300" />
-            </div>
+              <input
+                value={customQuestion}
+                onChange={(event) => setCustomQuestion(event.target.value)}
+                className="min-w-0 flex-1 bg-transparent py-2 font-semibold text-slate-200 outline-none placeholder:text-slate-500"
+                placeholder="Escribi una consulta urbana, normativa o de gabinete..."
+              />
+              <button
+                type="submit"
+                disabled={isAsking}
+                className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Send className="h-4 w-4" />
+                {isAsking ? "Consultando" : "Preguntar"}
+              </button>
+            </form>
           </section>
+
+          {liveAnswer || liveError ? (
+            <section className={`urban-card rounded-lg p-5 ${liveAnswer ? "border-sky-300/30" : "border-amber-300/30"}`}>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <h2 className="flex items-center gap-2 text-xl font-black text-white">
+                  <Bot className="h-5 w-5 text-sky-300" />
+                  Migue responde
+                </h2>
+                {liveAnswer ? (
+                  <span className="rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-1 text-xs font-black text-sky-100">
+                    OpenRouter - {liveAnswer.model}
+                  </span>
+                ) : null}
+              </div>
+              {liveAnswer ? (
+                <MarkdownText text={liveAnswer.answer} />
+              ) : (
+                <p className="text-sm leading-6 text-amber-100">{liveError}</p>
+              )}
+            </section>
+          ) : null}
 
           <section className="urban-card urban-lift rounded-lg p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -302,7 +392,7 @@ export function AiAssistantWorkbench() {
               <h2 className="mb-4 text-lg font-black text-white">Consultas relacionadas</h2>
               <div className="grid gap-3 md:grid-cols-2">
                 {relatedPrompts.map((prompt) => (
-                  <button key={prompt.id} onClick={() => setSelectedPromptId(prompt.id)} className="urban-lift rounded-md border border-white/10 bg-white/[0.03] p-3 text-left text-sm font-semibold leading-6 text-slate-300">
+                  <button key={prompt.id} onClick={() => selectPrompt(prompt)} className="urban-lift rounded-md border border-white/10 bg-white/[0.03] p-3 text-left text-sm font-semibold leading-6 text-slate-300">
                     {prompt.query}
                   </button>
                 ))}
