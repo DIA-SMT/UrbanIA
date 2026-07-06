@@ -5,12 +5,12 @@ export function Brand() {
     <div className="flex items-center gap-3">
       <div className="grid h-12 w-12 shrink-0 place-items-center">
         <Image
-          src="/brand/logo-municipalidad-smt-transparent.png"
+          src="/brand/logo-municipalidad-smt.png"
           alt="Municipalidad de San Miguel de Tucuman"
           width={48}
           height={48}
           priority
-          className="h-11 w-11 object-contain"
+          className="h-11 w-11 rounded-lg object-contain"
         />
       </div>
       <div className="min-w-0">

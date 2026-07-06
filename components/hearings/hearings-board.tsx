@@ -273,18 +273,24 @@ export function HearingsBoard() {
     setDetailTab("IA");
   }
 
+  const hearingSummaries: Array<{ label: string; value: number; icon: typeof CalendarDays; detail: string }> = [
+    { label: "Próximas", value: hearings.filter((item) => item.status === "Programada" || item.status === "Reprogramada").length, icon: CalendarDays, detail: "Convocatorias y documentación base" },
+    { label: "En procesamiento", value: hearings.filter((item) => item.status === "En curso").length, icon: Brain, detail: "Registro y análisis de intervenciones" },
+    { label: "Finalizadas", value: hearings.filter((item) => item.status === "Finalizada").length, icon: CheckCircle2, detail: "Actas, conclusiones y trazabilidad" }
+  ];
+
   return (
     <div className="space-y-4">
-      <section className="urban-card overflow-hidden rounded-lg">
+      <section className="surface-panel overflow-hidden">
         <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-7">
           <div className="min-w-0">
             <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-sky-200">
               <Brain className="h-4 w-4" />
-              Audiencias con IA
+              Memoria pública urbana
             </div>
-            <h1 className="max-w-4xl text-3xl font-black leading-tight text-white md:text-5xl">Analisis inteligente de audiencias publicas</h1>
+            <h1 className="max-w-4xl text-3xl font-black leading-tight text-slate-950 dark:text-white md:text-5xl">Audiencias Públicas</h1>
             <p className="mt-4 max-w-4xl text-sm leading-7 text-slate-300 md:text-base">
-              Carga una grabacion de audio o video para que UrbanIA ordene la audiencia: participantes, topicos, propuestas, puntos fuertes y relacion con el Codigo de Planeamiento Urbano.
+              Registro, procesamiento y trazabilidad de los espacios de deliberación urbana. UrbanIA vincula participantes, temas, propuestas y normativa sin alterar la memoria original.
             </p>
             <div className="mt-6 grid gap-2 sm:flex sm:flex-wrap">
               <ActionButton icon={Plus} label="Nueva audiencia" primary onClick={() => setIsFormOpen(true)} />
@@ -298,6 +304,16 @@ export function HearingsBoard() {
             <WorkflowStep index="3" title="Vincular decision" text="Codigo urbano, proyectos y mapa." />
           </div>
         </div>
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-3">
+        {hearingSummaries.map(({ label, value, icon: Icon, detail }) => (
+          <article key={label} className="surface-panel p-4">
+            <div className="flex items-center justify-between"><Icon className="h-4 w-4 text-[#1f89f6]" /><strong className="text-2xl text-slate-950 dark:text-white">{value}</strong></div>
+            <p className="mt-4 text-xs font-black uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">{label}</p>
+            <p className="mt-1 text-xs text-slate-400">{detail}</p>
+          </article>
+        ))}
       </section>
 
       {selectedHearing ? <HearingAiIntake hearing={selectedHearing} onAnalyze={handleAnalyze} /> : null}

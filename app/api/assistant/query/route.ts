@@ -24,8 +24,8 @@ export async function POST(request: Request) {
   if (!hasOpenRouterConfig()) {
     return NextResponse.json(
       {
-        error: "OpenRouter no configurado",
-        detail: "Agrega OPENROUTER_API_KEY en .env.local para activar respuestas reales de Migue."
+        error: "Asistente no disponible",
+        detail: "El servicio de análisis todavía no está habilitado para esta instancia."
       },
       { status: 503 }
     );
@@ -47,8 +47,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        error: "No se pudo consultar OpenRouter",
-        detail: "Revisa la API key, el modelo configurado o la conectividad del servidor."
+        error: "No se pudo completar el análisis",
+        detail: "Intentá nuevamente o continuá con la revisión técnica manual."
       },
       { status: 502 }
     );

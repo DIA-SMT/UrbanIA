@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import L from "leaflet";
 import { CircleMarker, MapContainer, Marker, Polygon, Popup, TileLayer, useMap } from "react-leaflet";
-import { Bike, Building2, CheckCircle2, Layers3, MapPin, Trees, X } from "lucide-react";
+import { Bike, Building2, CheckCircle2, Layers3, MapPin, Search, SlidersHorizontal, Trees, X } from "lucide-react";
 import { urbanProjects, type ProjectLayer, type UrbanProject } from "@/lib/demo/urban-projects";
 
 const tucumanCenter: [number, number] = [-26.8241, -65.2226];
@@ -30,10 +30,11 @@ const studyArea: [number, number][] = [
 export function UrbanLeafletMap() {
   const [activeLayers, setActiveLayers] = useState<ProjectLayer[]>(["Transporte", "Espacios verdes", "Equipamiento"]);
   const [selectedProject, setSelectedProject] = useState<UrbanProject | null>(urbanProjects[0]);
+  const [query, setQuery] = useState("");
 
   const visibleProjects = useMemo(
-    () => urbanProjects.filter((project) => activeLayers.includes(project.layer)),
-    [activeLayers]
+    () => urbanProjects.filter((project) => activeLayers.includes(project.layer) && `${project.title} ${project.neighborhood} ${project.responsible}`.toLowerCase().includes(query.toLowerCase())),
+    [activeLayers, query]
   );
 
   function toggleLayer(layer: ProjectLayer) {
@@ -43,19 +44,8 @@ export function UrbanLeafletMap() {
   }
 
   return (
-    <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="urban-card overflow-hidden rounded-lg">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-4">
-          <div>
-            <h1 className="text-xl font-black text-white">Mapa operativo de San Miguel de Tucuman</h1>
-            <p className="mt-1 text-sm text-slate-400">Prueba funcional con OpenStreetMap, capas y proyectos demo.</p>
-          </div>
-          <div className="rounded-md bg-sky-400/15 px-3 py-2 text-xs font-bold text-sky-200">
-            {visibleProjects.length} proyectos visibles
-          </div>
-        </div>
-
-        <div className="relative h-[520px] md:h-[620px]">
+    <section className="surface-panel relative overflow-hidden">
+        <div className="relative h-[620px] md:h-[calc(100vh-190px)] md:min-h-[660px]">
           <MapContainer center={tucumanCenter} zoom={13} scrollWheelZoom className="h-full w-full">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -68,8 +58,10 @@ export function UrbanLeafletMap() {
             ))}
           </MapContainer>
 
-          <div className="urban-scrollbar absolute left-4 top-4 z-[500] flex max-w-[calc(100%-2rem)] gap-2 overflow-x-auto rounded-md border border-white/10 bg-slate-950/80 p-2 backdrop-blur sm:flex-wrap sm:overflow-visible">
-            {layers.map((layer) => {
+          <aside className="absolute left-3 top-3 z-[500] w-[calc(100%-1.5rem)] max-w-[300px] rounded-2xl border border-white/70 bg-white/92 p-4 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#0d1b2a]/92 md:left-4 md:top-4">
+            <div className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-[#1f89f6]" /><h2 className="text-sm font-black text-slate-950 dark:text-white">Explorar territorio</h2><span className="ml-auto rounded-full bg-sky-50 px-2 py-1 text-[10px] font-black text-sky-700 dark:bg-sky-400/10 dark:text-sky-200">{visibleProjects.length}</span></div>
+            <label className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-white/10 dark:bg-white/[0.04]"><Search className="h-4 w-4 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar zona o proyecto" className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label>
+            <p className="mt-5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Capas</p><div className="mt-2 space-y-1">{layers.map((layer) => {
               const isActive = activeLayers.includes(layer);
               const Icon = layerStyles[layer].icon;
 
@@ -77,20 +69,26 @@ export function UrbanLeafletMap() {
                 <button
                   key={layer}
                   onClick={() => toggleLayer(layer)}
-                  className={`urban-button inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-bold ${
-                    isActive ? "bg-sky-400/18 text-sky-100" : "bg-white/7 text-slate-400"
+                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold transition ${
+                    isActive ? "bg-sky-50 text-sky-700 dark:bg-sky-400/10 dark:text-sky-200" : "text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
                   {layer}
+                  <span className={`ml-auto h-2 w-2 rounded-full ${isActive ? "bg-[#1f89f6]" : "bg-slate-200 dark:bg-slate-700"}`} />
                 </button>
               );
-            })}
-          </div>
-        </div>
-      </div>
+            })}</div>
+          </aside>
 
-      <aside className="urban-card rounded-lg p-5">
+          <div className="absolute bottom-4 left-4 z-[500] hidden rounded-xl border border-white/70 bg-white/90 px-3 py-2 text-[10px] font-bold text-slate-500 shadow backdrop-blur dark:border-white/10 dark:bg-[#0d1b2a]/90 md:block"><span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#1f89f6]" />Proyecto urbano · OpenStreetMap</div>
+
+          <aside className="absolute bottom-3 right-3 z-[500] max-h-[52%] w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl border border-white/70 bg-white/94 p-4 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#0d1b2a]/94 md:bottom-auto md:right-4 md:top-4 md:max-h-[calc(100%-2rem)] md:w-[320px] md:p-5">
+            <div className="mb-4 flex items-start justify-between gap-3"><div><p className="eyebrow">Contexto territorial</p><h2 className="mt-1 font-black text-slate-950 dark:text-white">{selectedProject?.neighborhood ?? "Seleccionar territorio"}</h2></div>{selectedProject && <button onClick={() => setSelectedProject(null)} className="icon-button h-8 w-8"><X className="h-4 w-4" /></button>}</div>
+            {selectedProject ? <div><span className="rounded-full px-2.5 py-1 text-[10px] font-black text-white" style={{ backgroundColor: layerStyles[selectedProject.layer].color }}>{selectedProject.layer}</span><h3 className="mt-4 text-lg font-black leading-tight text-slate-950 dark:text-white">{selectedProject.title}</h3><p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{selectedProject.description}</p><div className="mt-4 grid grid-cols-2 gap-2">{[["Estado", selectedProject.status], ["Aportes", selectedProject.votes], ["Comentarios", selectedProject.comments], ["Alertas", selectedProject.risks.length]].map(([label, value]) => <div key={label} className="rounded-xl bg-slate-50 p-3 dark:bg-white/[0.04]"><strong className="block text-sm text-slate-950 dark:text-white">{value}</strong><span className="text-[10px] text-slate-400">{label}</span></div>)}</div><p className="mt-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Actividad reciente</p><div className="mt-2 space-y-2 text-xs text-slate-500 dark:text-slate-400"><p>• Revisión técnica actualizada</p>{selectedProject.linkedHearingId && <p>• Audiencia pública vinculada</p>}<p>• {selectedProject.risks.length} riesgos identificados</p></div><Link href={`/proyectos/${selectedProject.id}`} className="primary-button mt-5 flex w-full"><CheckCircle2 className="h-4 w-4" />Abrir contexto territorial</Link></div> : <div className="py-8 text-center text-sm text-slate-400"><MapPin className="mx-auto mb-3 h-7 w-7" />Seleccioná un punto del mapa.</div>}
+          </aside>
+        </div>
+      <aside className="hidden">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-white">Detalle territorial</h2>

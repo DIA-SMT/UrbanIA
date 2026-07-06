@@ -1,24 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronDown, Moon, Search, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bell, ChevronDown, ChevronLeft, Menu, Moon, Plus, Search, Sun, X } from "lucide-react";
 import { MigueFloatingChat } from "@/components/assistant/migue-floating-chat";
 import { Brand } from "@/components/brand";
-import { navItems, sidebarSections } from "@/lib/data";
+import { sidebarSections } from "@/lib/data";
 
 type ThemeMode = "dark" | "light";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [theme, setTheme] = useState<ThemeMode>("dark");
+  const [theme, setTheme] = useState<ThemeMode>("light");
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const savedTheme = window.localStorage.getItem("urbania-theme") === "light" ? "light" : "dark";
+    const savedTheme = window.localStorage.getItem("urbania-theme") === "dark" ? "dark" : "light";
+    const savedCollapsed = window.localStorage.getItem("urbania-sidebar") === "collapsed";
     setTheme(savedTheme);
+    setCollapsed(savedCollapsed);
     applyTheme(savedTheme);
   }, []);
+
+  useEffect(() => setMobileOpen(false), [pathname]);
 
   function toggleTheme() {
     const nextTheme: ThemeMode = theme === "dark" ? "light" : "dark";
@@ -27,115 +34,88 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     applyTheme(nextTheme);
   }
 
+  function toggleSidebar() {
+    setCollapsed((current) => {
+      window.localStorage.setItem("urbania-sidebar", current ? "expanded" : "collapsed");
+      return !current;
+    });
+  }
+
   return (
-    <main
-      className={
-        theme === "light"
-          ? "min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(31,137,246,0.14),transparent_34%),#f4f8fc] p-3 text-slate-900 md:p-4"
-          : "min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(31,137,246,0.22),transparent_34%),#06121f] p-3 text-slate-100 md:p-4"
-      }
-    >
-      <div className="mx-auto flex max-w-[1540px] items-start gap-4">
-        <aside className="hidden w-56 shrink-0 xl:block">
-          <div className="mb-4 px-2 pt-2">
-            <Brand />
+    <main className="min-h-screen bg-urban-canvas text-slate-900 transition-colors duration-300 dark:bg-[#07111d] dark:text-slate-100">
+      <div className="flex min-h-screen">
+        <motion.aside
+          animate={{ width: collapsed ? 84 : 244 }}
+          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+          className="fixed inset-y-0 left-0 z-40 hidden border-r border-slate-200/80 bg-white/95 p-3 shadow-[8px_0_32px_rgba(15,23,42,0.04)] backdrop-blur-xl lg:flex lg:flex-col dark:border-white/10 dark:bg-[#091725]/95"
+        >
+          <div className={`flex h-16 items-center ${collapsed ? "justify-center" : "justify-between px-2"}`}>
+            <div className={collapsed ? "[&>div>div:last-child]:hidden" : ""}><Brand /></div>
+            {!collapsed && <button onClick={toggleSidebar} className="icon-button" aria-label="Colapsar navegacion"><ChevronLeft className="h-4 w-4" /></button>}
           </div>
-          <div className="urban-card urban-lift rounded-lg p-3">
-            <Link href="/" className={navClass(pathname, "/")}>Vista general</Link>
+          <nav className="urban-scrollbar mt-3 flex-1 overflow-y-auto pb-4" aria-label="Navegacion principal">
+            <SidebarLink href="/" label="Resumen" icon={sidebarSections[3].items[1].icon} active={pathname === "/"} collapsed={collapsed} />
             {sidebarSections.map((section) => (
-              <div key={section.title} className="mt-5">
-                <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{section.title}</p>
+              <div key={section.title} className="mt-6">
+                {!collapsed && <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{section.title}</p>}
                 <div className="space-y-1">
-                  {section.items.map((item) => (
-                    <Link key={item.label} href={item.href} className={`urban-button flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition ${isActive(pathname, item.href) ? "bg-sky-400/15 text-sky-100" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}>
-                      <item.icon className="h-4 w-4" />
-                      {item.label}
-                    </Link>
-                  ))}
+                  {section.items.map((item) => <SidebarLink key={item.label} {...item} active={isActive(pathname, item.href)} collapsed={collapsed} />)}
                 </div>
               </div>
             ))}
-            <div className="urban-lift mt-6 rounded-md border border-sky-300/20 bg-sky-300/10 p-4">
-              <p className="font-semibold text-sky-100">Trazabilidad para decidir mejor</p>
-              <p className="mt-2 text-xs leading-5 text-slate-300">Propuestas, normativa, audiencias y aportes ciudadanos en una misma lectura.</p>
-              <Link href="/propuestas" className="urban-button mt-4 inline-flex rounded-md bg-civic-blue px-4 py-2 text-sm font-semibold text-white">Ver propuestas</Link>
-            </div>
-          </div>
-        </aside>
-
-        <section className="min-w-0 flex-1">
-          <header className="mb-3 flex flex-wrap items-center gap-3 2xl:flex-nowrap">
-            <div className="lg:hidden">
-              <Brand />
-            </div>
-            <nav className="hidden flex-1 items-center gap-2 2xl:flex">
-              {navItems.map((item) => (
-                <Link key={item.label} href={item.href} className={`urban-button flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition ${isActive(pathname, item.href) ? "bg-sky-400/20 text-sky-100" : "text-slate-300 hover:bg-white/5"}`}>
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-            <div className="urban-lift ml-auto hidden w-full max-w-xs items-center gap-2 rounded-md border border-white/10 bg-slate-950/60 px-3 py-2 md:flex">
-              <Search className="h-4 w-4 text-slate-500" />
-              <span className="text-sm text-slate-500">Buscar en la plataforma...</span>
-            </div>
-            <button
-              onClick={toggleTheme}
-              className="urban-button rounded-md border border-white/10 bg-slate-950/60 p-2"
-              aria-label={theme === "light" ? "Activar modo oscuro" : "Activar modo claro"}
-              title={theme === "light" ? "Modo oscuro" : "Modo claro"}
-            >
-              {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-            </button>
-            <button className="urban-button rounded-md border border-white/10 bg-slate-950/60 p-2"><Bell className="h-5 w-5" /></button>
-            <button className="urban-button hidden items-center gap-2 rounded-md border border-white/10 bg-slate-950/60 px-3 py-2 md:flex">
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-slate-700 text-xs text-white">A</span>
-              <span className="text-sm font-semibold">Agustin</span>
-              <ChevronDown className="h-4 w-4" />
-            </button>
-          </header>
-          <nav aria-label="Navegacion principal" className="mb-4 xl:hidden">
-            <div className="urban-scrollbar flex gap-2 overflow-x-auto rounded-lg border border-white/10 bg-slate-950/45 p-2">
-              {navItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`urban-button inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
-                    isActive(pathname, item.href) ? "bg-sky-400/20 text-sky-100" : "text-slate-300 hover:bg-white/5"
-                  }`}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              ))}
-            </div>
           </nav>
-          {children}
-        </section>
+          <button onClick={toggleSidebar} className={`nav-link mt-auto ${collapsed ? "justify-center" : ""}`} title={collapsed ? "Expandir navegacion" : undefined}>
+            <Menu className="h-4 w-4 shrink-0" />{!collapsed && <span>Contraer menú</span>}
+          </button>
+        </motion.aside>
+
+        <AnimatePresence>
+          {mobileOpen && (
+            <>
+              <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-sm lg:hidden" aria-label="Cerrar navegacion" />
+              <motion.aside initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }} transition={{ type: "spring", damping: 28, stiffness: 300 }} className="fixed inset-y-0 left-0 z-50 w-[278px] overflow-y-auto bg-white p-4 shadow-2xl dark:bg-[#091725] lg:hidden">
+                <div className="flex items-center justify-between"><Brand /><button onClick={() => setMobileOpen(false)} className="icon-button"><X className="h-5 w-5" /></button></div>
+                <nav className="mt-7"><SidebarLink href="/" label="Resumen" icon={sidebarSections[3].items[1].icon} active={pathname === "/"} />{sidebarSections.map((section) => <div key={section.title} className="mt-6"><p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{section.title}</p>{section.items.map((item) => <SidebarLink key={item.label} {...item} active={isActive(pathname, item.href)} />)}</div>)}</nav>
+              </motion.aside>
+            </>
+          )}
+        </AnimatePresence>
+
+        <div className={`min-w-0 flex-1 transition-[padding] duration-300 ${collapsed ? "lg:pl-[84px]" : "lg:pl-[244px]"}`}>
+          <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/85 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-[#07111d]/85 md:px-6">
+            <div className="mx-auto flex max-w-[1600px] items-center gap-3">
+              <button onClick={() => setMobileOpen(true)} className="icon-button lg:hidden" aria-label="Abrir navegacion"><Menu className="h-5 w-5" /></button>
+              <div className="lg:hidden"><Brand /></div>
+              <button className="hidden min-w-0 max-w-md flex-1 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-left text-sm text-slate-400 transition hover:border-sky-300 hover:bg-white md:flex dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-500">
+                <Search className="h-4 w-4" /><span className="truncate">Buscar proyectos, normativa, audiencias...</span><kbd className="ml-auto rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] dark:border-white/10 dark:bg-white/5">⌘ K</kbd>
+              </button>
+              <div className="ml-auto flex items-center gap-2">
+                <Link href="/propuestas" className="primary-button hidden sm:inline-flex"><Plus className="h-4 w-4" />Nueva propuesta</Link>
+                <button onClick={toggleTheme} className="icon-button" aria-label={theme === "light" ? "Activar modo oscuro" : "Activar modo claro"}>{theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}</button>
+                <button className="icon-button relative" aria-label="Actividad"><Bell className="h-4 w-4" /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-amber-400 ring-2 ring-white dark:ring-[#07111d]" /></button>
+                <button className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-sm font-semibold md:flex dark:border-white/10 dark:bg-white/[0.04]"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[#1f89f6] text-xs text-white">A</span><span>Agustín</span><ChevronDown className="h-3.5 w-3.5 text-slate-400" /></button>
+              </div>
+            </div>
+          </header>
+          <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }} className="mx-auto max-w-[1600px] p-4 md:p-6 xl:p-8">{children}</motion.div>
+        </div>
       </div>
       <MigueFloatingChat />
     </main>
   );
 }
 
+function SidebarLink({ href, label, icon: Icon, active, collapsed = false }: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; active: boolean; collapsed?: boolean }) {
+  return <Link href={href} title={collapsed ? label : undefined} className={`nav-link group relative ${active ? "nav-link-active" : ""} ${collapsed ? "justify-center px-0" : ""}`}><Icon className="h-[18px] w-[18px] shrink-0" />{!collapsed && <span className="truncate">{label}</span>}{active && <motion.span layoutId="active-nav" className="absolute left-0 h-5 w-0.5 rounded-r bg-[#1f89f6]" />}</Link>;
+}
+
 function applyTheme(theme: ThemeMode) {
+  document.documentElement.classList.toggle("dark", theme === "dark");
   document.documentElement.classList.toggle("urban-light", theme === "light");
   document.documentElement.style.colorScheme = theme;
 }
 
 function isActive(pathname: string, href: string) {
-  if (href === "/") {
-    return pathname === "/";
-  }
-
+  if (href.startsWith("/escenarios/")) return pathname.startsWith("/escenarios/");
   return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function navClass(pathname: string, href: string) {
-  return `urban-button block rounded-md px-3 py-3 text-sm font-semibold transition ${
-    isActive(pathname, href)
-      ? "bg-sky-400/15 text-sky-100"
-      : "text-slate-300 hover:bg-white/5 hover:text-white"
-  }`;
 }

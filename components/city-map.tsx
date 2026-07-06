@@ -1,223 +1,48 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import {
-  Bike,
-  Building2,
-  Bus,
-  Layers3,
-  MapPin,
-  Search,
-  Trees,
-  Users,
-  X
-} from "lucide-react";
-import { metrics } from "@/lib/data";
+import { AlertTriangle, ArrowUpRight, Building2, CalendarDays, MapPin, MessageSquareText, Route } from "lucide-react";
+import { urbanProjects } from "@/lib/demo/urban-projects";
 import type { DashboardMetric } from "@/lib/dashboard/data";
 
-type MapMode = "2D" | "3D";
+const filters = ["Todos", "Proyectos", "Propuestas", "Audiencias", "Alertas"] as const;
+type Filter = (typeof filters)[number];
 
-type Layer = "Transporte" | "Espacios verdes" | "Equipamiento" | "Zonificacion" | "Riesgos";
-
-const pins = [
-  {
-    icon: Building2,
-    label: "Codigo urbano",
-    layer: "Zonificacion",
-    className: "left-[50%] top-[24%] bg-violet-500",
-    description: "Articulos del Codigo de Planeamiento, alturas, usos del suelo y reglas de intervencion.",
-    status: "3 tematicas vinculadas"
-  },
-  {
-    icon: Trees,
-    label: "Espacios verdes",
-    layer: "Espacios verdes",
-    className: "left-[70%] top-[31%] bg-emerald-500",
-    description: "Plazas, parques, arbolado y cobertura ambiental por zona.",
-    status: "Capa ambiental activa"
-  },
-  {
-    icon: Bus,
-    label: "Transporte",
-    layer: "Transporte",
-    className: "left-[85%] top-[48%] bg-amber-500",
-    description: "Corredores, paradas, nodos de transferencia y movilidad publica.",
-    status: "Escenario en preparacion"
-  },
-  {
-    icon: Users,
-    label: "Aportes Cidituc",
-    layer: "Equipamiento",
-    className: "left-[52%] top-[63%] bg-rose-500",
-    description: "Aportes ciudadanos importados para lectura territorial y vinculacion con expedientes.",
-    status: "128 aportes registrados"
-  },
-  {
-    icon: Bike,
-    label: "Movilidad",
-    layer: "Transporte",
-    className: "left-[79%] top-[70%] bg-sky-500",
-    description: "Ciclovias, caminabilidad y alternativas de movilidad activa.",
-    status: "Nueva ciclovia destacada"
-  }
-] satisfies Array<{
-  icon: typeof Building2;
-  label: string;
-  layer: Layer;
-  className: string;
-  description: string;
-  status: string;
-}>;
-
-const layers: Layer[] = ["Transporte", "Espacios verdes", "Equipamiento", "Zonificacion", "Riesgos"];
-
-export function CityMap({ dashboardMetrics = metrics }: { dashboardMetrics?: DashboardMetric[] }) {
-  const [mode, setMode] = useState<MapMode>("3D");
-  const [activeLayers, setActiveLayers] = useState<Layer[]>(["Transporte", "Espacios verdes", "Equipamiento", "Zonificacion"]);
-  const [query, setQuery] = useState("");
-  const [selectedPin, setSelectedPin] = useState<(typeof pins)[number] | null>(pins[0]);
-
-  const visiblePins = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    return pins.filter((pin) => {
-      const matchesLayer = activeLayers.includes(pin.layer);
-      const matchesQuery =
-        normalizedQuery.length === 0 ||
-        pin.label.toLowerCase().includes(normalizedQuery) ||
-        pin.layer.toLowerCase().includes(normalizedQuery) ||
-        pin.description.toLowerCase().includes(normalizedQuery);
-
-      return matchesLayer && matchesQuery;
-    });
-  }, [activeLayers, query]);
-
-  function toggleLayer(layer: Layer) {
-    setActiveLayers((current) => {
-      if (current.includes(layer)) {
-        return current.filter((item) => item !== layer);
-      }
-
-      return [...current, layer];
-    });
-  }
+export function CityMap({ dashboardMetrics }: { dashboardMetrics?: DashboardMetric[] }) {
+  const [filter, setFilter] = useState<Filter>("Todos");
+  const [selectedId, setSelectedId] = useState(urbanProjects[0]?.id);
+  const selected = urbanProjects.find((project) => project.id === selectedId) ?? urbanProjects[0];
+  const projects = useMemo(() => filter === "Todos" || filter === "Proyectos" ? urbanProjects : filter === "Alertas" ? urbanProjects.filter((item) => item.risks.length > 0) : urbanProjects.filter((item) => item.linkedHearingId), [filter]);
 
   return (
-    <section className="urban-card urban-lift relative min-h-[560px] overflow-hidden rounded-lg md:min-h-[430px]">
-      <div
-        className={`absolute inset-0 bg-cover bg-center transition duration-500 ${
-          mode === "3D"
-            ? "scale-105 bg-[linear-gradient(135deg,rgba(11,37,48,0.92),rgba(17,24,39,0.48)),url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1400&q=80')]"
-            : "bg-[linear-gradient(135deg,rgba(5,20,27,0.94),rgba(15,23,42,0.62)),url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1400&q=80')]"
-        }`}
-      />
-      <div className={`absolute inset-0 map-grid transition ${mode === "3D" ? "opacity-20" : "opacity-40"}`} />
-      <div className="relative z-10 grid min-h-[560px] grid-cols-1 md:min-h-[430px] lg:grid-cols-[340px_1fr]">
-        <div className="m-4 rounded-lg border border-white/10 bg-slate-950/62 p-5 backdrop-blur md:m-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-black leading-tight text-white">San Miguel de Tucuman</h1>
-            <span className="text-amber-300">21 C</span>
-          </div>
-          <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">Ubica propuestas oficiales, articulos del CPU, audiencias y aportes ciudadanos en el territorio.</p>
-          <label className="urban-lift mt-5 flex items-center gap-3 rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-slate-400">
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="min-w-0 flex-1 bg-transparent text-slate-200 outline-none placeholder:text-slate-500"
-              placeholder="Buscar propuestas, CPU, audiencias..."
-            />
-            {query ? (
-              <button type="button" onClick={() => setQuery("")} className="urban-button rounded-md p-1 text-slate-300">
-                <X className="h-4 w-4" />
-              </button>
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-          </label>
-          <div className="mt-5 grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
-            {dashboardMetrics.map((metric) => (
-              <div key={metric.label} className="urban-lift rounded-md border border-white/10 bg-white/5 p-3">
-                <p className="text-2xl font-black leading-tight text-civic-sky">{metric.value}</p>
-                <p className="mt-2 text-xs leading-4 text-slate-300">{metric.label}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex items-center gap-2 rounded-md border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-100">
-            <MapPin className="h-4 w-4" />
-            {visiblePins.length} puntos visibles
-          </div>
+    <section className="surface-panel overflow-hidden">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200/80 p-5 dark:border-white/10 md:p-6">
+        <div><p className="eyebrow">Estado de la ciudad</p><h2 className="mt-2 text-xl font-black text-slate-950 dark:text-white">Lectura territorial integrada</h2><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Proyectos, participación y alertas vinculados al territorio.</p></div>
+        <div className="urban-scrollbar flex max-w-full gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1 dark:bg-white/[0.05]">{filters.map((item) => <button key={item} onClick={() => setFilter(item)} className={`shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition ${filter === item ? "bg-white text-slate-950 shadow-sm dark:bg-white/10 dark:text-white" : "text-slate-500"}`}>{item}</button>)}</div>
+      </div>
+      <div className="grid lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
+        <div className="relative min-h-[430px] overflow-hidden bg-[#e8eef3] dark:bg-[#071724]">
+          <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(rgba(31,137,246,.07)_1px,transparent_1px),linear-gradient(90deg,rgba(31,137,246,.07)_1px,transparent_1px)] [background-size:38px_38px]" />
+          <div className="absolute -left-16 top-12 h-24 w-[120%] -rotate-6 border-y-[18px] border-white/80 bg-slate-300/60 dark:border-[#102a3b] dark:bg-[#163349]" />
+          <div className="absolute left-1/3 top-[-10%] h-[120%] w-20 rotate-12 border-x-[14px] border-white/75 bg-slate-300/50 dark:border-[#102a3b] dark:bg-[#163349]" />
+          <div className="absolute bottom-8 left-8 rounded-lg border border-white/70 bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500 backdrop-blur dark:border-white/10 dark:bg-[#0d1b2a]/85 dark:text-slate-400">SMT · 26.8241° S / 65.2226° O</div>
+          {projects.map((project, index) => {
+            const left = 16 + ((Math.abs(project.position[1] * 1000) + index * 19) % 66);
+            const top = 18 + ((Math.abs(project.position[0] * 1000) + index * 17) % 62);
+            const active = selected?.id === project.id;
+            return <button key={project.id} onClick={() => setSelectedId(project.id)} style={{ left: `${left}%`, top: `${top}%` }} className="absolute z-10 -translate-x-1/2 -translate-y-1/2" aria-label={`Ver ${project.title}`}><span className={`relative grid h-10 w-10 place-items-center rounded-xl border-2 border-white bg-[#1f89f6] text-white shadow-lg transition hover:-translate-y-1 ${active ? "ring-4 ring-sky-400/20" : ""}`}><MapPin className="h-4 w-4" /><span className="absolute inset-0 -z-10 animate-ping rounded-xl bg-sky-400/20 [animation-duration:3s]" /></span></button>;
+          })}
+          <div className="absolute left-4 top-4 rounded-xl border border-white/70 bg-white/85 p-2 shadow-sm backdrop-blur dark:border-white/10 dark:bg-[#0d1b2a]/90">{dashboardMetrics?.slice(0, 3).map((metric) => <div key={metric.label} className="flex items-center justify-between gap-6 border-b border-slate-100 px-2 py-1.5 text-xs last:border-0 dark:border-white/5"><span className="text-slate-500">{metric.label}</span><strong>{metric.value}</strong></div>)}</div>
         </div>
-
-        <div className="relative min-h-[260px]">
-          <div className="absolute right-5 top-5 z-20 flex gap-2">
-            {(["2D", "3D"] as const).map((item) => (
-              <button
-                key={item}
-                onClick={() => setMode(item)}
-                className={`urban-button rounded-md px-3 py-2 text-sm font-semibold ${
-                  mode === item ? "bg-cyan-400/20 text-cyan-100" : "bg-slate-950/70 text-slate-300"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-            <button
-              onClick={() => setActiveLayers(layers)}
-              className="urban-button rounded-md bg-slate-950/70 p-2 text-slate-200"
-              title="Mostrar todas las capas"
-            >
-              <Layers3 className="h-5 w-5" />
-            </button>
-          </div>
-
-          {visiblePins.map((pin) => (
-            <button
-              key={pin.label}
-              onClick={() => setSelectedPin(pin)}
-              className={`urban-pin absolute grid h-12 w-12 place-items-center rounded-full border-4 text-white shadow-glow md:h-14 md:w-14 ${
-                selectedPin?.label === pin.label ? "border-cyan-100 ring-4 ring-cyan-300/25" : "border-white/75"
-              } ${pin.className}`}
-              aria-label={`Ver ${pin.label}`}
-            >
-              <pin.icon className="h-6 w-6 md:h-7 md:w-7" />
-            </button>
-          ))}
-
-          {selectedPin ? (
-            <div className="urban-lift absolute bottom-24 right-5 hidden w-72 rounded-lg border border-white/10 bg-slate-950/78 p-4 backdrop-blur lg:block">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-black text-white">{selectedPin.label}</p>
-                  <p className="text-xs font-semibold text-sky-300">{selectedPin.layer}</p>
-                </div>
-                <button onClick={() => setSelectedPin(null)} className="urban-button rounded-md p-1 text-slate-400">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <p className="text-sm leading-6 text-slate-300">{selectedPin.description}</p>
-              <div className="mt-3 rounded-md bg-white/[0.05] px-3 py-2 text-xs font-semibold text-slate-300">{selectedPin.status}</div>
-            </div>
-          ) : null}
-
-          <div className="urban-scrollbar absolute bottom-5 left-1/2 flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 gap-2 overflow-x-auto rounded-md border border-white/10 bg-slate-950/72 p-2 backdrop-blur sm:flex-wrap sm:justify-center sm:overflow-visible">
-            {layers.map((layer) => {
-              const isActive = activeLayers.includes(layer);
-
-              return (
-                <button
-                  key={layer}
-                  onClick={() => toggleLayer(layer)}
-                  className={`urban-button rounded-md px-3 py-2 text-xs font-semibold ${
-                    isActive ? "bg-sky-400/18 text-sky-100" : "bg-white/7 text-slate-400"
-                  }`}
-                >
-                  {layer}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <aside className="border-t border-slate-200/80 bg-slate-50/70 p-5 dark:border-white/10 dark:bg-white/[0.02] lg:border-l lg:border-t-0 md:p-6">
+          {selected ? <><div className="flex items-center justify-between"><span className="rounded-full bg-sky-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-sky-700 dark:bg-sky-400/10 dark:text-sky-200">{selected.neighborhood}</span><span className="text-xs font-bold text-slate-400">{selected.status}</span></div><h3 className="mt-5 text-xl font-black leading-tight text-slate-950 dark:text-white">{selected.title}</h3><p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">{selected.description}</p><div className="mt-6 grid grid-cols-2 gap-2"><ContextMetric icon={Building2} value="1" label="proyecto activo" /><ContextMetric icon={CalendarDays} value={selected.linkedHearingId ? "1" : "0"} label="audiencia vinculada" /><ContextMetric icon={MessageSquareText} value={String(selected.comments)} label="intervenciones" /><ContextMetric icon={AlertTriangle} value={String(selected.risks.length)} label="riesgos a revisar" /></div><Link href={`/proyectos/${selected.id}`} className="primary-button mt-6 flex w-full">Ver contexto territorial<ArrowUpRight className="h-4 w-4" /></Link></> : <div className="grid h-full place-items-center text-sm text-slate-400"><Route className="mb-3 h-8 w-8" />Seleccioná un punto territorial</div>}
+        </aside>
       </div>
     </section>
   );
+}
+
+function ContextMetric({ icon: Icon, value, label }: { icon: typeof Building2; value: string; label: string }) {
+  return <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/[0.03]"><Icon className="h-4 w-4 text-[#1f89f6]" /><strong className="mt-3 block text-lg text-slate-950 dark:text-white">{value}</strong><span className="text-[11px] leading-4 text-slate-500">{label}</span></div>;
 }

@@ -91,7 +91,7 @@ const answers: Record<string, AssistantAnswer> = {
       { label: "Revisar acta de gabinete", href: "/gabinete" },
       { label: "Preparar matriz legal" }
     ],
-    caveat: "Respuesta demo. En produccion debe citar articulos reales del CPU y documentos oficiales cargados."
+    caveat: "Análisis preliminar: debe validarse contra los artículos vigentes del CPU y la documentación oficial."
   },
   "resumen-gabinete": {
     title: "Sintesis ejecutiva de reunion",
@@ -113,7 +113,7 @@ const answers: Record<string, AssistantAnswer> = {
       { label: "Abrir escenario", href: "/escenarios/ciclovia-aconquija" },
       { label: "Generar informe de reunion" }
     ],
-    caveat: "Respuesta generada desde mocks de acta. Luego deberia salir de transcripcion, notas y documentos adjuntos."
+    caveat: "Síntesis preliminar: requiere validación contra el acta, la transcripción y los documentos adjuntos."
   },
   "escenario-aconquija": {
     title: "Recomendacion ejecutiva para escenario Aconquija",
@@ -247,16 +247,16 @@ export function AiAssistantWorkbench() {
       </section>
 
       <section className="grid gap-3 md:grid-cols-3">
-        <StatusItem label="Conexion" value="OpenRouter listo" icon={Sparkles} />
-        <StatusItem label="Fuentes actuales" value="CPU, gabinete, escenarios" icon={BookOpen} />
-        <StatusItem label="Proxima etapa" value="RAG + citas reales" icon={GitBranch} />
+        <StatusItem label="Estado" value="Análisis disponible" icon={Sparkles} />
+        <StatusItem label="Fuentes consultadas" value="CPU, gabinete, escenarios" icon={BookOpen} />
+        <StatusItem label="Criterio" value="Requiere validación técnica" icon={GitBranch} />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
+      <section className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_300px]">
         <aside className="urban-card rounded-lg p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-lg font-black text-white">Consultas sugeridas</h2>
-            <span className="rounded-md bg-white/[0.06] px-2 py-1 text-xs font-bold text-slate-300">Mock</span>
+            <span className="rounded-md bg-white/[0.06] px-2 py-1 text-xs font-bold text-slate-300">Historial</span>
           </div>
           <div className="space-y-3">
             {prompts.map((prompt) => {
@@ -321,7 +321,7 @@ export function AiAssistantWorkbench() {
                 </h2>
                 {liveAnswer ? (
                   <span className="rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-1 text-xs font-black text-sky-100">
-                    OpenRouter - {liveAnswer.model}
+                    Análisis actualizado
                   </span>
                 ) : null}
               </div>
@@ -339,20 +339,13 @@ export function AiAssistantWorkbench() {
                 <Sparkles className="h-5 w-5 text-sky-300" />
                 {answer.title}
               </h2>
-              <span className={`rounded-md border px-3 py-1 text-xs font-black ${modeStyles[selectedPrompt.mode]}`}>Respuesta simulada</span>
+              <span className={`rounded-md border px-3 py-1 text-xs font-black ${modeStyles[selectedPrompt.mode]}`}>Análisis preliminar</span>
             </div>
             <p className="text-sm leading-7 text-slate-300">{answer.summary}</p>
 
-            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            <div className="mt-5 grid gap-4">
               <Panel title="Hallazgos" icon={CheckCircle2}>
                 <List items={answer.findings} />
-              </Panel>
-              <Panel title="Fuentes citadas" icon={FileText}>
-                <div className="grid gap-3">
-                  {answer.sources.map((source) => (
-                    <SourceCard key={source.label} source={source} />
-                  ))}
-                </div>
               </Panel>
             </div>
           </section>
@@ -400,6 +393,16 @@ export function AiAssistantWorkbench() {
             </section>
           ) : null}
         </div>
+        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+          <Panel title="Fuentes y evidencia" icon={FileText}>
+            <div className="grid gap-3">{answer.sources.map((source) => <SourceCard key={source.label} source={source} />)}</div>
+          </Panel>
+          <div className="surface-panel p-4">
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Nivel de confianza</p>
+            <p className="mt-2 text-sm font-black text-amber-600 dark:text-amber-200">Requiere validación técnica</p>
+            <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">La evidencia vinculada orienta el análisis, pero no reemplaza el dictamen del área competente.</p>
+          </div>
+        </aside>
       </section>
     </div>
   );
