@@ -1,185 +1,82 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import L from "leaflet";
-import { CircleMarker, MapContainer, Marker, Polygon, Popup, TileLayer, useMap } from "react-leaflet";
-import { Bike, Building2, CheckCircle2, Layers3, MapPin, Search, SlidersHorizontal, Trees, X } from "lucide-react";
-import { urbanProjects, type ProjectLayer, type UrbanProject } from "@/lib/demo/urban-projects";
+import { GeoJSON, MapContainer, TileLayer, useMapEvents } from "react-leaflet";
+import type { FeatureCollection, Geometry } from "geojson";
+import { Check, Filter, Layers3, MapPin, Search, X } from "lucide-react";
 
-const tucumanCenter: [number, number] = [-26.8241, -65.2226];
-const layers: ProjectLayer[] = ["Transporte", "Espacios verdes", "Equipamiento", "Zonificacion", "Riesgos"];
-
-const layerStyles: Record<ProjectLayer, { color: string; icon: typeof Bike }> = {
-  Transporte: { color: "#38bdf8", icon: Bike },
-  "Espacios verdes": { color: "#34d399", icon: Trees },
-  Equipamiento: { color: "#f59e0b", icon: Building2 },
-  Zonificacion: { color: "#a78bfa", icon: Layers3 },
-  Riesgos: { color: "#fb7185", icon: MapPin }
-};
-
-const studyArea: [number, number][] = [
-  [-26.838, -65.246],
-  [-26.804, -65.232],
-  [-26.812, -65.188],
-  [-26.849, -65.198]
-];
+const center: [number, number] = [-26.8241, -65.2226];
+const colors = ["#1f89f6", "#f59e0b", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4"];
+type GeometryFilter = "all" | "point" | "line" | "polygon";
+type RemoteLayer = { id: string; name: string; slug: string; visibleByDefault: boolean; featureCount: number };
 
 export function UrbanLeafletMap() {
-  const [activeLayers, setActiveLayers] = useState<ProjectLayer[]>(["Transporte", "Espacios verdes", "Equipamiento"]);
-  const [selectedProject, setSelectedProject] = useState<UrbanProject | null>(urbanProjects[0]);
+  const [layers, setLayers] = useState<RemoteLayer[]>([]);
+  const [active, setActive] = useState<string[]>([]);
+  const [data, setData] = useState<FeatureCollection>({ type: "FeatureCollection", features: [] });
   const [query, setQuery] = useState("");
-
-  const visibleProjects = useMemo(
-    () => urbanProjects.filter((project) => activeLayers.includes(project.layer) && `${project.title} ${project.neighborhood} ${project.responsible}`.toLowerCase().includes(query.toLowerCase())),
-    [activeLayers, query]
-  );
-
-  function toggleLayer(layer: ProjectLayer) {
-    setActiveLayers((current) =>
-      current.includes(layer) ? current.filter((item) => item !== layer) : [...current, layer]
-    );
-  }
-
-  return (
-    <section className="surface-panel relative overflow-hidden">
-        <div className="relative h-[620px] md:h-[calc(100vh-190px)] md:min-h-[660px]">
-          <MapContainer center={tucumanCenter} zoom={13} scrollWheelZoom className="h-full w-full">
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <Polygon positions={studyArea} pathOptions={{ color: "#42d392", weight: 2, fillOpacity: 0.08 }} />
-            <MapFocus project={selectedProject} />
-            {visibleProjects.map((project) => (
-              <ProjectMarker key={project.id} project={project} onSelect={setSelectedProject} />
-            ))}
-          </MapContainer>
-
-          <aside className="absolute left-3 top-3 z-[500] w-[calc(100%-1.5rem)] max-w-[300px] rounded-2xl border border-white/70 bg-white/92 p-4 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#0d1b2a]/92 md:left-4 md:top-4">
-            <div className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-[#1f89f6]" /><h2 className="text-sm font-black text-slate-950 dark:text-white">Explorar territorio</h2><span className="ml-auto rounded-full bg-sky-50 px-2 py-1 text-[10px] font-black text-sky-700 dark:bg-sky-400/10 dark:text-sky-200">{visibleProjects.length}</span></div>
-            <label className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-white/10 dark:bg-white/[0.04]"><Search className="h-4 w-4 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar zona o proyecto" className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label>
-            <p className="mt-5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Capas</p><div className="mt-2 space-y-1">{layers.map((layer) => {
-              const isActive = activeLayers.includes(layer);
-              const Icon = layerStyles[layer].icon;
-
-              return (
-                <button
-                  key={layer}
-                  onClick={() => toggleLayer(layer)}
-                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold transition ${
-                    isActive ? "bg-sky-50 text-sky-700 dark:bg-sky-400/10 dark:text-sky-200" : "text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {layer}
-                  <span className={`ml-auto h-2 w-2 rounded-full ${isActive ? "bg-[#1f89f6]" : "bg-slate-200 dark:bg-slate-700"}`} />
-                </button>
-              );
-            })}</div>
-          </aside>
-
-          <div className="absolute bottom-4 left-4 z-[500] hidden rounded-xl border border-white/70 bg-white/90 px-3 py-2 text-[10px] font-bold text-slate-500 shadow backdrop-blur dark:border-white/10 dark:bg-[#0d1b2a]/90 md:block"><span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#1f89f6]" />Proyecto urbano · OpenStreetMap</div>
-
-          <aside className="absolute bottom-3 right-3 z-[500] max-h-[52%] w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl border border-white/70 bg-white/94 p-4 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#0d1b2a]/94 md:bottom-auto md:right-4 md:top-4 md:max-h-[calc(100%-2rem)] md:w-[320px] md:p-5">
-            <div className="mb-4 flex items-start justify-between gap-3"><div><p className="eyebrow">Contexto territorial</p><h2 className="mt-1 font-black text-slate-950 dark:text-white">{selectedProject?.neighborhood ?? "Seleccionar territorio"}</h2></div>{selectedProject && <button onClick={() => setSelectedProject(null)} className="icon-button h-8 w-8"><X className="h-4 w-4" /></button>}</div>
-            {selectedProject ? <div><span className="rounded-full px-2.5 py-1 text-[10px] font-black text-white" style={{ backgroundColor: layerStyles[selectedProject.layer].color }}>{selectedProject.layer}</span><h3 className="mt-4 text-lg font-black leading-tight text-slate-950 dark:text-white">{selectedProject.title}</h3><p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{selectedProject.description}</p><div className="mt-4 grid grid-cols-2 gap-2">{[["Estado", selectedProject.status], ["Aportes", selectedProject.votes], ["Comentarios", selectedProject.comments], ["Alertas", selectedProject.risks.length]].map(([label, value]) => <div key={label} className="rounded-xl bg-slate-50 p-3 dark:bg-white/[0.04]"><strong className="block text-sm text-slate-950 dark:text-white">{value}</strong><span className="text-[10px] text-slate-400">{label}</span></div>)}</div><p className="mt-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Actividad reciente</p><div className="mt-2 space-y-2 text-xs text-slate-500 dark:text-slate-400"><p>• Revisión técnica actualizada</p>{selectedProject.linkedHearingId && <p>• Audiencia pública vinculada</p>}<p>• {selectedProject.risks.length} riesgos identificados</p></div><Link href={`/proyectos/${selectedProject.id}`} className="primary-button mt-5 flex w-full"><CheckCircle2 className="h-4 w-4" />Abrir contexto territorial</Link></div> : <div className="py-8 text-center text-sm text-slate-400"><MapPin className="mx-auto mb-3 h-7 w-7" />Seleccioná un punto del mapa.</div>}
-          </aside>
-        </div>
-      <aside className="hidden">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-black text-white">Detalle territorial</h2>
-            <p className="text-sm text-slate-500">Click en un punto del mapa</p>
-          </div>
-          {selectedProject ? (
-            <button onClick={() => setSelectedProject(null)} className="urban-button rounded-md border border-white/10 p-2 text-slate-400">
-              <X className="h-4 w-4" />
-            </button>
-          ) : null}
-        </div>
-
-        {selectedProject ? (
-          <div>
-            <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <span className="rounded-md px-3 py-1 text-xs font-black text-white" style={{ backgroundColor: layerStyles[selectedProject.layer].color }}>
-                  {selectedProject.layer}
-                </span>
-                <span className="text-xs font-semibold text-sky-300">{selectedProject.status}</span>
-              </div>
-              <h3 className="text-xl font-black leading-tight text-white">{selectedProject.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-300">{selectedProject.description}</p>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              {[
-                ["Area responsable", selectedProject.responsible],
-                ["Estado", selectedProject.status],
-                ["Ubicacion", selectedProject.position.join(", ")]
-              ].map(([label, value]) => (
-                <div key={label} className="urban-lift rounded-md border border-white/8 bg-white/[0.03] p-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-200">{value}</p>
-                </div>
-              ))}
-            </div>
-
-            <Link href={`/proyectos/${selectedProject.id}`} className="urban-button mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white">
-              <CheckCircle2 className="h-4 w-4" />
-              Abrir ficha del proyecto
-            </Link>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-dashed border-white/15 p-5 text-sm leading-6 text-slate-400">
-            Selecciona un proyecto para ver estado, area responsable, descripcion e indicadores asociados.
-          </div>
-        )}
-      </aside>
-    </section>
-  );
-}
-
-function ProjectMarker({ project, onSelect }: { project: UrbanProject; onSelect: (project: UrbanProject) => void }) {
-  const icon = useMemo(() => {
-    const style = layerStyles[project.layer];
-
-    return L.divIcon({
-      className: "",
-      html: `<div style="width:34px;height:34px;border-radius:999px;background:${style.color};border:3px solid rgba(255,255,255,.9);box-shadow:0 12px 28px rgba(0,0,0,.35);"></div>`,
-      iconSize: [34, 34],
-      iconAnchor: [17, 17]
-    });
-  }, [project.layer]);
-
-  return (
-    <>
-      <CircleMarker
-        center={project.position}
-        radius={22}
-        pathOptions={{ color: layerStyles[project.layer].color, fillColor: layerStyles[project.layer].color, fillOpacity: 0.14, weight: 1 }}
-      />
-      <Marker position={project.position} icon={icon} eventHandlers={{ click: () => onSelect(project) }}>
-        <Popup>
-          <strong>{project.title}</strong>
-          <br />
-          {project.status}
-        </Popup>
-      </Marker>
-    </>
-  );
-}
-
-function MapFocus({ project }: { project: UrbanProject | null }) {
-  const map = useMap();
+  const [geometry, setGeometry] = useState<GeometryFilter>("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selected, setSelected] = useState<{ layer: string; properties: Record<string, unknown> } | null>(null);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [, startTransition] = useTransition();
+  const requestRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    if (project) {
-      map.flyTo(project.position, 14, { duration: 0.8 });
-    }
-  }, [map, project]);
+    fetch("/api/map/layers").then((response) => response.ok ? response.json() : Promise.reject()).then((items: RemoteLayer[]) => { setLayers(items); setActive([]); }).catch(() => setError("No se pudieron cargar las capas desde Supabase."));
+  }, []);
 
+  const loadViewport = useCallback(async (bounds: L.LatLngBounds, zoom: number) => {
+    requestRef.current?.abort();
+    if (!active.length) { setData({ type: "FeatureCollection", features: [] }); setIsLoading(false); return; }
+    const controller = new AbortController();
+    requestRef.current = controller;
+    const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(",");
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/map/features?layers=${encodeURIComponent(active.join(","))}&bbox=${bbox}&zoom=${zoom}`, { signal: controller.signal });
+      if (!response.ok) throw new Error();
+      const collection = await response.json() as FeatureCollection;
+      startTransition(() => setData(collection));
+      setError("");
+    } catch (reason) {
+      if (!(reason instanceof DOMException && reason.name === "AbortError")) setError("No se pudieron consultar las geometrías visibles.");
+    } finally {
+      if (requestRef.current === controller) setIsLoading(false);
+    }
+  }, [active]);
+
+  useEffect(() => () => requestRef.current?.abort(), []);
+  const deferredQuery = useDeferredValue(query.trim().toLowerCase());
+  const filtered = useMemo(() => ({ ...data, features: data.features.filter((feature) => matchesGeometry(feature.geometry, geometry) && (!deferredQuery || JSON.stringify(feature.properties ?? {}).toLowerCase().includes(deferredQuery))) }), [data, geometry, deferredQuery]);
+
+  return <section className="relative h-[calc(100vh-190px)] min-h-[620px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm dark:border-white/10 dark:bg-[#071724]">
+    <MapContainer center={center} zoom={13} minZoom={10} scrollWheelZoom preferCanvas className="h-full w-full" zoomControl={false}>
+      <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <GeoJSON key={`${active.join("-")}-${filtered.features.length}-${deferredQuery}-${geometry}`} data={filtered} style={(feature) => { const color = colorFor(String(feature?.properties?._layerSlug ?? ""), layers); return { color, weight: 2, fillColor: color, fillOpacity: 0.2 }; }} pointToLayer={(feature, latlng) => { const color = colorFor(String(feature.properties?._layerSlug ?? ""), layers); return L.circleMarker(latlng, { radius: 6, color: "#fff", weight: 2, fillColor: color, fillOpacity: 1 }); }} onEachFeature={(feature, leafletLayer) => leafletLayer.on("click", () => setSelected({ layer: String(feature.properties?._layer ?? "Capa territorial"), properties: (feature.properties ?? {}) as Record<string, unknown> }))} />
+      <ViewportLoader activeKey={active.join(",")} onChange={loadViewport} />
+    </MapContainer>
+
+    <div className="absolute left-4 top-4 z-[500] flex max-w-[calc(100%-2rem)] flex-wrap gap-2"><div className="rounded-xl border border-white/80 bg-white/95 px-4 py-3 shadow-lg backdrop-blur dark:border-white/10 dark:bg-[#0d1b2a]/95"><p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Estado del mapa</p><div className="mt-1 flex items-center gap-3 text-xs font-bold text-slate-700 dark:text-slate-200"><span>{layers.length} capas</span><span className="h-3 w-px bg-slate-200 dark:bg-white/10" /><span>{filtered.features.length} visibles</span></div></div><button onClick={() => setFiltersOpen((value) => !value)} className="flex h-12 items-center gap-2 rounded-xl border border-white/80 bg-white/95 px-4 text-sm font-black text-slate-700 shadow-lg backdrop-blur dark:border-white/10 dark:bg-[#0d1b2a]/95 dark:text-white"><Filter className="h-4 w-4 text-[#1f89f6]" />Filtros</button></div>
+
+    {filtersOpen && <aside className="absolute left-4 top-20 z-[500] max-h-[calc(100%-6rem)] w-[min(330px,calc(100%-2rem))] overflow-y-auto rounded-2xl border border-white/80 bg-white/95 p-4 shadow-xl backdrop-blur dark:border-white/10 dark:bg-[#0d1b2a]/95"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><Layers3 className="h-4 w-4 text-[#1f89f6]" /><h2 className="text-sm font-black text-slate-950 dark:text-white">Capas y filtros</h2></div><button onClick={() => setFiltersOpen(false)} className="text-slate-400"><X className="h-4 w-4" /></button></div><label className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-white/10 dark:bg-white/[0.04]"><Search className="h-4 w-4 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar calle, escuela, padrón..." className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label><p className="mt-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Geometría</p><div className="mt-2 flex flex-wrap gap-1">{(["all", "point", "line", "polygon"] as const).map((value) => <button key={value} onClick={() => setGeometry(value)} className={`rounded-lg px-2.5 py-2 text-xs font-bold ${geometry === value ? "bg-sky-50 text-sky-700 dark:bg-sky-400/10 dark:text-sky-200" : "text-slate-500"}`}>{value === "all" ? "Todas" : value === "point" ? "Puntos" : value === "line" ? "Líneas" : "Polígonos"}</button>)}</div><p className="mt-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Capas Supabase</p><div className="mt-2 space-y-1">{layers.map((layer, index) => { const enabled = active.includes(layer.slug); return <button key={layer.id} onClick={() => setActive((current) => enabled ? current.filter((slug) => slug !== layer.slug) : [...current, layer.slug])} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/5"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: colors[index % colors.length] }} /><span className="min-w-0 flex-1 truncate">{layer.name}</span><span className="text-[10px] text-slate-400">{layer.featureCount.toLocaleString("es-AR")}</span>{enabled && <Check className="h-4 w-4 text-[#1f89f6]" />}</button>; })}</div></aside>}
+
+    {selected && <aside className="absolute bottom-4 right-4 z-[500] max-h-[calc(100%-2rem)] w-[min(400px,calc(100%-2rem))] overflow-y-auto rounded-2xl border border-white/80 bg-white/95 p-5 shadow-xl backdrop-blur dark:border-white/10 dark:bg-[#0d1b2a]/95 md:bottom-auto md:top-4"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#1f89f6]">Elemento territorial</p><h2 className="mt-1 text-lg font-black text-slate-950 dark:text-white">{selected.layer}</h2></div><button onClick={() => setSelected(null)} className="text-slate-400"><X className="h-4 w-4" /></button></div><div className="mt-4 space-y-2">{Object.entries(selected.properties).filter(([key]) => !key.startsWith("_")).slice(0, 24).map(([key, value]) => <div key={key} className="rounded-xl bg-slate-50 p-3 dark:bg-white/[0.04]"><p className="text-[10px] font-black uppercase tracking-wider text-slate-400">{key}</p><p className="mt-1 break-words text-sm text-slate-700 dark:text-slate-200">{formatValue(value)}</p></div>)}</div></aside>}
+    {isLoading && <div className="pointer-events-none absolute right-4 top-4 z-[450] rounded-lg bg-slate-950/75 px-3 py-2 text-xs font-bold text-white shadow backdrop-blur">Actualizando mapa…</div>}
+    {error && <div className="absolute bottom-4 left-1/2 z-[600] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-lg">{error}</div>}
+    {!layers.length && !error && <div className="pointer-events-none absolute bottom-6 left-1/2 z-[400] -translate-x-1/2 rounded-xl border border-white/80 bg-white/90 px-4 py-3 text-xs text-slate-500 shadow backdrop-blur dark:border-white/10 dark:bg-[#0d1b2a]/90 dark:text-slate-300"><span className="inline-flex items-center gap-2"><MapPin className="h-4 w-4 text-[#1f89f6]" />Cargando capas territoriales...</span></div>}
+  </section>;
+}
+
+function ViewportLoader({ activeKey, onChange }: { activeKey: string; onChange: (bounds: L.LatLngBounds, zoom: number) => void }) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const map = useMapEvents({ moveend: () => { if (timerRef.current) clearTimeout(timerRef.current); timerRef.current = setTimeout(() => onChange(map.getBounds(), map.getZoom()), 180); } });
+  useEffect(() => { if (timerRef.current) clearTimeout(timerRef.current); timerRef.current = setTimeout(() => onChange(map.getBounds(), map.getZoom()), 0); return () => { if (timerRef.current) clearTimeout(timerRef.current); }; }, [activeKey, map, onChange]);
   return null;
 }
+function matchesGeometry(geometry: Geometry | null, filter: GeometryFilter) { if (filter === "all") return true; const type = geometry?.type ?? ""; if (filter === "point") return type.includes("Point"); if (filter === "line") return type.includes("LineString"); return type.includes("Polygon"); }
+function colorFor(slug: string, layers: RemoteLayer[]) { return colors[Math.max(0, layers.findIndex((layer) => layer.slug === slug)) % colors.length]; }
+function formatValue(value: unknown) { if (value == null) return "Sin dato"; return typeof value === "object" ? JSON.stringify(value) : String(value); }

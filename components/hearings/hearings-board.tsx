@@ -1095,10 +1095,6 @@ function ActionButton({ icon: Icon, label, primary, onClick }: { icon: typeof Pl
   return <button onClick={onClick} className={`urban-button inline-flex w-full items-center justify-center gap-2 rounded-md px-3.5 py-2.5 text-sm font-black sm:w-auto ${primary ? "bg-civic-blue text-white" : "border border-white/10 bg-white/[0.04] text-slate-200"}`}><Icon className="h-4 w-4" />{label}</button>;
 }
 
-function Metric({ label, value, icon: Icon }: { label: string; value: string; icon: typeof CalendarDays }) {
-  return <div className="urban-lift rounded-md border border-white/10 bg-slate-950/45 p-4"><Icon className="h-4 w-4 text-civic-sky" /><p className="mt-3 text-2xl font-black text-white">{value}</p><p className="mt-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p></div>;
-}
-
 function StatusBadge({ status }: { status: HearingStatus }) {
   return <span className={`rounded-md border px-2.5 py-1 text-xs font-black ${statusStyles[status]}`}>{status}</span>;
 }

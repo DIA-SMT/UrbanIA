@@ -1,10 +1,4 @@
 import { prisma } from "@/lib/db/prisma";
-import {
-  cityComparison as fallbackCityComparison,
-  metrics as fallbackMetrics,
-  regulations as fallbackRegulations,
-  successCases as fallbackSuccessCases
-} from "@/lib/data";
 
 export type DashboardMetric = {
   label: string;
@@ -39,7 +33,7 @@ export type DashboardData = {
 
 export async function getDashboardData(): Promise<DashboardData> {
   if (!process.env.DATABASE_URL) {
-    return getFallbackDashboardData();
+    return getUnavailableDashboardData();
   }
 
   try {
@@ -105,35 +99,31 @@ export async function getDashboardData(): Promise<DashboardData> {
         { label: "Ordenanzas vigentes", value: formatInteger(regulationCount), delta: "DB" },
         { label: "Casos comparados", value: formatInteger(caseStudyCount), delta: "DB" }
       ],
-      regulations: regulations.length
-        ? regulations.map((regulation) => ({
+      regulations: regulations.map((regulation) => ({
             number: regulation.number ?? "Sin numero",
             title: regulation.title
-          }))
-        : fallbackRegulations,
-      successCases: caseStudies.length
-        ? caseStudies.map((caseStudy) => ({
+          })),
+      successCases: caseStudies.map((caseStudy) => ({
             city: caseStudy.city.name.replace("San Miguel de Tucuman", "Tucuman"),
             country: caseStudy.city.country,
             title: caseStudy.title,
             tag: caseStudy.tags[0] ?? "Caso urbano"
-          }))
-        : fallbackSuccessCases,
-      cityComparison: cityComparison.length ? cityComparison : fallbackCityComparison,
+          })),
+      cityComparison,
       isLive: true
     };
   } catch (error) {
-    console.warn("Dashboard database unavailable; using demo data.", error instanceof Error ? error.message : error);
-    return getFallbackDashboardData();
+    console.warn("Dashboard database unavailable.", error instanceof Error ? error.message : error);
+    return getUnavailableDashboardData();
   }
 }
 
-function getFallbackDashboardData(): DashboardData {
+function getUnavailableDashboardData(): DashboardData {
   return {
-    metrics: fallbackMetrics,
-    regulations: fallbackRegulations,
-    successCases: fallbackSuccessCases,
-    cityComparison: fallbackCityComparison,
+    metrics: [],
+    regulations: [],
+    successCases: [],
+    cityComparison: [],
     isLive: false
   };
 }

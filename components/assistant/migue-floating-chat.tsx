@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Bot, Loader2, MessageCircle, Send, X } from "lucide-react";
 import { MarkdownText } from "@/components/assistant/markdown-text";
 
@@ -83,15 +84,17 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
   }
 
   return (
-    <div className={`migue-theme-${appearance} fixed bottom-4 right-4 z-[80] flex flex-col items-end gap-3 md:bottom-6 md:right-6`}>
+    <div className={`migue-theme-${appearance} fixed bottom-24 right-4 z-[80] flex flex-col items-end gap-3 md:right-6 lg:bottom-6`}>
       {isOpen ? (
         <section className="urban-card w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-lg border-sky-300/25 shadow-2xl">
           <div className="flex items-center gap-3 border-b border-white/10 bg-slate-950/80 p-3">
             <div className="migue-avatar">
               <span className="migue-avatar-bg" />
-              <img
+              <Image
                 src="/migue/migue-assistant-transparent.png"
                 alt=""
+                width={128}
+                height={128}
                 className="migue-avatar-image"
               />
             </div>
@@ -190,9 +193,11 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
       >
         <span className="migue-launcher-bg" />
         <span className="migue-launcher-frame" />
-        <img
+        <Image
           src="/migue/migue-assistant-transparent.png"
           alt=""
+          width={160}
+          height={160}
           className="migue-launcher-image"
         />
         <span className="migue-launcher-badge">

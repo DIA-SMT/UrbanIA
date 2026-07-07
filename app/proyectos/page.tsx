@@ -3,7 +3,6 @@ import {
   ArrowRight,
   BarChart3,
   CalendarDays,
-  CheckCircle2,
   ClipboardList,
   FileText,
   FolderKanban,

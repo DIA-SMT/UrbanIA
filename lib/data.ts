@@ -6,10 +6,10 @@ import {
   ClipboardList,
   FileArchive,
   FileText,
+  FolderKanban,
   GitBranch,
   Landmark,
   Map,
-  MessageSquareText,
   Settings2,
   Users
 } from "lucide-react";
@@ -25,34 +25,44 @@ export const navItems = [
 
 export const sidebarSections = [
   {
-    title: "Planificacion",
+    title: "Mapa",
+    icon: Map,
     items: [
-      { label: "Mapa territorial", href: "/mapa", icon: Map },
-      { label: "Propuestas", href: "/propuestas", icon: ClipboardList },
-      { label: "Proyectos", href: "/proyectos", icon: Building2 }
+      { label: "Mapa territorial", href: "/admin", icon: Map }
     ]
   },
   {
-    title: "Participacion",
+    title: "Expedientes",
+    icon: FolderKanban,
     items: [
-      { label: "Audiencias", href: "/audiencias", icon: CalendarDays },
-      { label: "Aportes ciudadanos", href: "/participacion", icon: Users },
+      { label: "Propuestas", href: "/propuestas", icon: ClipboardList },
+      { label: "Proyectos", href: "/proyectos", icon: Building2 },
+      { label: "Escenarios", href: "/escenarios", icon: GitBranch },
       { label: "Gabinete", href: "/gabinete", icon: Landmark }
     ]
   },
   {
-    title: "Inteligencia",
+    title: "Participacion",
+    icon: Users,
     items: [
-      { label: "Escenarios", href: "/escenarios", icon: GitBranch },
-      { label: "Asistente IA", href: "/asistente", icon: MessageSquareText },
-      { label: "Normativa", href: "/normativa", icon: FileText }
+      { label: "Audiencias", href: "/audiencias", icon: CalendarDays },
+      { label: "Aportes ciudadanos", href: "/participacion", icon: Users }
+    ]
+  },
+  {
+    title: "Normativa",
+    icon: FileText,
+    items: [
+      { label: "Codigo de Planeamiento", href: "/normativa", icon: FileText },
+      { label: "Documentos normativos", href: "/datos", icon: FileArchive }
     ]
   },
   {
     title: "Gestion",
+    icon: Settings2,
     items: [
-      { label: "Documentos y datos", href: "/datos", icon: FileArchive },
       { label: "Indicadores", href: "/indicadores", icon: BarChart3 },
+      { label: "Documentos y datos", href: "/datos", icon: FileArchive },
       { label: "Configuracion", href: "/infraestructura", icon: Settings2 }
     ]
   }
