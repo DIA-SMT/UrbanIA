@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
+  FileText,
   MessageSquare,
+  Paperclip,
   Plus,
   Search,
   ShieldCheck,
@@ -26,6 +28,27 @@ type CitizenProposal = {
   comments: number;
   summary: string;
   area: string;
+};
+
+type CitizenContribution = {
+  id: string;
+  kind: "Propuesta" | "Reclamo" | "Aporte";
+  name: string;
+  dni: string;
+  zone: string;
+  text: string;
+  fileName: string;
+  axis: string;
+  confidence: string;
+  status: string;
+  createdAt: string;
+  proposal: {
+    id: string;
+    title: string;
+    description: string;
+    status: string;
+    createdAt: string;
+  } | null;
 };
 
 const proposals: CitizenProposal[] = [
@@ -89,15 +112,99 @@ const agenda = [
 
 const statuses: Array<"Todas" | ProposalStatus> = ["Todas", "Recientes", "Populares", "En evaluacion"];
 
+function mapContributionToProposal(contribution: CitizenContribution): CitizenProposal {
+  return {
+    id: `citizen-${contribution.id}`,
+    title: contribution.proposal?.title ?? `${contribution.kind}: ${contribution.zone}`,
+    neighborhood: contribution.zone,
+    author: contribution.name,
+    status: contribution.status === "LINKED_TO_PROPOSAL" ? "En evaluacion" : "Recientes",
+    votes: 0,
+    comments: 1,
+    area: contribution.axis,
+    summary: contribution.text
+  };
+}
+
+function formatContributionDate(value: string) {
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(new Date(value));
+}
+
+function formatContributionStatus(value: string) {
+  const labels: Record<string, string> = {
+    RECEIVED: "Recibido",
+    LINKED_TO_PROPOSAL: "Vinculado a propuesta",
+    DISMISSED: "Archivado"
+  };
+
+  return labels[value] ?? value;
+}
+
 export function CitizenParticipation() {
   const [status, setStatus] = useState<(typeof statuses)[number]>("Todas");
   const [query, setQuery] = useState("");
   const [selectedProposal, setSelectedProposal] = useState<CitizenProposal>(proposals[0]);
+  const [citizenContributions, setCitizenContributions] = useState<CitizenContribution[]>([]);
+  const [isLoadingContributions, setIsLoadingContributions] = useState(true);
+  const [contributionsError, setContributionsError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadContributions() {
+      try {
+        const response = await fetch("/api/citizen-contributions", { cache: "no-store" });
+        const data = (await response.json()) as { contributions?: CitizenContribution[]; error?: string };
+
+        if (!response.ok) {
+          throw new Error(data.error ?? "No pudimos cargar los aportes ciudadanos.");
+        }
+
+        if (isMounted) {
+          setCitizenContributions(data.contributions ?? []);
+          setContributionsError("");
+        }
+      } catch (error) {
+        const stored = window.localStorage.getItem("urbania-citizen-contributions");
+
+        if (isMounted && stored) {
+          try {
+            setCitizenContributions(JSON.parse(stored) as CitizenContribution[]);
+            setContributionsError("Mostrando aportes guardados localmente en este navegador.");
+          } catch {
+            setContributionsError(error instanceof Error ? error.message : "No pudimos cargar los aportes ciudadanos.");
+          }
+        } else if (isMounted) {
+          setContributionsError(error instanceof Error ? error.message : "No pudimos cargar los aportes ciudadanos.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingContributions(false);
+        }
+      }
+    }
+
+    loadContributions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const contributionProposals = useMemo(
+    () => citizenContributions.map(mapContributionToProposal),
+    [citizenContributions]
+  );
 
   const visibleProposals = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
+    const allProposals = [...contributionProposals, ...proposals];
 
-    return proposals.filter((proposal) => {
+    return allProposals.filter((proposal) => {
       const matchesStatus = status === "Todas" || proposal.status === status;
       const matchesQuery =
         normalizedQuery.length === 0 ||
@@ -107,7 +214,7 @@ export function CitizenParticipation() {
 
       return matchesStatus && matchesQuery;
     });
-  }, [query, status]);
+  }, [contributionProposals, query, status]);
 
   return (
     <AppShell>
@@ -138,7 +245,7 @@ export function CitizenParticipation() {
             {[
               ["Participantes", "1.240"],
               ["Comentarios", "386"],
-              ["Propuestas", "128"]
+              ["Aportes landing", citizenContributions.length.toString()]
             ].map(([label, value]) => (
               <div key={label} className="urban-lift rounded-md border border-white/10 bg-slate-950/50 p-4">
                 <p className="text-2xl font-black text-civic-sky">{value}</p>
@@ -147,6 +254,72 @@ export function CitizenParticipation() {
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="mt-4 urban-card rounded-lg p-4 lg:p-5">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-md border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-emerald-100">
+              <FileText className="h-4 w-4" />
+              Aportes ciudadanos
+            </div>
+            <h2 className="text-2xl font-black leading-tight text-white">Registros enviados desde la landing</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+              Cada aporte queda expandido con texto original, eje detectado, estado de vinculacion y propuesta interna creada para revision municipal.
+            </p>
+          </div>
+          <span className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black text-slate-300">
+            {isLoadingContributions ? "Cargando..." : `${citizenContributions.length} aportes`}
+          </span>
+        </div>
+
+        {contributionsError ? (
+          <div className="mb-4 rounded-md border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm font-bold text-amber-100">
+            {contributionsError}
+          </div>
+        ) : null}
+
+        {citizenContributions.length ? (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {citizenContributions.map((contribution) => (
+              <article key={contribution.id} className="urban-lift rounded-lg border border-white/10 bg-slate-950/45 p-4">
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <span className="rounded-md border border-sky-300/20 bg-sky-300/10 px-2.5 py-1 text-xs font-black text-sky-100">{contribution.kind}</span>
+                  <span className="rounded-md border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-xs font-black text-emerald-100">{contribution.axis}</span>
+                  <span className="rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-bold text-slate-400">{formatContributionDate(contribution.createdAt)}</span>
+                </div>
+                <h3 className="text-lg font-black leading-tight text-white">
+                  {contribution.proposal?.title ?? `${contribution.kind}: ${contribution.zone}`}
+                </h3>
+                <p className="mt-1 text-xs font-bold text-slate-500">
+                  {contribution.zone} - {contribution.name} - DNI {contribution.dni}
+                </p>
+                <p className="mt-4 whitespace-pre-line text-sm leading-6 text-slate-300">{contribution.text}</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <InfoTile label="Estado interno" value={formatContributionStatus(contribution.status)} />
+                  <InfoTile label="Confianza IA" value={contribution.confidence} />
+                </div>
+                {contribution.fileName ? (
+                  <p className="mt-4 inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-slate-300">
+                    <Paperclip className="h-4 w-4 text-sky-300" />
+                    {contribution.fileName}
+                  </p>
+                ) : null}
+                {contribution.proposal ? (
+                  <div className="mt-4 rounded-md border border-sky-300/15 bg-sky-300/[0.05] p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-sky-300">Propuesta vinculada</p>
+                    <p className="mt-1 text-sm font-bold text-white">{contribution.proposal.title}</p>
+                    <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-400">{contribution.proposal.description}</p>
+                  </div>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-white/15 bg-white/[0.03] p-6 text-sm leading-6 text-slate-400">
+            Todavia no hay aportes enviados desde la landing. Cuando un vecino complete el formulario publico, aparecera aca con su detalle completo.
+          </div>
+        )}
       </section>
 
       <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -271,5 +444,14 @@ export function CitizenParticipation() {
         </aside>
       </section>
     </AppShell>
+  );
+}
+
+function InfoTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-white/8 bg-white/[0.03] p-3">
+      <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-bold text-slate-200">{value}</p>
+    </div>
   );
 }

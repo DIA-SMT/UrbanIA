@@ -2,9 +2,9 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, ChevronDown, ChevronLeft, FileText, FolderKanban, Map, Menu, MoreHorizontal, Moon, Plus, Search, Sun, Users, X } from "lucide-react";
+import { ArrowLeft, Bell, ChevronDown, ChevronLeft, FileText, FolderKanban, Home, Map, Menu, MoreHorizontal, Moon, Plus, Search, Sun, Users, X } from "lucide-react";
 import { MigueFloatingChat } from "@/components/assistant/migue-floating-chat";
 import { Brand } from "@/components/brand";
 import { sidebarSections } from "@/lib/data";
@@ -13,6 +13,7 @@ type ThemeMode = "dark" | "light";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [theme, setTheme] = useState<ThemeMode>("light");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -43,6 +44,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       window.localStorage.setItem("urbania-sidebar", current ? "expanded" : "collapsed");
       return !current;
     });
+  }
+
+  function goBack() {
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push("/");
   }
 
   return (
@@ -92,6 +102,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="mx-auto flex max-w-[1600px] items-center gap-3">
               <button onClick={() => setMobileOpen(true)} className="icon-button lg:hidden" aria-label="Abrir navegacion"><Menu className="h-5 w-5" /></button>
               <div className="lg:hidden"><Brand /></div>
+              <div className="flex items-center gap-2">
+                <button onClick={goBack} className="icon-button" aria-label="Volver" title="Volver"><ArrowLeft className="h-4 w-4" /></button>
+                <Link href="/" className="icon-button" aria-label="Ir al inicio" title="Inicio"><Home className="h-4 w-4" /></Link>
+              </div>
               <button className="hidden min-w-0 max-w-md flex-1 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-left text-sm text-slate-400 transition hover:border-sky-300 hover:bg-white md:flex dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-500">
                 <Search className="h-4 w-4" /><span className="truncate">Buscar proyectos, normativa, audiencias...</span><kbd className="ml-auto rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] dark:border-white/10 dark:bg-white/5">⌘ K</kbd>
               </button>
