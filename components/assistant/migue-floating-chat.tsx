@@ -11,29 +11,40 @@ type LiveAssistantAnswer = {
   provider: "openrouter";
 };
 
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+type MigueFloatingChatProps = {
+  appearance?: "dark" | "light";
+};
+
 const starterPrompts = [
-  "Que normativa aplica a una propuesta urbana?",
-  "Ayudame a ordenar una propuesta ciudadana",
-  "Que datos necesito para elevar esto a gabinete?"
+  "Tengo una idea para mi barrio, ayudame a ordenarla",
+  "Resumi una audiencia y separa reclamos y compromisos",
+  "Que datos necesito para analizar documentos aportados?"
 ];
 
-export function MigueFloatingChat() {
+export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
+  const [draftQuestion, setDraftQuestion] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
 
   async function askMigue(event?: React.FormEvent<HTMLFormElement>, prompt?: string) {
     event?.preventDefault();
-    const nextQuestion = (prompt ?? question).trim();
+    const nextQuestion = (prompt ?? draftQuestion).trim();
 
     if (nextQuestion.length < 3) {
       return;
     }
 
-    setQuestion(nextQuestion);
+    const nextMessages: ChatMessage[] = [...messages, { role: "user", content: nextQuestion }];
+
+    setMessages(nextMessages);
+    setDraftQuestion("");
     setStatus("loading");
-    setAnswer("");
 
     try {
       const response = await fetch("/api/assistant/query", {
@@ -41,6 +52,14 @@ export function MigueFloatingChat() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: nextQuestion,
+          history: messages.slice(-8),
+          assistantContext: {
+            mode: "public",
+            module: "asistente",
+            role: "citizen",
+            page: "Widget global de Migue",
+            intent: "consulta en lenguaje natural"
+          },
           context: "Widget global de Migue dentro de UrbanIA. Responder breve, claro y orientado a accion."
         })
       });
@@ -50,21 +69,34 @@ export function MigueFloatingChat() {
         throw new Error(payload?.detail || payload?.error || "Migue no pudo responder ahora.");
       }
 
-      setAnswer((payload as LiveAssistantAnswer).answer);
+      setMessages([...nextMessages, { role: "assistant", content: (payload as LiveAssistantAnswer).answer }]);
       setStatus("idle");
     } catch (error) {
-      setAnswer(error instanceof Error ? error.message : "Migue no pudo responder ahora.");
+      setMessages([
+        ...nextMessages,
+        {
+          role: "assistant",
+          content: error instanceof Error ? error.message : "Migue no pudo responder ahora."
+        }
+      ]);
       setStatus("error");
     }
   }
 
   return (
-    <div className="fixed bottom-24 right-4 z-[80] flex flex-col items-end gap-3 md:right-6 lg:bottom-6">
+    <div className={`migue-theme-${appearance} fixed bottom-24 right-4 z-[80] flex flex-col items-end gap-3 md:right-6 lg:bottom-6`}>
       {isOpen ? (
         <section className="urban-card w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-lg border-sky-300/25 shadow-2xl">
           <div className="flex items-center gap-3 border-b border-white/10 bg-slate-950/80 p-3">
-            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-sky-300/20 bg-sky-300/10">
-              <Image src="/migue/migue-assistant-transparent.png" alt="" fill sizes="56px" className="object-contain object-bottom" />
+            <div className="migue-avatar">
+              <span className="migue-avatar-bg" />
+              <Image
+                src="/migue/migue-assistant-transparent.png"
+                alt=""
+                width={128}
+                height={128}
+                className="migue-avatar-image"
+              />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-black text-white">Migue</p>
@@ -82,7 +114,7 @@ export function MigueFloatingChat() {
           <div className="max-h-[420px] space-y-3 overflow-y-auto p-4">
             <div className="rounded-lg border border-sky-300/20 bg-sky-300/10 p-3">
               <p className="text-sm font-black text-sky-100">Hola, soy Migue.</p>
-              <p className="mt-1 text-sm leading-6 text-slate-300">Decime que queres revisar y te ayudo a ordenar la consulta.</p>
+              <p className="mt-1 text-sm leading-6 text-slate-300">Escribime como hablas normalmente y te ayudo a ordenar la consulta.</p>
             </div>
 
             <div className="grid gap-2">
@@ -97,10 +129,31 @@ export function MigueFloatingChat() {
               ))}
             </div>
 
-            {question ? (
-              <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">Consulta</p>
-                <p className="mt-1 text-sm leading-6 text-slate-200">{question}</p>
+            {messages.length ? (
+              <div className="space-y-3">
+                {messages.map((message, index) => (
+                  <div
+                    key={`${message.role}-${index}-${message.content.slice(0, 16)}`}
+                    className={`rounded-lg border p-3 ${
+                      message.role === "user"
+                        ? "ml-6 border-white/10 bg-white/[0.04]"
+                        : status === "error" && index === messages.length - 1
+                          ? "mr-6 border-amber-300/20 bg-amber-300/10"
+                          : "mr-6 border-sky-300/20 bg-slate-950/50"
+                    }`}
+                  >
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
+                      {message.role === "user" ? "Tu consulta" : "Migue"}
+                    </p>
+                    <div className="mt-1">
+                      {message.role === "user" ? (
+                        <p className="text-sm leading-6 text-slate-200">{message.content}</p>
+                      ) : (
+                        <MarkdownText text={message.content} compact />
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : null}
 
@@ -111,17 +164,12 @@ export function MigueFloatingChat() {
               </div>
             ) : null}
 
-            {answer ? (
-              <div className={`rounded-lg border p-3 ${status === "error" ? "border-amber-300/20 bg-amber-300/10" : "border-sky-300/20 bg-slate-950/50"}`}>
-                <MarkdownText text={answer} compact />
-              </div>
-            ) : null}
           </div>
 
           <form onSubmit={askMigue} className="flex items-center gap-2 border-t border-white/10 bg-slate-950/80 p-3">
             <input
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
+              value={draftQuestion}
+              onChange={(event) => setDraftQuestion(event.target.value)}
               placeholder="Preguntale a Migue..."
               className="min-w-0 flex-1 rounded-md border border-white/10 bg-slate-950/70 px-3 py-2 text-sm font-semibold text-slate-100 outline-none placeholder:text-slate-500 focus:border-sky-300/50"
             />
@@ -139,13 +187,20 @@ export function MigueFloatingChat() {
 
       <button
         onClick={() => setIsOpen((current) => !current)}
-        className="urban-button group relative flex h-20 w-20 items-end justify-center overflow-hidden rounded-full border border-sky-300/30 bg-slate-950 shadow-2xl shadow-sky-950/40"
-        aria-label="Consultar UrbanIA"
-        title="Consultar UrbanIA"
+        className="urban-button migue-launcher group"
+        aria-label="Abrir chat de Migue"
+        title="Migue"
       >
-        <span className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(31,137,246,0.28),transparent_62%)]" />
-        <Image src="/migue/migue-assistant-transparent.png" alt="" fill sizes="80px" className="object-contain object-bottom transition group-hover:scale-105" />
-        <span className="absolute bottom-1 right-1 grid h-7 w-7 place-items-center rounded-full bg-civic-blue text-white shadow-lg">
+        <span className="migue-launcher-bg" />
+        <span className="migue-launcher-frame" />
+        <Image
+          src="/migue/migue-assistant-transparent.png"
+          alt=""
+          width={160}
+          height={160}
+          className="migue-launcher-image"
+        />
+        <span className="migue-launcher-badge">
           {isOpen ? <Bot className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
         </span>
       </button>

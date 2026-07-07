@@ -21,10 +21,13 @@ import {
   Sparkles,
   Sun,
   TreePine,
+  Trash2,
   UserRound
 } from "lucide-react";
+import { MigueFloatingChat } from "@/components/assistant/migue-floating-chat";
 
 type ThemeMode = "dark" | "light";
+type ContributionKind = "Propuesta" | "Reclamo" | "Aporte";
 
 type Axis = {
   label: string;
@@ -47,6 +50,22 @@ type PlanningCodeSection = {
   summary: string;
   topics: string[];
 };
+
+type SavedContribution = {
+  id: string;
+  kind: ContributionKind;
+  name: string;
+  dni: string;
+  zone: string;
+  text: string;
+  fileName: string;
+  axis: string;
+  confidence: string;
+  status?: string;
+  createdAt: string;
+};
+
+const contributionsStorageKey = "urbania-citizen-contributions";
 
 const urbanAxes: Axis[] = [
   {
@@ -117,9 +136,17 @@ export function CitizenPortalLanding() {
   const [theme, setTheme] = useState<ThemeMode>("light");
   const [codeQuery, setCodeQuery] = useState("");
   const [activeAxis, setActiveAxis] = useState<Axis["label"] | "Todos">("Todos");
+  const [contributionKind, setContributionKind] = useState<ContributionKind>("Propuesta");
+  const [citizenName, setCitizenName] = useState("");
+  const [citizenDni, setCitizenDni] = useState("");
+  const [citizenZone, setCitizenZone] = useState("");
   const [citizenText, setCitizenText] = useState("");
   const [selectedFile, setSelectedFile] = useState("");
   const [analysis, setAnalysis] = useState<ParticipationAnalysis | null>(null);
+  const [savedContributions, setSavedContributions] = useState<SavedContribution[]>([]);
+  const [saveError, setSaveError] = useState("");
+  const [saveSuccess, setSaveSuccess] = useState("");
+  const [isSavingContribution, setIsSavingContribution] = useState(false);
 
   const detectedAxis = useMemo(() => detectAxis(citizenText), [citizenText]);
   const visibleCodeSections = useMemo(() => {
@@ -141,6 +168,17 @@ export function CitizenPortalLanding() {
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("urbania-portal-theme") === "dark" ? "dark" : "light";
+    const storedContributions = window.localStorage.getItem(contributionsStorageKey);
+
+    if (storedContributions) {
+      try {
+        const parsed = JSON.parse(storedContributions) as SavedContribution[];
+        setSavedContributions(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        setSavedContributions([]);
+      }
+    }
+
     setTheme(savedTheme);
     applyTheme(savedTheme);
 
@@ -157,18 +195,79 @@ export function CitizenPortalLanding() {
     applyTheme(nextTheme);
   }
 
-  function handleParticipationSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleParticipationSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setAnalysis({
+    const text = citizenText.trim();
+    const name = citizenName.trim();
+    const dni = citizenDni.trim();
+    const zone = citizenZone.trim();
+    const confidence = text.length > 80 ? "Alta" : "Media";
+    const nextAnalysis = {
       axis: detectedAxis.label,
-      confidence: citizenText.trim().length > 80 ? "Alta" : "Media",
+      confidence,
       summary:
-        citizenText.trim().length > 0
+        text.length > 0
           ? `El aporte se vincula principalmente con ${detectedAxis.label.toLowerCase()} y puede ordenarse como insumo ciudadano para revisar criterios urbanos.`
           : "Completando la propuesta, UrbanIA puede vincular el aporte con un eje del Codigo de Planeamiento.",
       nextStep: "Agrupar con aportes similares, revisar normativa aplicable y derivar a evaluacion tecnica."
-    });
+    };
+
+    setAnalysis(nextAnalysis);
+
+    if (!name || !dni || !zone || text.length < 10) {
+      setSaveError("Completa nombre, DNI, barrio o zona y una descripcion de al menos 10 caracteres para guardar.");
+      setSaveSuccess("");
+      return;
+    }
+
+    setIsSavingContribution(true);
+    setSaveError("");
+    setSaveSuccess("");
+
+    try {
+      const response = await fetch("/api/citizen-contributions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: contributionKind,
+          name,
+          dni,
+          zone,
+          text,
+          fileName: selectedFile,
+          axis: detectedAxis.label,
+          confidence
+        })
+      });
+      const result = (await response.json().catch(() => ({}))) as {
+        contribution?: SavedContribution;
+        error?: string;
+      };
+
+      if (!response.ok || !result.contribution) {
+        throw new Error(result.error ?? "No pudimos guardar el aporte ciudadano.");
+      }
+
+      const nextContributions = [result.contribution, ...savedContributions].slice(0, 12);
+
+      setSavedContributions(nextContributions);
+      window.localStorage.setItem(contributionsStorageKey, JSON.stringify(nextContributions));
+      setSaveSuccess("Guardado correctamente. Ya queda disponible para revision interna.");
+      setCitizenText("");
+      setSelectedFile("");
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "No pudimos guardar el aporte ciudadano.");
+    } finally {
+      setIsSavingContribution(false);
+    }
+  }
+
+  function deleteContribution(id: string) {
+    const nextContributions = savedContributions.filter((contribution) => contribution.id !== id);
+
+    setSavedContributions(nextContributions);
+    window.localStorage.setItem(contributionsStorageKey, JSON.stringify(nextContributions));
   }
 
   return (
@@ -372,9 +471,24 @@ export function CitizenPortalLanding() {
             </div>
 
             <form onSubmit={handleParticipationSubmit} className="grid gap-4 md:grid-cols-2">
-              <Field label="Nombre y apellido" placeholder="Ej: Maria Gomez" isLight={isLight} />
-              <Field label="DNI" placeholder="Ej: 30123456" inputMode="numeric" isLight={isLight} />
-              <Field label="Barrio o zona" placeholder="Ej: Barrio Sur, Centro" isLight={isLight} />
+              <div className="md:col-span-2">
+                <span className={labelClass(isLight)}>Tipo de registro</span>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {(["Propuesta", "Reclamo", "Aporte"] as ContributionKind[]).map((kind) => (
+                    <button
+                      key={kind}
+                      type="button"
+                      onClick={() => setContributionKind(kind)}
+                      className={contributionKind === kind ? activeChipClass(isLight) : chipClass(isLight)}
+                    >
+                      {kind}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Field label="Nombre y apellido" placeholder="Ej: Maria Gomez" value={citizenName} onChange={(event) => setCitizenName(event.target.value)} isLight={isLight} />
+              <Field label="DNI" placeholder="Ej: 30123456" inputMode="numeric" value={citizenDni} onChange={(event) => setCitizenDni(event.target.value)} isLight={isLight} />
+              <Field label="Barrio o zona" placeholder="Ej: Barrio Sur, Centro" value={citizenZone} onChange={(event) => setCitizenZone(event.target.value)} isLight={isLight} />
               <label className="block">
                 <span className={labelClass(isLight)}>Adjuntar DNI o documento</span>
                 <span className={fileInputWrapClass(isLight)}>
@@ -404,9 +518,19 @@ export function CitizenPortalLanding() {
                   <detectedAxis.icon className="h-4 w-4" />
                   Eje detectado: {detectedAxis.label}
                 </div>
-                <button type="submit" className={`${primaryButtonClass()} w-full sm:w-auto`}>
+                {saveError ? (
+                  <div className={isLight ? "mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900" : "mb-4 rounded-md border border-amber-300/25 bg-amber-300/10 px-4 py-3 text-sm font-bold text-amber-100"}>
+                    {saveError}
+                  </div>
+                ) : null}
+                {saveSuccess ? (
+                  <div className={isLight ? "mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900" : "mb-4 rounded-md border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm font-bold text-emerald-100"}>
+                    {saveSuccess}
+                  </div>
+                ) : null}
+                <button type="submit" disabled={isSavingContribution} className={`${primaryButtonClass()} w-full disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto`}>
                   <CheckCircle2 className="h-4 w-4" />
-                  Analizar aporte
+                  {isSavingContribution ? "Guardando..." : `Guardar ${contributionKind.toLowerCase()}`}
                 </button>
               </div>
             </form>
@@ -439,7 +563,64 @@ export function CitizenPortalLanding() {
             </div>
           </aside>
         </section>
+
+        <section className={panelClass(isLight) + " mt-5"}>
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className={eyebrowClass(isLight, "sky")}>
+                <FileText className="h-4 w-4" />
+                Aportes guardados
+              </div>
+              <h2 className={sectionTitleClass(isLight)}>Registro enviado al sistema interno</h2>
+              <p className={bodyTextClass(isLight)}>
+                Estos registros se guardan en la base de datos y quedan visibles para revision dentro del modulo de propuestas.
+              </p>
+            </div>
+            <span className={statusPillClass(isLight)}>{savedContributions.length} guardados</span>
+          </div>
+
+          {savedContributions.length ? (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {savedContributions.map((contribution) => (
+                <article key={contribution.id} className={codeSectionCardClass(isLight)}>
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span className={statusPillClass(isLight)}>{contribution.kind}</span>
+                    <span className={availablePillClass(isLight)}>{contribution.axis}</span>
+                    <span className={topicPillClass(isLight)}>{formatContributionDate(contribution.createdAt)}</span>
+                  </div>
+                  <h3 className={isLight ? "text-lg font-black leading-tight text-slate-950" : "text-lg font-black leading-tight text-white"}>
+                    {contribution.zone}
+                  </h3>
+                  <p className={isLight ? "mt-1 text-xs font-bold text-slate-500" : "mt-1 text-xs font-bold text-slate-400"}>
+                    {contribution.name} - DNI {contribution.dni}
+                  </p>
+                  <p className={isLight ? "mt-3 text-sm leading-6 text-slate-700" : "mt-3 text-sm leading-6 text-slate-300"}>
+                    {contribution.text}
+                  </p>
+                  {contribution.fileName ? (
+                    <p className={isLight ? "mt-3 text-xs font-bold text-sky-700" : "mt-3 text-xs font-bold text-sky-200"}>
+                      Archivo adjunto: {contribution.fileName}
+                    </p>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => deleteContribution(contribution.id)}
+                    className={isLight ? "urban-button mt-4 inline-flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700" : "urban-button mt-4 inline-flex items-center gap-2 rounded-md border border-rose-300/20 bg-rose-300/10 px-3 py-2 text-xs font-black text-rose-100"}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Ocultar de esta vista
+                  </button>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className={isLight ? "rounded-md border border-slate-200 bg-slate-50 p-5 text-sm leading-6 text-slate-600" : "rounded-md border border-white/10 bg-white/[0.03] p-5 text-sm leading-6 text-slate-300"}>
+              Todavia no hay aportes guardados. Completa el formulario de participacion y presiona guardar.
+            </div>
+          )}
+        </section>
       </div>
+      <MigueFloatingChat appearance={isLight ? "light" : "dark"} />
     </main>
   );
 }
@@ -453,19 +634,33 @@ function Field({
   label,
   placeholder,
   inputMode,
+  value,
+  onChange,
   isLight
 }: {
   label: string;
   placeholder: string;
   inputMode?: InputHTMLAttributes<HTMLInputElement>["inputMode"];
+  value: string;
+  onChange: InputHTMLAttributes<HTMLInputElement>["onChange"];
   isLight: boolean;
 }) {
   return (
     <label className="block">
       <span className={labelClass(isLight)}>{label}</span>
-      <input inputMode={inputMode} placeholder={placeholder} className={inputClass(isLight)} />
+      <input inputMode={inputMode} placeholder={placeholder} value={value} onChange={onChange} className={inputClass(isLight)} />
     </label>
   );
+}
+
+function formatContributionDate(value: string) {
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
 }
 
 function SignalCard({ label, value, isLight, icon: Icon }: { label: string; value: string; isLight: boolean; icon: typeof Search }) {

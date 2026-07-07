@@ -107,7 +107,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <MobileBottomNavigation pathname={pathname} onMore={() => setMobileOpen(true)} />
-      <MigueFloatingChat />
+      <MigueFloatingChat appearance={theme} />
     </main>
   );
 }

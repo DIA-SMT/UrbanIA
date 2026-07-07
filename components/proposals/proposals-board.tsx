@@ -24,7 +24,7 @@ const STORAGE_KEY = "urbania-proposals";
 
 const statusOptions: Array<ProjectStatus | "Todas"> = ["Todas", "En analisis", "Planificado", "En ejecucion", "Realizado"];
 const layerOptions: Array<ProjectLayer | "Todas"> = ["Todas", "Transporte", "Espacios verdes", "Equipamiento", "Zonificacion", "Riesgos"];
-const originOptions: Array<ProjectOrigin | "Todas"> = ["Todas", "Gabinete", "Area tecnica", "Concejo", "Audiencia publica", "Cidituc", "Normativa", "Caso comparado"];
+const originOptions: Array<ProjectOrigin | "Todas"> = ["Todas", "Gabinete", "Area tecnica", "Concejo", "Audiencia publica", "Cidituc", "Landing ciudadana", "Normativa", "Caso comparado"];
 const formOriginOptions: ProjectOrigin[] = ["Gabinete", "Area tecnica", "Concejo", "Audiencia publica", "Cidituc", "Normativa", "Caso comparado"];
 const formLayerOptions: ProjectLayer[] = ["Transporte", "Espacios verdes", "Equipamiento", "Zonificacion", "Riesgos"];
 const formStatusOptions: ProjectStatus[] = ["En analisis", "Planificado", "En ejecucion", "Realizado"];
@@ -51,8 +51,30 @@ const originStyles: Record<ProjectOrigin, string> = {
   Concejo: "border-violet-300/20 bg-violet-300/10 text-violet-100",
   "Audiencia publica": "border-amber-300/20 bg-amber-300/10 text-amber-100",
   Cidituc: "border-sky-300/20 bg-sky-300/10 text-sky-100",
+  "Landing ciudadana": "border-emerald-300/20 bg-emerald-300/10 text-emerald-100",
   Normativa: "border-rose-300/20 bg-rose-300/10 text-rose-100",
   "Caso comparado": "border-orange-300/20 bg-orange-300/10 text-orange-100"
+};
+
+type CitizenContributionFromApi = {
+  id: string;
+  kind: "Propuesta" | "Reclamo" | "Aporte";
+  name: string;
+  dni: string;
+  zone: string;
+  text: string;
+  fileName: string;
+  axis: string;
+  confidence: string;
+  status: string;
+  createdAt: string;
+  proposal: {
+    id: string;
+    title: string;
+    description: string;
+    status: string;
+    createdAt: string;
+  } | null;
 };
 
 type ProposalForm = {
@@ -111,6 +133,41 @@ export function ProposalsBoard() {
     } catch {
       window.localStorage.removeItem(STORAGE_KEY);
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCitizenContributions() {
+      try {
+        const response = await fetch("/api/citizen-contributions", { cache: "no-store" });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as { contributions?: CitizenContributionFromApi[] };
+        const citizenProjects = (data.contributions ?? []).map(mapCitizenContributionToProject);
+
+        if (!cancelled) {
+          setProjects((current) => [
+            ...citizenProjects,
+            ...current.filter((project) => !project.id.startsWith("citizen-contribution-"))
+          ]);
+          if (citizenProjects[0]) {
+            setSelectedId((current) => current || citizenProjects[0].id);
+          }
+        }
+      } catch {
+        // The internal board can still work with demo and locally created proposals.
+      }
+    }
+
+    loadCitizenContributions();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const userProjects = useMemo(() => projects.filter((project) => project.id.startsWith("proposal-")), [projects]);
@@ -219,7 +276,7 @@ export function ProposalsBoard() {
             </div>
             <h1 className="max-w-3xl text-3xl font-black leading-tight text-white md:text-5xl">Propuestas urbanas</h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 md:text-base">
-              Cartera oficial de iniciativas urbanas surgidas de gabinete, areas tecnicas, Concejo, audiencias o insumos de Cidituc.
+              Cartera oficial de iniciativas urbanas surgidas de gabinete, areas tecnicas, Concejo, audiencias o aportes enviados desde la landing.
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
               <MetricCard label="Activas" value={activeProjects.toString()} icon={Gauge} />
@@ -637,6 +694,49 @@ function MiniStat({ label, value, icon: Icon }: { label: string; value: string; 
 
 function getProjectOrigin(project: UrbanProject): ProjectOrigin {
   return project.origin ?? "Area tecnica";
+}
+
+function mapCitizenContributionToProject(contribution: CitizenContributionFromApi): UrbanProject {
+  const layer = mapAxisToLayer(contribution.axis);
+  const attachedDocuments = contribution.fileName ? [contribution.fileName] : [];
+  const title = contribution.proposal?.title ?? `${contribution.kind}: ${contribution.zone}`;
+
+  return {
+    id: `citizen-contribution-${contribution.id}`,
+    title,
+    layer,
+    status: "En analisis",
+    neighborhood: contribution.zone,
+    author: contribution.name,
+    responsible: "Planeamiento Urbano",
+    origin: "Landing ciudadana",
+    promoterArea: "Portal ciudadano UrbanIA",
+    description: contribution.text,
+    objective: `Revisar ${contribution.kind.toLowerCase()} ciudadano registrado desde la landing para ${contribution.zone}.`,
+    impact: [`Eje detectado: ${contribution.axis}`, `Confianza IA: ${contribution.confidence}`, "Insumo ciudadano para revision tecnica"],
+    risks: ["Requiere validacion municipal", "Requiere contrastar normativa y territorio"],
+    nextSteps: ["Revision tecnica", "Cruce normativo", "Agrupar con aportes similares", "Definir derivacion interna"],
+    votes: 0,
+    comments: 0,
+    budget: "A estimar",
+    timeline: "Pendiente de evaluacion",
+    position: [-26.8241, -65.2226],
+    codeRelation: `Pendiente de cruce normativo. Eje preliminar: ${contribution.axis}.`,
+    technicalJustification: contribution.text,
+    attachedDocuments,
+    reviewStatus: contribution.status === "LINKED_TO_PROPOSAL" ? "Pendiente tecnico" : contribution.status,
+    aiNormativeImpact: `Migue debe revisar este ${contribution.kind.toLowerCase()} con el Codigo de Planeamiento Urbano, detectar normativa aplicable y agruparlo con reclamos o propuestas similares antes de elevarlo.`
+  };
+}
+
+function mapAxisToLayer(axis: string): ProjectLayer {
+  const normalized = axis.toLowerCase();
+
+  if (normalized.includes("ambiente")) return "Espacios verdes";
+  if (normalized.includes("movilidad")) return "Transporte";
+  if (normalized.includes("suelo")) return "Zonificacion";
+  if (normalized.includes("riesgo")) return "Riesgos";
+  return "Equipamiento";
 }
 function buildNormativeImpact(form: ProposalForm) {
   const codeRelation = form.codeRelation.trim();

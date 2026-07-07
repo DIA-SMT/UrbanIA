@@ -23,11 +23,11 @@ export function MigueCard() {
           <h2 className="text-2xl font-black leading-tight text-white">Migue</h2>
           <p className="mt-1 text-sm font-bold text-civic-sky">Asistente urbano de UrbanIA</p>
           <p className="mt-3 text-sm leading-6 text-slate-300">
-            Te ayudo a interpretar normativa, ordenar propuestas y preparar decisiones con trazabilidad.
+            Te entiendo en lenguaje natural para ordenar propuestas, audiencias, documentos y decisiones con trazabilidad.
           </p>
 
           <div className="mt-4 grid gap-2">
-            {["Normativa simple", "Propuestas mejor redactadas", "Informes para validar"].map((item) => (
+            {["Lenguaje natural", "Audiencias y documentos", "Informes para validar"].map((item) => (
               <div key={item} className="flex items-center gap-2 text-sm font-semibold text-slate-300">
                 <CheckCircle2 className="h-4 w-4 text-sky-300" />
                 {item}
@@ -41,7 +41,7 @@ export function MigueCard() {
               Hola, soy Migue.
             </p>
             <p className="mt-2 text-sm leading-6 text-slate-300">
-              Contame que queres mejorar de la ciudad y lo convertimos en una consulta clara.
+              Contame que queres mejorar, revisar o resumir, aunque venga desordenado.
             </p>
           </div>
         </div>
