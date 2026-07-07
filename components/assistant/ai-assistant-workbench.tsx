@@ -10,7 +10,6 @@ import {
   FileText,
   GitBranch,
   MessageSquare,
-  Scale,
   Search,
   Send,
   ShieldAlert,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Bot, Loader2, MessageCircle, Send, X } from "lucide-react";
 import { MarkdownText } from "@/components/assistant/markdown-text";
 
@@ -58,12 +59,12 @@ export function MigueFloatingChat() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-[80] flex flex-col items-end gap-3 md:bottom-6 md:right-6">
+    <div className="fixed bottom-24 right-4 z-[80] flex flex-col items-end gap-3 md:right-6 lg:bottom-6">
       {isOpen ? (
         <section className="urban-card w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-lg border-sky-300/25 shadow-2xl">
           <div className="flex items-center gap-3 border-b border-white/10 bg-slate-950/80 p-3">
             <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-sky-300/20 bg-sky-300/10">
-              <img src="/migue/migue-assistant-transparent.png" alt="" className="absolute bottom-0 left-1/2 h-16 -translate-x-1/2 object-contain" />
+              <Image src="/migue/migue-assistant-transparent.png" alt="" fill sizes="56px" className="object-contain object-bottom" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-black text-white">Migue</p>
@@ -139,11 +140,11 @@ export function MigueFloatingChat() {
       <button
         onClick={() => setIsOpen((current) => !current)}
         className="urban-button group relative flex h-20 w-20 items-end justify-center overflow-hidden rounded-full border border-sky-300/30 bg-slate-950 shadow-2xl shadow-sky-950/40"
-        aria-label="Abrir chat de Migue"
-        title="Migue"
+        aria-label="Consultar UrbanIA"
+        title="Consultar UrbanIA"
       >
         <span className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(31,137,246,0.28),transparent_62%)]" />
-        <img src="/migue/migue-assistant-transparent.png" alt="" className="relative h-24 object-contain transition group-hover:scale-105" />
+        <Image src="/migue/migue-assistant-transparent.png" alt="" fill sizes="80px" className="object-contain object-bottom transition group-hover:scale-105" />
         <span className="absolute bottom-1 right-1 grid h-7 w-7 place-items-center rounded-full bg-civic-blue text-white shadow-lg">
           {isOpen ? <Bot className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
         </span>

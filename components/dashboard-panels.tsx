@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, BookOpen, Building2, CalendarDays, CheckCircle2, Circle, Clock3, Database, FileText, GitBranch, Send, Users } from "lucide-react";
+import { ArrowUpRight, BookOpen, CalendarDays, CheckCircle2, Clock3, Database, FileText, GitBranch, Send, Users } from "lucide-react";
 import { cityComparison, indicators, proposals, regulations, successCases } from "@/lib/data";
 import { cabinetMeetings, cabinetSummary, type CabinetTopicStatus } from "@/lib/demo/cabinet-meetings";
 import type {

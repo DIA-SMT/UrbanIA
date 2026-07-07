@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowRight, BarChart3, CalendarDays, Check, Circle, Clock3, FileText, MapPin, MessageSquareText, Scale, Sparkles, Users } from "lucide-react";
+import { ArrowRight, BarChart3, CalendarDays, Check, Circle, Clock3, FileText, MapPin, Scale, Sparkles, Users } from "lucide-react";
 import type { UrbanProject } from "@/lib/demo/urban-projects";
 
 const tabs = ["Resumen", "Mapa", "Normativa", "Audiencias", "Participación", "Documentos", "Análisis IA", "Escenarios", "Historial"] as const;

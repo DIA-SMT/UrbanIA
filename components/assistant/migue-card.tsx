@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Bot, CheckCircle2, Sparkles } from "lucide-react";
 
 export function MigueCard() {
@@ -5,10 +6,12 @@ export function MigueCard() {
     <aside className="urban-card urban-lift overflow-hidden rounded-lg">
       <div className="grid gap-0 sm:grid-cols-[170px_minmax(0,1fr)] lg:grid-cols-1">
         <div className="relative min-h-56 bg-[radial-gradient(circle_at_center,rgba(31,137,246,0.18),transparent_62%)]">
-          <img
+          <Image
             src="/migue/migue-assistant-transparent.png"
             alt="Migue, asistente urbano de UrbanIA"
-            className="absolute bottom-0 left-1/2 h-56 -translate-x-1/2 object-contain sm:h-60 lg:h-64"
+            fill
+            sizes="(min-width: 1024px) 170px, (min-width: 640px) 170px, 100vw"
+            className="object-contain object-bottom"
           />
         </div>
 
