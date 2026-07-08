@@ -56,6 +56,22 @@ const originStyles: Record<ProjectOrigin, string> = {
   "Caso comparado": "border-orange-300/20 bg-orange-300/10 text-orange-100"
 };
 
+const originLabels: Record<ProjectOrigin, string> = {
+  Gabinete: "Gabinete",
+  "Area tecnica": "Area tecnica",
+  Concejo: "Concejo",
+  "Audiencia publica": "Audiencia publica",
+  Cidituc: "Cidituc",
+  "Landing ciudadana": "Iniciativa ciudadana",
+  Normativa: "Normativa",
+  "Caso comparado": "Caso comparado"
+};
+
+const originFilterOptions = originOptions.map((option) => ({
+  value: option,
+  label: option === "Todas" ? "Todas" : originLabels[option]
+}));
+
 type CitizenContributionFromApi = {
   id: string;
   kind: "Propuesta" | "Reclamo" | "Aporte";
@@ -328,7 +344,7 @@ export function ProposalsBoard() {
             </label>
             <SelectFilter label="Estado" value={status} options={statusOptions} onChange={(value) => setStatus(value as ProjectStatus | "Todas")} />
             <SelectFilter label="Capa urbana" value={layer} options={layerOptions} onChange={(value) => setLayer(value as ProjectLayer | "Todas")} />
-            <SelectFilter label="Origen" value={origin} options={originOptions} onChange={(value) => setOrigin(value as ProjectOrigin | "Todas")} />
+            <SelectFilter label="Origen" value={origin} options={originFilterOptions} onChange={(value) => setOrigin(value as ProjectOrigin | "Todas")} />
             <button
               onClick={() => setIsFormOpen(true)}
               className="urban-button inline-flex h-14 w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 text-sm font-black text-white"
@@ -450,7 +466,17 @@ function MetricCard({ label, value, icon: Icon }: { label: string; value: string
   );
 }
 
-function SelectFilter({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
+function SelectFilter({
+  label,
+  value,
+  options,
+  onChange
+}: {
+  label: string;
+  value: string;
+  options: Array<string | { value: string; label: string }>;
+  onChange: (value: string) => void;
+}) {
   return (
     <label className="relative block">
       <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -461,11 +487,16 @@ function SelectFilter({ label, value, options, onChange }: { label: string; valu
         onChange={(event) => onChange(event.target.value)}
         className="h-14 w-full appearance-none rounded-md border border-white/10 bg-slate-950/70 pb-2 pl-10 pr-3 pt-6 text-sm font-black text-slate-100 outline-none transition hover:border-sky-300/25 focus:border-sky-300/50"
       >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
+        {options.map((option) => {
+          const optionValue = typeof option === "string" ? option : option.value;
+          const optionLabel = typeof option === "string" ? option : option.label;
+
+          return (
+            <option key={optionValue} value={optionValue}>
+              {optionLabel}
+            </option>
+          );
+        })}
       </select>
     </label>
   );
@@ -482,7 +513,7 @@ function ProposalCard({ project, selected, onSelect }: { project: UrbanProject; 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className={`rounded-md border px-2.5 py-1 text-[11px] font-black ${statusStyles[project.status]}`}>{project.status}</span>
         <span className={`rounded-md px-2.5 py-1 text-[11px] font-black ${layerStyles[project.layer]}`}>{project.layer}</span>
-        <span className={`rounded-md border px-2.5 py-1 text-[11px] font-black ${originStyles[getProjectOrigin(project)]}`}>{getProjectOrigin(project)}</span>
+        <span className={`rounded-md border px-2.5 py-1 text-[11px] font-black ${originStyles[getProjectOrigin(project)]}`}>{formatOrigin(getProjectOrigin(project))}</span>
       </div>
       <h3 className="text-base font-black leading-6 text-white group-hover:text-sky-100">{project.title}</h3>
       <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-400">{project.description}</p>
@@ -521,7 +552,7 @@ function ProposalDetail({ project }: { project: UrbanProject }) {
       </div>
 
       <div className="mt-5 grid gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-        <DetailBlock label="Origen" value={getProjectOrigin(project)} />
+        <DetailBlock label="Origen" value={formatOrigin(getProjectOrigin(project))} />
         <DetailBlock label="Area promotora" value={project.promoterArea ?? project.responsible} />
         <DetailBlock label="Actor proponente" value={project.author} />
         <DetailBlock label="Ubicacion" value={project.neighborhood} />
@@ -694,6 +725,10 @@ function MiniStat({ label, value, icon: Icon }: { label: string; value: string; 
 
 function getProjectOrigin(project: UrbanProject): ProjectOrigin {
   return project.origin ?? "Area tecnica";
+}
+
+function formatOrigin(origin: ProjectOrigin) {
+  return originLabels[origin];
 }
 
 function mapCitizenContributionToProject(contribution: CitizenContributionFromApi): UrbanProject {

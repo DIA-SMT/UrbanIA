@@ -24,6 +24,7 @@ import {
   Sparkles,
   Users,
   Upload,
+  Youtube,
   X
 } from "lucide-react";
 import {
@@ -424,10 +425,36 @@ function WorkflowStep({ index, title, text }: { index: string; title: string; te
 
 function HearingAiIntake({ hearing, onAnalyze }: { hearing: PublicHearing; onAnalyze: (hearing: PublicHearing) => void }) {
   const [fileName, setFileName] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [transcript, setTranscript] = useState("");
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const normalizedYoutubeUrl = youtubeUrl.trim();
+  const hasYoutubeUrl = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(normalizedYoutubeUrl);
+  const hasSource = Boolean(fileName || hasYoutubeUrl);
+  const transcriptReady = transcript.trim().length > 20;
+
+  function importTranscriptFile(file?: File) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setTranscript(String(reader.result ?? ""));
+      setFileName(`Transcripcion importada: ${file.name}`);
+    };
+    reader.readAsText(file);
+  }
+
+  function transcribeSource() {
+    if (!hasSource) return;
+    setIsTranscribing(true);
+    window.setTimeout(() => {
+      setTranscript(buildDemoHearingTranscript(hearing, fileName || normalizedYoutubeUrl));
+      setIsTranscribing(false);
+    }, 650);
+  }
 
   function analyzeRecording() {
-    if (!fileName) return;
+    if (!transcriptReady) return;
     setIsAnalyzing(true);
     window.setTimeout(() => {
       const analysis = buildHearingAiAnalysis(hearing);
@@ -445,32 +472,93 @@ function HearingAiIntake({ hearing, onAnalyze }: { hearing: PublicHearing; onAna
           <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Procesamiento de audiencia</p>
           <h2 className="mt-2 text-2xl font-black text-white">Grabacion a memoria publica</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-            La carga queda preparada para conectar transcripcion real. En esta version, el analisis simula el resultado estructurado sobre la audiencia seleccionada.
+            Primero transcribi la fuente, pega una transcripcion externa o importa un archivo de Pinpoint. Despues Migue analiza esa evidencia para producir la memoria estructurada.
           </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <label className="urban-button flex min-h-14 cursor-pointer items-center gap-3 rounded-md border border-dashed border-sky-300/25 bg-sky-300/[0.04] px-4 py-3">
-              <Upload className="h-5 w-5 shrink-0 text-sky-200" />
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-black text-white">{fileName || "Subir audio o video"}</span>
-                <span className="block text-xs text-slate-500">MP3, WAV, MP4, MOV</span>
-              </span>
-              <input
-                type="file"
-                accept="audio/*,video/*"
-                className="hidden"
-                onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")}
-              />
-            </label>
-            <button
-              onClick={analyzeRecording}
-              disabled={!fileName || isAnalyzing}
-              className="urban-button inline-flex min-h-14 items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Sparkles className="h-4 w-4" />
-              {isAnalyzing ? "Analizando..." : analysisReady ? "Reanalizar" : "Analizar con IA"}
-            </button>
+          <div className="mt-4 grid gap-3">
+            <div className="grid gap-3 xl:grid-cols-3">
+              <label className="urban-button flex min-h-14 cursor-pointer items-center gap-3 rounded-md border border-dashed border-sky-300/25 bg-sky-300/[0.04] px-4 py-3">
+                <Upload className="h-5 w-5 shrink-0 text-sky-200" />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-black text-white">{fileName || "Subir audio o video"}</span>
+                  <span className="block text-xs text-slate-500">MP3, WAV, MP4, MOV</span>
+                </span>
+                <input
+                  type="file"
+                  accept="audio/*,video/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    setFileName(event.target.files?.[0]?.name ?? "");
+                    setTranscript("");
+                  }}
+                />
+              </label>
+              <label className="flex min-h-14 items-center gap-3 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3">
+                <Youtube className="h-5 w-5 shrink-0 text-rose-200" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs font-black uppercase tracking-[0.12em] text-slate-500">Link de YouTube</span>
+                  <input
+                    type="url"
+                    value={youtubeUrl}
+                    onChange={(event) => {
+                      setYoutubeUrl(event.target.value);
+                      setTranscript("");
+                    }}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="mt-1 w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-600"
+                  />
+                </span>
+              </label>
+              <label className="urban-button flex min-h-14 cursor-pointer items-center gap-3 rounded-md border border-dashed border-emerald-300/25 bg-emerald-300/[0.05] px-4 py-3">
+                <FileText className="h-5 w-5 shrink-0 text-emerald-200" />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-black text-white">Importar transcripcion</span>
+                  <span className="block text-xs text-slate-500">Pinpoint, TXT, VTT, SRT</span>
+                </span>
+                <input
+                  type="file"
+                  accept=".txt,.vtt,.srt,text/plain,text/vtt"
+                  className="hidden"
+                  onChange={(event) => importTranscriptFile(event.target.files?.[0])}
+                />
+              </label>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                onClick={transcribeSource}
+                disabled={!hasSource || isTranscribing || isAnalyzing}
+                className="urban-button inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-sky-300/25 bg-sky-300/[0.08] px-4 py-3 text-sm font-black text-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <FileText className="h-4 w-4" />
+                {isTranscribing ? "Transcribiendo..." : transcriptReady ? "Transcribir otra vez" : "Transcribir audiencia"}
+              </button>
+              <button
+                onClick={analyzeRecording}
+                disabled={!transcriptReady || isAnalyzing || isTranscribing}
+                className="urban-button inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Sparkles className="h-4 w-4" />
+                {isAnalyzing ? "Analizando..." : analysisReady ? "Reanalizar con Migue" : "Analizar con Migue"}
+              </button>
+            </div>
           </div>
-          {!fileName ? <p className="mt-2 text-xs font-semibold text-amber-200">Primero subi una grabacion para habilitar el analisis.</p> : null}
+          {!hasSource && !transcriptReady ? <p className="mt-2 text-xs font-semibold text-amber-200">Subi una grabacion, pega un link de YouTube o importa una transcripcion de Pinpoint.</p> : null}
+          {normalizedYoutubeUrl && !hasYoutubeUrl ? <p className="mt-2 text-xs font-semibold text-rose-200">El enlace debe ser de youtube.com o youtu.be.</p> : null}
+          {hasSource && !transcriptReady ? <p className="mt-2 text-xs font-semibold text-slate-500">Migue se habilita cuando existe una transcripcion revisable.</p> : null}
+          {transcript ? (
+            <label className="mt-4 grid gap-2">
+              <span className="flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.12em] text-slate-400">
+                Transcripcion editable
+                <span className="rounded-md border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] text-emerald-100">Lista para Migue</span>
+              </span>
+              <textarea
+                rows={6}
+                value={transcript}
+                onChange={(event) => setTranscript(event.target.value)}
+                className="w-full resize-y rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm font-semibold leading-6 text-slate-100 outline-none transition focus:border-sky-300/50"
+              />
+              <span className="text-xs leading-5 text-slate-500">En produccion, este texto vendria de subtitulos de YouTube o de transcripcion de audio. El equipo puede corregirlo antes del analisis.</span>
+            </label>
+          ) : null}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -1163,6 +1251,30 @@ function inferDocumentType(name: string) {
   if (normalized.includes("dictamen")) return "Dictamen";
   if (normalized.includes("foto")) return "Foto";
   return "Documento adjunto";
+}
+
+function buildDemoHearingTranscript(hearing: PublicHearing, source: string) {
+  const messages = hearing.debateMessages ?? [];
+  const contributions = hearing.contributions ?? [];
+  const sourceLabel = source.startsWith("http") ? "YouTube" : "archivo local";
+  const interventions = [
+    ...messages.map((item) => `${item.authorName}: ${item.content}`),
+    ...contributions.map((item) => `${item.participantName}: ${item.content}`)
+  ];
+  const fallbackInterventions = [
+    `${hearing.promotingArea}: Se presenta la audiencia ${hearing.recordNumber} vinculada a ${hearing.relatedProposal}.`,
+    `Participantes: La discusion principal se concentra en ${hearing.mainTopic.toLowerCase()} y en sus efectos urbanos.`,
+    `Equipo tecnico: Se solicita revisar ${hearing.relatedArticles.join(", ") || "la normativa aplicable"} antes de modificar el estado del expediente.`,
+    `Cierre institucional: ${hearing.conclusions.nextSteps}`
+  ];
+
+  return [
+    `[Transcripcion preliminar desde ${sourceLabel}: ${source}]`,
+    `Audiencia: ${hearing.title}`,
+    `Expediente: ${hearing.recordNumber}`,
+    "",
+    ...(interventions.length ? interventions : fallbackInterventions)
+  ].join("\n");
 }
 
 function buildHearingAiAnalysis(hearing: PublicHearing) {
