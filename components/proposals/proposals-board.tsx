@@ -18,9 +18,39 @@ import {
   ThumbsUp,
   X
 } from "lucide-react";
-import { urbanProjects, type ProjectLayer, type ProjectOrigin, type ProjectStatus, type UrbanProject } from "@/lib/demo/urban-projects";
 
-const STORAGE_KEY = "urbania-proposals";
+type ProjectStatus = "Realizado" | "En ejecucion" | "Planificado" | "En analisis";
+type ProjectLayer = "Transporte" | "Espacios verdes" | "Equipamiento" | "Zonificacion" | "Riesgos";
+type ProjectOrigin = "Gabinete" | "Area tecnica" | "Concejo" | "Audiencia publica" | "Cidituc" | "Landing ciudadana" | "Normativa" | "Caso comparado";
+
+type UrbanProject = {
+  id: string;
+  title: string;
+  layer: ProjectLayer;
+  status: ProjectStatus;
+  neighborhood: string;
+  author: string;
+  responsible: string;
+  origin: ProjectOrigin;
+  promoterArea: string;
+  linkedMeetingId?: string;
+  linkedHearingId?: string;
+  description: string;
+  objective: string;
+  impact: string[];
+  risks: string[];
+  nextSteps: string[];
+  votes: number;
+  comments: number;
+  budget: string;
+  timeline: string;
+  position: [number, number];
+  codeRelation?: string;
+  technicalJustification?: string;
+  attachedDocuments?: string[];
+  reviewStatus?: string;
+  aiNormativeImpact?: string;
+};
 
 const statusOptions: Array<ProjectStatus | "Todas"> = ["Todas", "En analisis", "Planificado", "En ejecucion", "Realizado"];
 const layerOptions: Array<ProjectLayer | "Todas"> = ["Todas", "Transporte", "Espacios verdes", "Equipamiento", "Zonificacion", "Riesgos"];
@@ -72,25 +102,9 @@ const originFilterOptions = originOptions.map((option) => ({
   label: option === "Todas" ? "Todas" : originLabels[option]
 }));
 
-type CitizenContributionFromApi = {
-  id: string;
-  kind: "Propuesta" | "Reclamo" | "Aporte";
-  name: string;
-  dni: string;
-  zone: string;
-  text: string;
-  fileName: string;
-  axis: string;
-  confidence: string;
-  status: string;
-  createdAt: string;
-  proposal: {
-    id: string;
-    title: string;
-    description: string;
-    status: string;
-    createdAt: string;
-  } | null;
+type ProposalsResponse = {
+  proposals?: UrbanProject[];
+  error?: string;
 };
 
 type ProposalForm = {
@@ -126,71 +140,55 @@ const emptyForm: ProposalForm = {
 };
 
 export function ProposalsBoard() {
-  const [projects, setProjects] = useState<UrbanProject[]>(urbanProjects);
+  const [projects, setProjects] = useState<UrbanProject[]>([]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<ProjectStatus | "Todas">("Todas");
   const [layer, setLayer] = useState<ProjectLayer | "Todas">("Todas");
   const [origin, setOrigin] = useState<ProjectOrigin | "Todas">("Todas");
-  const [selectedId, setSelectedId] = useState(urbanProjects[0]?.id ?? "");
+  const [selectedId, setSelectedId] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [form, setForm] = useState<ProposalForm>(emptyForm);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
+    let isMounted = true;
 
-    if (!saved) {
-      return;
-    }
-
-    try {
-      const storedProjects = JSON.parse(saved) as UrbanProject[];
-      setProjects([...storedProjects, ...urbanProjects]);
-      setSelectedId(storedProjects[0]?.id ?? urbanProjects[0]?.id ?? "");
-    } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadCitizenContributions() {
+    async function loadProposals() {
       try {
-        const response = await fetch("/api/citizen-contributions", { cache: "no-store" });
+        const response = await fetch("/api/proposals", { cache: "no-store" });
+        const data = (await response.json()) as ProposalsResponse;
 
         if (!response.ok) {
-          return;
+          throw new Error(data.error ?? "No pudimos cargar las propuestas.");
         }
 
-        const data = (await response.json()) as { contributions?: CitizenContributionFromApi[] };
-        const citizenProjects = (data.contributions ?? []).map(mapCitizenContributionToProject);
-
-        if (!cancelled) {
-          setProjects((current) => [
-            ...citizenProjects,
-            ...current.filter((project) => !project.id.startsWith("citizen-contribution-"))
-          ]);
-          if (citizenProjects[0]) {
-            setSelectedId((current) => current || citizenProjects[0].id);
-          }
+        if (isMounted) {
+          const nextProjects = data.proposals ?? [];
+          setProjects(nextProjects);
+          setSelectedId(nextProjects[0]?.id ?? "");
+          setLoadError("");
         }
-      } catch {
-        // The internal board can still work with demo and locally created proposals.
+      } catch (error) {
+        if (isMounted) {
+          setProjects([]);
+          setSelectedId("");
+          setLoadError(error instanceof Error ? error.message : "No pudimos cargar las propuestas.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
 
-    loadCitizenContributions();
+    loadProposals();
 
     return () => {
-      cancelled = true;
+      isMounted = false;
     };
   }, []);
-
-  const userProjects = useMemo(() => projects.filter((project) => project.id.startsWith("proposal-")), [projects]);
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(userProjects));
-  }, [userProjects]);
 
   const filteredProjects = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -217,7 +215,7 @@ export function ProposalsBoard() {
     });
   }, [projects, query, status, layer, origin]);
 
-  const selectedProject = filteredProjects.find((project) => project.id === selectedId) ?? filteredProjects[0] ?? projects[0];
+  const selectedProject = filteredProjects.find((project) => project.id === selectedId) ?? filteredProjects[0] ?? projects[0] ?? null;
   const activeProjects = projects.filter((project) => project.status !== "Realizado").length;
   const cabinetProjects = projects.filter((project) => getProjectOrigin(project) === "Gabinete").length;
   const technicalProjects = projects.filter((project) => getProjectOrigin(project) === "Area tecnica").length;
@@ -226,7 +224,7 @@ export function ProposalsBoard() {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const trimmedTitle = form.title.trim();
@@ -240,45 +238,53 @@ export function ProposalsBoard() {
       return;
     }
 
-    const proposal: UrbanProject = {
-      id: `proposal-${Date.now()}`,
-      title: trimmedTitle,
-      layer: form.layer,
-      status: form.status,
-      neighborhood: trimmedNeighborhood,
-      author: trimmedAuthor,
-      responsible: form.responsible.trim() || "Planeamiento Urbano",
-      origin: form.origin,
-      promoterArea: form.promoterArea.trim() || form.responsible.trim() || "Planeamiento Urbano",
-      description: trimmedDescription,
-      objective: trimmedJustification,
-      impact: buildImpactList(form.layer, trimmedCodeRelation),
-      risks: buildRiskList(form.layer, form.documentation),
-      nextSteps: ["Revision tecnica", "Cruce normativo", "Validacion documental", "Informe para gabinete"],
-      votes: 0,
-      comments: 0,
-      budget: "A estimar",
-      timeline: "Pendiente de evaluacion",
-      position: [-26.8241, -65.2226],
-      codeRelation: trimmedCodeRelation,
-      technicalJustification: trimmedJustification,
-      attachedDocuments: form.documentation,
-      reviewStatus: form.reviewStatus,
-      aiNormativeImpact: buildNormativeImpact({
-        ...form,
-        title: trimmedTitle,
-        description: trimmedDescription,
-        neighborhood: trimmedNeighborhood,
-        author: trimmedAuthor,
-        codeRelation: trimmedCodeRelation,
-        technicalJustification: trimmedJustification
-      })
-    };
+    try {
+      const response = await fetch("/api/proposals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: trimmedTitle,
+          description: `${trimmedDescription}\n\nRelacion CPU: ${trimmedCodeRelation}\nJustificacion tecnica: ${trimmedJustification}`,
+          neighborhood: trimmedNeighborhood,
+          author: trimmedAuthor,
+          responsible: form.responsible.trim() || "Planeamiento Urbano",
+          origin: form.origin,
+          status: form.status
+        })
+      });
+      const data = (await response.json()) as { proposal?: UrbanProject; error?: string };
 
-    setProjects((current) => [proposal, ...current]);
-    setSelectedId(proposal.id);
-    setForm(emptyForm);
-    setIsFormOpen(false);
+      if (!response.ok || !data.proposal) {
+        throw new Error(data.error ?? "No pudimos guardar la propuesta.");
+      }
+
+      const proposal = {
+        ...data.proposal,
+        layer: form.layer,
+        promoterArea: form.promoterArea.trim() || form.responsible.trim() || "Planeamiento Urbano",
+        codeRelation: trimmedCodeRelation,
+        technicalJustification: trimmedJustification,
+        attachedDocuments: form.documentation,
+        reviewStatus: form.reviewStatus,
+        aiNormativeImpact: buildNormativeImpact({
+          ...form,
+          title: trimmedTitle,
+          description: trimmedDescription,
+          neighborhood: trimmedNeighborhood,
+          author: trimmedAuthor,
+          codeRelation: trimmedCodeRelation,
+          technicalJustification: trimmedJustification
+        })
+      };
+
+      setProjects((current) => [proposal, ...current]);
+      setSelectedId(proposal.id);
+      setForm(emptyForm);
+      setSubmitError("");
+      setIsFormOpen(false);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "No pudimos guardar la propuesta.");
+    }
   }
 
   return (
@@ -327,6 +333,7 @@ export function ProposalsBoard() {
           onClose={() => setIsFormOpen(false)}
           onSubmit={handleSubmit}
           onUpdate={updateForm}
+          submitError={submitError}
         />
       ) : null}
 
@@ -354,20 +361,30 @@ export function ProposalsBoard() {
             </button>
           </div>
 
+          {loadError ? (
+            <div className="mb-4 rounded-md border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm font-bold text-amber-100">
+              {loadError}
+            </div>
+          ) : null}
+
           <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
             {filteredProjects.map((project) => (
-              <ProposalCard key={project.id} project={project} selected={project.id === selectedProject.id} onSelect={() => setSelectedId(project.id)} />
+              <ProposalCard key={project.id} project={project} selected={project.id === selectedProject?.id} onSelect={() => setSelectedId(project.id)} />
             ))}
           </div>
 
-          {filteredProjects.length === 0 ? (
+          {isLoading ? (
             <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-slate-400">
-              No hay propuestas con esos filtros. Proba cambiar la busqueda o la capa urbana.
+              Cargando propuestas desde la base de datos...
+            </div>
+          ) : filteredProjects.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-slate-400">
+              No hay propuestas reales cargadas con esos filtros. Cuando se cree una propuesta o llegue un aporte ciudadano, aparecera aca.
             </div>
           ) : null}
         </div>
 
-        <ProposalDetail project={selectedProject} />
+        {selectedProject ? <ProposalDetail project={selectedProject} /> : <EmptyProposalDetail />}
       </section>
     </div>
   );
@@ -377,12 +394,14 @@ function ProposalFormPanel({
   form,
   onClose,
   onSubmit,
-  onUpdate
+  onUpdate,
+  submitError
 }: {
   form: ProposalForm;
   onClose: () => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onUpdate: <K extends keyof ProposalForm>(key: K, value: ProposalForm[K]) => void;
+  submitError: string;
 }) {
   return (
     <section className="urban-card rounded-lg p-4 lg:p-5">
@@ -440,6 +459,12 @@ function ProposalFormPanel({
           <p className="text-sm font-black text-sky-100">Analisis automatico de impacto normativo</p>
           <p className="mt-2 text-sm leading-6 text-slate-300">{buildNormativeImpact(form)}</p>
         </div>
+
+        {submitError ? (
+          <div className="rounded-md border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm font-bold text-amber-100">
+            {submitError}
+          </div>
+        ) : null}
 
         <div className="flex flex-wrap justify-end gap-3">
           <button type="button" onClick={onClose} className="urban-button rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-slate-200">
@@ -630,6 +655,21 @@ function ProposalDetail({ project }: { project: UrbanProject }) {
   );
 }
 
+function EmptyProposalDetail() {
+  return (
+    <aside className="urban-card rounded-lg p-5">
+      <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Detalle seleccionado</p>
+      <h2 className="mt-2 text-2xl font-black leading-tight text-white">Sin propuesta seleccionada</h2>
+      <p className="mt-3 text-sm leading-6 text-slate-400">
+        Todavia no hay propuestas reales cargadas en la base de datos. Cuando se registre una iniciativa municipal o llegue un aporte ciudadano, el detalle aparecera aca.
+      </p>
+      <div className="mt-5 rounded-lg border border-dashed border-white/15 bg-white/[0.03] p-4 text-sm leading-6 text-slate-400">
+        Usa el boton Nueva para crear la primera propuesta real o carga aportes desde el portal ciudadano.
+      </div>
+    </aside>
+  );
+}
+
 function TextInput({
   label,
   value,
@@ -731,48 +771,6 @@ function formatOrigin(origin: ProjectOrigin) {
   return originLabels[origin];
 }
 
-function mapCitizenContributionToProject(contribution: CitizenContributionFromApi): UrbanProject {
-  const layer = mapAxisToLayer(contribution.axis);
-  const attachedDocuments = contribution.fileName ? [contribution.fileName] : [];
-  const title = contribution.proposal?.title ?? `${contribution.kind}: ${contribution.zone}`;
-
-  return {
-    id: `citizen-contribution-${contribution.id}`,
-    title,
-    layer,
-    status: "En analisis",
-    neighborhood: contribution.zone,
-    author: contribution.name,
-    responsible: "Planeamiento Urbano",
-    origin: "Landing ciudadana",
-    promoterArea: "Portal ciudadano UrbanIA",
-    description: contribution.text,
-    objective: `Revisar ${contribution.kind.toLowerCase()} ciudadano registrado desde la landing para ${contribution.zone}.`,
-    impact: [`Eje detectado: ${contribution.axis}`, `Confianza IA: ${contribution.confidence}`, "Insumo ciudadano para revision tecnica"],
-    risks: ["Requiere validacion municipal", "Requiere contrastar normativa y territorio"],
-    nextSteps: ["Revision tecnica", "Cruce normativo", "Agrupar con aportes similares", "Definir derivacion interna"],
-    votes: 0,
-    comments: 0,
-    budget: "A estimar",
-    timeline: "Pendiente de evaluacion",
-    position: [-26.8241, -65.2226],
-    codeRelation: `Pendiente de cruce normativo. Eje preliminar: ${contribution.axis}.`,
-    technicalJustification: contribution.text,
-    attachedDocuments,
-    reviewStatus: contribution.status === "LINKED_TO_PROPOSAL" ? "Pendiente tecnico" : contribution.status,
-    aiNormativeImpact: `Migue debe revisar este ${contribution.kind.toLowerCase()} con el Codigo de Planeamiento Urbano, detectar normativa aplicable y agruparlo con reclamos o propuestas similares antes de elevarlo.`
-  };
-}
-
-function mapAxisToLayer(axis: string): ProjectLayer {
-  const normalized = axis.toLowerCase();
-
-  if (normalized.includes("ambiente")) return "Espacios verdes";
-  if (normalized.includes("movilidad")) return "Transporte";
-  if (normalized.includes("suelo")) return "Zonificacion";
-  if (normalized.includes("riesgo")) return "Riesgos";
-  return "Equipamiento";
-}
 function buildNormativeImpact(form: ProposalForm) {
   const codeRelation = form.codeRelation.trim();
   const justification = form.technicalJustification.trim();
@@ -787,22 +785,4 @@ function buildNormativeImpact(form: ProposalForm) {
     : "Conviene adjuntar planos, fotos, antecedentes o informes para respaldar la revision.";
 
   return `${base}. Capa principal: ${form.layer}. ${technical} ${documentation} Recomendacion IA: mantener estado "${form.reviewStatus}" hasta completar revision tecnica y normativa.`;
-}
-
-function buildImpactList(layer: ProjectLayer, codeRelation: string) {
-  return [`Impacto principal en ${layer.toLowerCase()}`, "Cruce preliminar con Codigo de Planeamiento Urbano", codeRelation];
-}
-
-function buildRiskList(layer: ProjectLayer, documentation: string[]) {
-  const risks = ["Requiere validacion normativa", "Puede necesitar ajustes tecnicos"];
-
-  if (!documentation.length) {
-    risks.push("Documentacion insuficiente");
-  }
-
-  if (layer === "Riesgos") {
-    risks.push("Necesita coordinacion preventiva interarea");
-  }
-
-  return risks;
 }

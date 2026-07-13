@@ -17,7 +17,10 @@ export function hasOpenRouterConfig() {
   return Boolean(process.env.OPENROUTER_API_KEY);
 }
 
-export async function askUrbanAssistant(messages: UrbanAssistantMessage[]): Promise<UrbanAssistantResponse> {
+export async function askUrbanAssistant(
+  messages: UrbanAssistantMessage[],
+  options?: { maxTokens?: number; temperature?: number }
+): Promise<UrbanAssistantResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
@@ -36,8 +39,8 @@ export async function askUrbanAssistant(messages: UrbanAssistantMessage[]): Prom
 
   const completion = await client.chat.completions.create({
     model,
-    temperature: 0.35,
-    max_tokens: 900,
+    temperature: options?.temperature ?? 0.35,
+    max_tokens: options?.maxTokens ?? 900,
     messages
   });
 

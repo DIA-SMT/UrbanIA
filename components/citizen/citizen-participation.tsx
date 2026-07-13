@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  CalendarDays,
   CheckCircle2,
   FileText,
   MessageSquare,
@@ -51,65 +50,6 @@ type CitizenContribution = {
   } | null;
 };
 
-const proposals: CitizenProposal[] = [
-  {
-    id: "iluminacion-barrio-sur",
-    title: "Mejorar iluminacion en Barrio Sur",
-    neighborhood: "Barrio Sur",
-    author: "Maria B.",
-    status: "Recientes",
-    votes: 124,
-    comments: 24,
-    area: "Seguridad urbana",
-    summary: "Pedido para reforzar luminarias peatonales en esquinas de alta circulacion nocturna."
-  },
-  {
-    id: "plaza-belgrano-peru",
-    title: "Plaza en Av. Belgrano y Peru",
-    neighborhood: "Oeste",
-    author: "Juan P.",
-    status: "En evaluacion",
-    votes: 88,
-    comments: 18,
-    area: "Espacios verdes",
-    summary: "Transformar un lote subutilizado en espacio publico con sombra, bancos y juegos."
-  },
-  {
-    id: "bicisendas-centro",
-    title: "Mas bicisendas en el centro",
-    neighborhood: "Centro",
-    author: "Lucia G.",
-    status: "Populares",
-    votes: 236,
-    comments: 35,
-    area: "Movilidad",
-    summary: "Conectar corredores existentes para viajes cortos y acceso seguro a edificios publicos."
-  },
-  {
-    id: "parque-rio-sali",
-    title: "Parque lineal en Rio Sali",
-    neighborhood: "Este",
-    author: "Carlos M.",
-    status: "Populares",
-    votes: 310,
-    comments: 42,
-    area: "Ambiente",
-    summary: "Recuperacion paisajistica y ambiental de borde ribereno con recorridos peatonales."
-  }
-];
-
-const comments = [
-  { author: "Sofia R.", text: "Seria clave sumar arbolado y bancos, no solo pavimento.", proposal: "Plaza en Av. Belgrano y Peru" },
-  { author: "Miguel A.", text: "La zona necesita mas iluminacion en las paradas de colectivo.", proposal: "Mejorar iluminacion en Barrio Sur" },
-  { author: "Valentina C.", text: "Las bicisendas deberian conectarse con escuelas y facultades.", proposal: "Mas bicisendas en el centro" }
-];
-
-const agenda = [
-  { date: "28 Jun", title: "Consulta por movilidad centro", type: "Abierta" },
-  { date: "04 Jul", title: "Mesa barrial Barrio Sur", type: "Presencial" },
-  { date: "11 Jul", title: "Espacios verdes y arbolado", type: "Online" }
-];
-
 const statuses: Array<"Todas" | ProposalStatus> = ["Todas", "Recientes", "Populares", "En evaluacion"];
 
 function mapContributionToProposal(contribution: CitizenContribution): CitizenProposal {
@@ -147,7 +87,7 @@ function formatContributionStatus(value: string) {
 export function CitizenParticipation() {
   const [status, setStatus] = useState<(typeof statuses)[number]>("Todas");
   const [query, setQuery] = useState("");
-  const [selectedProposal, setSelectedProposal] = useState<CitizenProposal>(proposals[0]);
+  const [selectedId, setSelectedId] = useState("");
   const [citizenContributions, setCitizenContributions] = useState<CitizenContribution[]>([]);
   const [isLoadingContributions, setIsLoadingContributions] = useState(true);
   const [contributionsError, setContributionsError] = useState("");
@@ -165,20 +105,15 @@ export function CitizenParticipation() {
         }
 
         if (isMounted) {
-          setCitizenContributions(data.contributions ?? []);
+          const nextContributions = data.contributions ?? [];
+          setCitizenContributions(nextContributions);
+          setSelectedId(nextContributions[0]?.id ? `citizen-${nextContributions[0].id}` : "");
           setContributionsError("");
         }
       } catch (error) {
-        const stored = window.localStorage.getItem("urbania-citizen-contributions");
-
-        if (isMounted && stored) {
-          try {
-            setCitizenContributions(JSON.parse(stored) as CitizenContribution[]);
-            setContributionsError("Mostrando aportes guardados localmente en este navegador.");
-          } catch {
-            setContributionsError(error instanceof Error ? error.message : "No pudimos cargar los aportes ciudadanos.");
-          }
-        } else if (isMounted) {
+        if (isMounted) {
+          setCitizenContributions([]);
+          setSelectedId("");
           setContributionsError(error instanceof Error ? error.message : "No pudimos cargar los aportes ciudadanos.");
         }
       } finally {
@@ -202,9 +137,8 @@ export function CitizenParticipation() {
 
   const visibleProposals = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    const allProposals = [...contributionProposals, ...proposals];
 
-    return allProposals.filter((proposal) => {
+    return contributionProposals.filter((proposal) => {
       const matchesStatus = status === "Todas" || proposal.status === status;
       const matchesQuery =
         normalizedQuery.length === 0 ||
@@ -215,6 +149,8 @@ export function CitizenParticipation() {
       return matchesStatus && matchesQuery;
     });
   }, [contributionProposals, query, status]);
+
+  const selectedProposal = visibleProposals.find((proposal) => proposal.id === selectedId) ?? visibleProposals[0] ?? null;
 
   return (
     <AppShell>
@@ -243,9 +179,9 @@ export function CitizenParticipation() {
 
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
             {[
-              ["Participantes", "1.240"],
-              ["Comentarios", "386"],
-              ["Aportes landing", citizenContributions.length.toString()]
+              ["Participantes", citizenContributions.length.toString()],
+              ["Comentarios", "0"],
+              ["Aportes ciudadanos", citizenContributions.length.toString()]
             ].map(([label, value]) => (
               <div key={label} className="urban-lift rounded-md border border-white/10 bg-slate-950/50 p-4">
                 <p className="text-2xl font-black text-civic-sky">{value}</p>
@@ -263,9 +199,9 @@ export function CitizenParticipation() {
               <FileText className="h-4 w-4" />
               Aportes ciudadanos
             </div>
-            <h2 className="text-2xl font-black leading-tight text-white">Registros enviados desde la landing</h2>
+            <h2 className="text-2xl font-black leading-tight text-white">Aportes ciudadanos recibidos</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-              Cada aporte queda expandido con texto original, eje detectado, estado de vinculacion y propuesta interna creada para revision municipal.
+              Cada aporte queda organizado con texto original, eje detectado, estado de vinculacion y propuesta interna creada para revision municipal.
             </p>
           </div>
           <span className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black text-slate-300">
@@ -355,9 +291,9 @@ export function CitizenParticipation() {
             {visibleProposals.map((proposal) => (
               <button
                 key={proposal.id}
-                onClick={() => setSelectedProposal(proposal)}
+                onClick={() => setSelectedId(proposal.id)}
                 className={`urban-card urban-lift min-w-0 rounded-lg p-5 text-left ${
-                  selectedProposal.id === proposal.id ? "border-sky-300/40" : ""
+                  selectedProposal?.id === proposal.id ? "border-sky-300/40" : ""
                 }`}
               >
                 <div className="mb-4 flex items-start justify-between gap-3">
@@ -378,6 +314,12 @@ export function CitizenParticipation() {
               </button>
             ))}
           </div>
+
+          {!isLoadingContributions && visibleProposals.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-white/15 bg-white/[0.03] p-6 text-sm leading-6 text-slate-400">
+              No hay aportes ciudadanos reales para mostrar con esos filtros.
+            </div>
+          ) : null}
         </div>
 
         <aside className="space-y-4">
@@ -391,14 +333,14 @@ export function CitizenParticipation() {
                 <p className="text-xs text-slate-500">Trazabilidad inicial</p>
               </div>
             </div>
-            <h3 className="text-xl font-black leading-tight text-white">{selectedProposal.title}</h3>
-            <p className="mt-3 text-sm leading-6 text-slate-300">{selectedProposal.summary}</p>
+            <h3 className="text-xl font-black leading-tight text-white">{selectedProposal?.title ?? "Sin aporte seleccionado"}</h3>
+            <p className="mt-3 text-sm leading-6 text-slate-300">{selectedProposal?.summary ?? "Selecciona un aporte ciudadano real para revisar su trazabilidad inicial."}</p>
             <div className="mt-4 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
               {[
-                ["Apoyos", selectedProposal.votes.toString()],
-                ["Comentarios", selectedProposal.comments.toString()],
-                ["Barrio", selectedProposal.neighborhood],
-                ["Estado", selectedProposal.status]
+                ["Apoyos", selectedProposal?.votes.toString() ?? "0"],
+                ["Comentarios", selectedProposal?.comments.toString() ?? "0"],
+                ["Barrio", selectedProposal?.neighborhood ?? "-"],
+                ["Estado", selectedProposal?.status ?? "-"]
               ].map(([label, value]) => (
                 <div key={label} className="rounded-md border border-white/8 bg-white/[0.03] p-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
@@ -410,36 +352,6 @@ export function CitizenParticipation() {
               <CheckCircle2 className="h-4 w-4" />
               Enviar a evaluacion
             </button>
-          </div>
-
-          <div className="urban-card rounded-lg p-5">
-            <h2 className="mb-4 font-bold text-white">Comentarios recientes</h2>
-            <div className="space-y-3">
-              {comments.map((comment) => (
-                <div key={`${comment.author}-${comment.proposal}`} className="urban-lift rounded-md border border-white/8 bg-white/[0.03] p-3">
-                  <p className="text-sm leading-6 text-slate-300">&ldquo;{comment.text}&rdquo;</p>
-                  <p className="mt-2 text-xs text-slate-500">{comment.author} - {comment.proposal}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="urban-card rounded-lg p-5">
-            <h2 className="mb-4 flex items-center gap-2 font-bold text-white">
-              <CalendarDays className="h-5 w-5 text-cyan-300" />
-              Agenda de consultas
-            </h2>
-            <div className="space-y-3">
-              {agenda.map((item) => (
-                <div key={item.title} className="urban-lift flex items-center gap-3 rounded-md border border-white/8 bg-white/[0.03] p-3">
-                  <div className="rounded-md bg-cyan-400/15 px-3 py-2 text-xs font-black text-cyan-100">{item.date}</div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-200">{item.title}</p>
-                    <p className="text-xs text-slate-500">{item.type}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </aside>
       </section>
