@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { askUrbanAssistant, hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { buildMigueSystemPrompt, buildMigueUserPrompt, normalizeMigueContext } from "@/lib/ai/migue";
+import { buildAnswerSource, buildRagContextBlock, retrieveRelevantFragments, type RagRetrieval } from "@/lib/ai/rag";
 
 const assistantQuerySchema = z.object({
   question: z.string().trim().min(3).max(2000),
@@ -38,6 +39,23 @@ const assistantQuerySchema = z.object({
     .optional()
 });
 
+function parseAssistantPayload(raw: string): { answer: string; cita: string } {
+  try {
+    const parsed = JSON.parse(raw) as { answer?: unknown; cita?: unknown };
+
+    if (parsed && typeof parsed.answer === "string") {
+      return {
+        answer: parsed.answer,
+        cita: typeof parsed.cita === "string" ? parsed.cita : ""
+      };
+    }
+  } catch {
+    // El modelo no devolvió JSON válido: usamos el texto crudo como respuesta.
+  }
+
+  return { answer: raw, cita: "" };
+}
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = assistantQuerySchema.safeParse(body);
@@ -66,19 +84,40 @@ export async function POST(request: Request) {
     const assistantContext = normalizeMigueContext(parsed.data.assistantContext);
     const context =
       parsed.data.context ||
-      "MVP con mapa urbano, propuestas, Codigo de Planeamiento, audiencias, gabinete, escenarios, documentos y participacion ciudadana.";
+      "MVP con mapa urbano, propuestas, Codigo de Planeamiento, audiencias, documentos y participacion ciudadana.";
     const history = parsed.data.history ?? [];
 
-    const response = await askUrbanAssistant([
-      { role: "system", content: buildMigueSystemPrompt(assistantContext) },
-      ...history.map((message) => ({
-        role: message.role,
-        content: message.content
-      })),
-      { role: "user", content: buildMigueUserPrompt(parsed.data.question, assistantContext, context) }
-    ]);
+    // Retrieval semántico. Si falla, seguimos sin evidencia para no tumbar el asistente.
+    let retrieval: RagRetrieval = { fragments: [], sources: [], hasEvidence: false };
+    try {
+      retrieval = await retrieveRelevantFragments(parsed.data.question, { mode: assistantContext.mode });
+    } catch (retrievalError) {
+      console.error("RAG retrieval error", retrievalError);
+    }
 
-    return NextResponse.json(response);
+    const extraContext = [
+      buildRagContextBlock(retrieval),
+      "",
+      "Contexto general de la plataforma:",
+      context
+    ].join("\n");
+
+    const response = await askUrbanAssistant(
+      [
+        { role: "system", content: buildMigueSystemPrompt(assistantContext) },
+        ...history.map((message) => ({
+          role: message.role,
+          content: message.content
+        })),
+        { role: "user", content: buildMigueUserPrompt(parsed.data.question, assistantContext, extraContext) }
+      ],
+      { json: true }
+    );
+
+    const { answer, cita } = parseAssistantPayload(response.answer);
+    const source = buildAnswerSource(retrieval, cita);
+
+    return NextResponse.json({ ...response, answer, source });
   } catch (error) {
     console.error("OpenRouter assistant error", error);
 

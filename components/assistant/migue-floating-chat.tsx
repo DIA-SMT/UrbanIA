@@ -1,19 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Bot, Loader2, MessageCircle, Send, X } from "lucide-react";
+import { Loader2, Send, X } from "lucide-react";
 import { MarkdownText } from "@/components/assistant/markdown-text";
+import { SourceCitation } from "@/components/assistant/source-citation";
+import type { AnswerSource } from "@/lib/ai/rag";
 
 type LiveAssistantAnswer = {
   answer: string;
   model: string;
   provider: "openrouter";
+  source: AnswerSource | null;
 };
 
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
+  source?: AnswerSource | null;
 };
 
 type MigueFloatingChatProps = {
@@ -31,6 +35,14 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
   const [draftQuestion, setDraftQuestion] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (isOpen && container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [messages, status, isOpen]);
 
   async function askMigue(event?: React.FormEvent<HTMLFormElement>, prompt?: string) {
     event?.preventDefault();
@@ -69,7 +81,14 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
         throw new Error(payload?.detail || payload?.error || "Migue no pudo responder ahora.");
       }
 
-      setMessages([...nextMessages, { role: "assistant", content: (payload as LiveAssistantAnswer).answer }]);
+      setMessages([
+        ...nextMessages,
+        {
+          role: "assistant",
+          content: (payload as LiveAssistantAnswer).answer,
+          source: (payload as LiveAssistantAnswer).source ?? null
+        }
+      ]);
       setStatus("idle");
     } catch (error) {
       setMessages([
@@ -86,35 +105,34 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
   return (
     <div className={`migue-theme-${appearance} fixed bottom-24 right-4 z-[80] flex flex-col items-end gap-3 md:right-6 lg:bottom-6`}>
       {isOpen ? (
-        <section className="urban-card w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-lg border-sky-300/25 shadow-2xl">
-          <div className="flex items-center gap-3 border-b border-white/10 bg-slate-950/80 p-3">
-            <div className="migue-avatar">
-              <span className="migue-avatar-bg" />
+        <section className="flex max-h-[calc(100dvh-10rem)] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(2,6,23,0.35)] dark:border-white/10 dark:bg-[#0d1b2a]">
+          <div className="flex shrink-0 items-center gap-3 bg-gradient-to-br from-[#35aeea] via-[#1f89f6] to-[#0d6fe0] p-4">
+            <span className="migue-launcher-avatar">
               <Image
                 src="/migue/migue-assistant-transparent.png"
                 alt=""
-                width={128}
-                height={128}
-                className="migue-avatar-image"
+                width={96}
+                height={96}
+                className="migue-launcher-image"
               />
-            </div>
+            </span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-black text-white">Migue</p>
-              <p className="text-xs font-semibold text-slate-400">Asistente urbano de UrbanIA</p>
+              <p className="text-xs font-semibold text-sky-100">Asistente urbano de UrbanIA</p>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="urban-button rounded-md border border-white/10 bg-white/[0.04] p-2 text-slate-300"
+              className="grid h-9 w-9 place-items-center rounded-xl bg-white/15 text-white transition hover:bg-white/25"
               aria-label="Cerrar chat de Migue"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="max-h-[420px] space-y-3 overflow-y-auto p-4">
-            <div className="rounded-lg border border-sky-300/20 bg-sky-300/10 p-3">
-              <p className="text-sm font-black text-sky-100">Hola, soy Migue.</p>
-              <p className="mt-1 text-sm leading-6 text-slate-300">Escribime como hablas normalmente y te ayudo a ordenar la consulta.</p>
+          <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+            <div className="rounded-xl border border-sky-100 bg-sky-50 p-3 dark:border-sky-400/20 dark:bg-sky-400/10">
+              <p className="text-sm font-black text-sky-900 dark:text-sky-100">Hola, soy Migue.</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">Escribime como hablas normalmente y te ayudo a ordenar la consulta.</p>
             </div>
 
             <div className="grid gap-2">
@@ -122,7 +140,7 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
                 <button
                   key={prompt}
                   onClick={() => askMigue(undefined, prompt)}
-                  className="urban-button rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-xs font-bold leading-5 text-slate-300"
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-xs font-bold leading-5 text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:border-sky-400/40 dark:hover:bg-white/[0.08] dark:hover:text-white"
                 >
                   {prompt}
                 </button>
@@ -131,55 +149,56 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
 
             {messages.length ? (
               <div className="space-y-3">
-                {messages.map((message, index) => (
-                  <div
-                    key={`${message.role}-${index}-${message.content.slice(0, 16)}`}
-                    className={`rounded-lg border p-3 ${
-                      message.role === "user"
-                        ? "ml-6 border-white/10 bg-white/[0.04]"
-                        : status === "error" && index === messages.length - 1
-                          ? "mr-6 border-amber-300/20 bg-amber-300/10"
-                          : "mr-6 border-sky-300/20 bg-slate-950/50"
-                    }`}
-                  >
-                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
-                      {message.role === "user" ? "Tu consulta" : "Migue"}
-                    </p>
-                    <div className="mt-1">
-                      {message.role === "user" ? (
-                        <p className="text-sm leading-6 text-slate-200">{message.content}</p>
-                      ) : (
-                        <MarkdownText text={message.content} compact />
-                      )}
+                {messages.map((message, index) =>
+                  message.role === "user" ? (
+                    <div
+                      key={`user-${index}-${message.content.slice(0, 16)}`}
+                      className="ml-8 rounded-2xl rounded-br-md bg-[#1f89f6] px-4 py-3 shadow-[0_6px_16px_rgba(31,137,246,0.25)]"
+                    >
+                      <p className="text-sm leading-6 text-white">{message.content}</p>
                     </div>
-                  </div>
-                ))}
+                  ) : (
+                    <div
+                      key={`assistant-${index}-${message.content.slice(0, 16)}`}
+                      className={`mr-8 rounded-2xl rounded-bl-md border px-4 py-3 ${
+                        status === "error" && index === messages.length - 1
+                          ? "border-amber-200 bg-amber-50 dark:border-amber-300/20 dark:bg-amber-300/10"
+                          : "border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/[0.05]"
+                      }`}
+                    >
+                      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-sky-600 dark:text-sky-300">Migue</p>
+                      <div className="mt-1">
+                        <MarkdownText text={message.content} compact tone="adaptive" />
+                      </div>
+                      {message.source ? <SourceCitation source={message.source} /> : null}
+                    </div>
+                  )
+                )}
               </div>
             ) : null}
 
             {status === "loading" ? (
-              <div className="flex items-center gap-2 rounded-lg border border-sky-300/20 bg-sky-300/10 p-3 text-sm font-semibold text-sky-100">
+              <div className="mr-8 flex items-center gap-2 rounded-2xl rounded-bl-md border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-100">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Migue esta analizando...
               </div>
             ) : null}
-
           </div>
 
-          <form onSubmit={askMigue} className="flex items-center gap-2 border-t border-white/10 bg-slate-950/80 p-3">
+          <form onSubmit={askMigue} className="flex shrink-0 items-center gap-2 border-t border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#0a1826]">
             <input
               value={draftQuestion}
               onChange={(event) => setDraftQuestion(event.target.value)}
               placeholder="Preguntale a Migue..."
-              className="min-w-0 flex-1 rounded-md border border-white/10 bg-slate-950/70 px-3 py-2 text-sm font-semibold text-slate-100 outline-none placeholder:text-slate-500 focus:border-sky-300/50"
+              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-200 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-sky-400/50 dark:focus:ring-sky-400/20"
             />
             <button
               type="submit"
               disabled={status === "loading"}
-              className="urban-button rounded-md bg-civic-blue p-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#1f89f6] text-white shadow-[0_6px_16px_rgba(31,137,246,0.35)] transition hover:bg-[#087bec] disabled:cursor-not-allowed disabled:opacity-60"
               aria-label="Enviar consulta a Migue"
             >
-              <Send className="h-5 w-5" />
+              <Send className="h-4 w-4" />
             </button>
           </form>
         </section>
@@ -188,21 +207,19 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
       <button
         onClick={() => setIsOpen((current) => !current)}
         className="urban-button migue-launcher group"
-        aria-label="Abrir chat de Migue"
+        aria-label={isOpen ? "Cerrar chat de Migue" : "Abrir chat de Migue"}
         title="Migue"
       >
-        <span className="migue-launcher-bg" />
-        <span className="migue-launcher-frame" />
-        <Image
-          src="/migue/migue-assistant-transparent.png"
-          alt=""
-          width={160}
-          height={160}
-          className="migue-launcher-image"
-        />
-        <span className="migue-launcher-badge">
-          {isOpen ? <Bot className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
+        <span className="migue-launcher-avatar">
+          <Image
+            src="/migue/migue-assistant-transparent.png"
+            alt=""
+            width={96}
+            height={96}
+            className="migue-launcher-image"
+          />
         </span>
+        <span className="migue-launcher-label">Migue</span>
       </button>
     </div>
   );

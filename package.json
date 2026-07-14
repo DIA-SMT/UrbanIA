@@ -15,6 +15,7 @@
     "db:verify:planning-code": "tsx prisma/verify-planning-code.ts",
     "db:verify:planning-code-db": "tsx --env-file=.env.local prisma/verify-planning-code-db.ts",
     "db:import:geojson": "tsx --env-file=.env.local prisma/import-geojson-layers.ts",
+    "db:embed:knowledge": "tsx --env-file=.env.local prisma/embed-knowledge-chunks.ts",
     "dev:turbo": "next dev --turbo"
   },
   "dependencies": {
