@@ -1,0 +1,99 @@
+HOJA: 12/34  
+DISTRITO: AE ÁREAS ESPECIALES (AE)  
+
+## AREA ESPECIAL 2a CUADRA ACERA OESTE  
+### vivienda individual  
+- Tipología no permitida  
+
+### agrupada  
+- Tipología no permitida  
+
+### country  
+- Tipología no permitida  
+
+### colectiva entre medianeras  
+- Tipología no permitida  
+
+### perímetro y semiper.libre  
+- Tipología no permitida  
+
+### otros usos (A)  
+- FOT: 100  
+- Altura máxima: 7,00; Basamento: 7,00  
+- Retiros: frente (**), lateral N.O., fondo N.P.  
+- Cuerpo saliente/voladizo: N.P.  
+- Otras condiciones: P8  
+
+## CONGRESO 2a CUADRA ACERA ESTE  
+### vivienda individual  
+- FOT: 80  
+- Altura máxima: ver perfiles 9a y 9b  
+- Retiros: frente (**), lateral N.O., fondo 1,50  
+- Cuerpo saliente/voladizo: 13,00  
+- Otras condiciones: P9a-P9b en planta baja  
+
+### agrupada  
+- Tipología no permitida  
+
+### country  
+- Tipología no permitida  
+
+### colectiva entre medianeras  
+- FOT: 80  
+- Altura máxima: ver perfiles 9a y 9b y plano del área  
+- Retiros: frente (**), lateral N.O., fondo (++)  
+- Cuerpo saliente/voladizo: 1,50  
+- Otras condiciones: 13,00 P9a-P9b  
+
+### perímetro y semiper.libre  
+- Tipología no permitida  
+
+### otros usos  
+- FOT: 80  
+- Altura máxima: ver perfiles 9a y 9b  
+- Retiros: frente (**), lateral N.O., fondo (++)  
+- Cuerpo saliente/voladizo: 1,50  
+- Otras condiciones: 13,00 P9a-P9b  
+
+## MANZANA CASA HISTORICA  
+### vivienda individual  
+- FOT: 80  
+- Altura máxima: 13,00; Basamento: 7,00  
+- Retiros: frente (B), lateral N.O., fondo 1,50  
+- Cuerpo saliente/voladizo: 13,00  
+- Otras condiciones: P7a-P7b en planta baja  
+
+### agrupada  
+- Tipología no permitida  
+
+### country  
+- Tipología no permitida  
+
+### colectiva entre medianeras  
+- FOT: 80  
+- Altura máxima: 13,00; Basamento: 7,00  
+- Retiros: frente (B), lateral (++), fondo (++)  
+- Cuerpo saliente/voladizo: 1,50  
+- Otras condiciones: 13,00 P7a-P7b  
+
+### perímetro y semiper.libre  
+- Tipología no permitida  
+
+### otros usos  
+- FOT: 80  
+- Altura máxima: 13,00; Basamento: 7,00  
+- Retiros: frente (B), lateral (++), fondo (++)  
+- Cuerpo saliente/voladizo: 1,50  
+- Otras condiciones: 13,00 P7a-P7b  
+
+REFERENCIAS:  
+- N.P. no permitido  
+- N.O. no obligatorio  
+- (**) Construcción obligatoria sobre la línea municipal existente, a excepción de la parcela de S4 M0110 P070 y S4 M0110 P090  
+- (++) Deberá cumplir con lo establecido en el Art. 25º de la presente Ordenanza  
+- (A) Solo se permiten usos culturales y/o institucionales  
+- (B) Retiro optativo a 4,00 m. Del cordón de la vereda  
+
+NOTAS DE LA HOJA:  
+(1) Deberá cumplir con lo establecido en el Art. 28º de la presente Ordenanza  
+(*) Se construirá cuerpo saliente sólo en veredas de 4,00 m, a exce de 4,00 m.

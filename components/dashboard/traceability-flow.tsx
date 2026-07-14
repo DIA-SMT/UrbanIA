@@ -2,14 +2,13 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { CheckCircle2, FileSearch, GitBranch, Landmark, MessageSquareText, Route, Users } from "lucide-react";
+import { CheckCircle2, FileSearch, Landmark, MessageSquareText, Route, Users } from "lucide-react";
 
 const stages = [
   { label: "Propuestas", meta: "12 activas", detail: "Iniciativas ciudadanas, técnicas y de gabinete.", icon: Route },
   { label: "Análisis normativo", meta: "4 en revisión", detail: "Compatibilidad preliminar con el Código de Planeamiento.", icon: FileSearch },
   { label: "Audiencias", meta: "3 programadas", detail: "Instancias públicas vinculadas a expedientes y proyectos.", icon: MessageSquareText },
   { label: "Participación", meta: "86 aportes", detail: "Evidencia ciudadana organizada por territorio y tema.", icon: Users },
-  { label: "Escenarios", meta: "5 en evaluación", detail: "Alternativas comparadas con evidencia disponible.", icon: GitBranch },
   { label: "Decisión", meta: "2 pendientes", detail: "Resoluciones que requieren preparación para gabinete.", icon: Landmark },
   { label: "Seguimiento", meta: "7 activos", detail: "Compromisos, responsables y próximos hitos.", icon: CheckCircle2 }
 ];
@@ -24,9 +23,9 @@ export function TraceabilityFlow() {
         <p className="max-w-lg text-sm leading-6 text-slate-500 dark:text-slate-400">Cada etapa conserva la evidencia, los actores y las decisiones que explican cómo avanza una iniciativa.</p>
       </div>
       <div className="urban-scrollbar mt-7 overflow-x-auto pb-3">
-        <div className="relative grid min-w-[980px] grid-cols-7 gap-3">
-          <div className="absolute left-[7%] right-[7%] top-6 h-px bg-slate-200 dark:bg-white/10" />
-          <motion.div className="absolute left-[7%] top-6 h-px bg-[#1f89f6]" animate={{ width: `${active * 14.3}%` }} transition={{ duration: 0.3 }} />
+        <div className="relative grid min-w-[840px] grid-cols-6 gap-3">
+          <div className="absolute left-[8%] right-[8%] top-6 h-px bg-slate-200 dark:bg-white/10" />
+          <motion.div className="absolute left-[8%] top-6 h-px bg-[#1f89f6]" animate={{ width: `${active * 16.6}%` }} transition={{ duration: 0.3 }} />
           {stages.map((stage, index) => {
             const Icon = stage.icon;
             const selected = index === active;

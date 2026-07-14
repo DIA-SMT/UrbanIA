@@ -1,0 +1,41 @@
+HOJA: 18/34  
+DISTRITO: AE3 ÁREAS ESPECIALES (AE) (delimitación según Planos de Zonificación en Distritos y de Áreas Especiales)
+
+## VIVIENDA INDIVIDUAL
+- Tipología edilicia: No permitida
+
+## VIVIENDA AGRUPADA
+- Tipología edilicia: No permitida
+
+## COUNTRY
+- Tipología edilicia: No permitida
+
+## COLECTIVA ENTRE MEDIANERAS
+- Tipología edilicia: No permitida
+
+## PERÍMETRO LIBRE
+- FOS: 40% (1)
+- Altura máxima: (**)
+- Basamento: (***)
+- Retiros: frente s/ Av Sarmiento 20.00 m, lateral (++), fondo (++)
+
+## SEMI PERÍMETRO LIBRE
+- Tipología edilicia: No permitida
+
+## OTROS USOS
+- FOS: 40% (1)
+- Altura máxima: (**)
+- Basamento: (***)
+- Retiros: frente s/ España 5.00 m, lateral h/d=2,5, fondo h/d=2,5
+
+REFERENCIAS:
+- S.R.: Sin restricciones
+- N.O.: No obligatorio
+- N.P.: No permitido
+
+NOTAS DE LA HOJA:
+(*) Para este Distrito no regirá el Art. 19º.
+(1) Deberá cumplir con lo establecido en el Art. 28º de la presente Ordenanza.
+(**) La altura máxima de la edificación permitida será la de los edificios existentes en las manzanas en que se ubique la nueva edificación.
+(***) La altura máxima del basamento será la de los basamentos de los edificios existentes.
+(++) Deberá cumplir con lo establecido en el art. 25º de la presente Ordenanza.

@@ -1,0 +1,67 @@
+HOJA: 4/34  
+DISTRITO: C2 Comercial 2 (delimitación según Plano de Zonificación en Distritos)
+
+## VIVIENDA INDIVIDUAL
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: S.R. (Parcelas Mediales), S.R. (Parcelas Esquinas)
+- Altura máxima: N.O.; Basamento: N.O.
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: N.O.
+
+## VIVIENDA AGRUPADA
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: S.R. (Parcelas Mediales), S.R. (Parcelas Esquinas)
+- Altura máxima: N.O.; Basamento: N.O.
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: N.O.
+
+## VIVIENDA COUNTRY
+- Tipología no permitida
+
+## VIVIENDA COLECTIVA
+- Edificación entre medianeras, L.E. sobre Línea Municipal
+  - FOT: 7 (Parcelas Mediales), 7,5 (Parcelas Esquinas)
+  - Altura máxima: 10,00; Basamento: N.O.
+  - Retiros: frente N.O., lateral N.O., fondo (++)
+  - Cuerpo saliente/voladizo: (++)
+  - Otras condiciones: (++)
+  
+- Edificación entre medianeras, L.E. retiradas 5 mts. mínimos de L.M.
+  - FOT: 8 (Parcelas Mediales), 8,5 (Parcelas Esquinas)
+  - Altura máxima: 10,00; Basamento: 5 mts.
+  - Retiros: frente N.O., lateral N.O., fondo (++)
+  - Cuerpo saliente/voladizo: (++)
+  - Otras condiciones: Retiro a L.M. y línea divisoria de parcela N.O. para el basamento
+
+- Edificación de Semi Perímetro Libre
+  - FOT: 8,5 (Parcelas Mediales), 9 (Parcelas Esquinas)
+  - Altura máxima: 10,00; Basamento: (++)
+  - Retiros: frente (++), lateral (++), fondo (++)
+  - Cuerpo saliente/voladizo: (++)
+  - Otras condiciones: (++)
+
+- Edificación de Perímetro Libre
+  - FOT: 9 (Parcelas Mediales), 9,5 (Parcelas Esquinas)
+  - Altura máxima: 10,00; Basamento: (++)
+  - Retiros: frente (++), lateral (++), fondo (++)
+  - Cuerpo saliente/voladizo: (++)
+  - Otras condiciones: (++)
+
+## OTROS USOS
+- FOT: ** (Parcelas Mediales), ** (Parcelas Esquinas)
+- Altura máxima: **; Basamento: **
+- Retiros: frente **, lateral **, fondo **
+- Cuerpo saliente/voladizo: **
+- Otras condiciones: **
+
+REFERENCIAS:
+- S.R. Sin Restricciones
+- N.O. No Obligatorio
+- (++) Deberá cumplir con lo establecido en el art. 25º de la presente Ordenanza
+- ** Idem a las establecidas para vivienda colectiva según la tipología.
+
+NOTAS DE LA HOJA:
+- Hoja modificada por Ordenanza Nº 3.112/01
+- Hoja 5/34 eliminada por Ordenanza Nº 3.112/01

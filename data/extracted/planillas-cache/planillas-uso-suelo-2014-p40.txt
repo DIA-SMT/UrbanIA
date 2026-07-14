@@ -1,0 +1,44 @@
+HOJA: 40/63  
+## FABRICACION DE PRODUCTOS MINERALES NO METALICOS, EXCEPTO LOS DERIVADOS DEL PETROLEO Y DEL CARBON
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, I1, I2
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 300 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: (+) Los usos permitidos en el Distrito de Servicios 3 serán los que se permitan en las áreas que atraviesa dicho corredor. También se admiten los usos particulares.
+
+## Artefactos sanitarios cerámicos
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: 
+
+## Placas y accesorios varios, art. decorativos, vajillas y art. para electricidad y otros usos
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: 
+
+## Productos de barro
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, I1, I2
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 300 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: 
+
+## Fabricación de vidrios y cristales y art. de vidrio con horno de fusión
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: 
+
+## Fabricación de espejos (incluye pulido, biselado, tallado y grabado de vidrios y cristales) y vitraux
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: 
+
+## NOTAS DE LA HOJA
+(+) Los usos permitidos en el Distrito de Servicios 3 serán los que se permitan en las áreas que atraviesa dicho corredor. También se admiten los usos particulares.
+
+## MODIFICADA POR
+Ordenanza N° 2648/98 (ordenado a mayo de 2014)

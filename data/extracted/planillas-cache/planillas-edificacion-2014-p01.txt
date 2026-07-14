@@ -1,0 +1,57 @@
+HOJA: 1/34  
+DISTRITO: C1a Comercial 1a (Delimitación según Plano de Zonificación en Distritos)  
+## VIVIENDA INDIVIDUAL  
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²  
+- FOT: S.R.  
+- Altura máxima: S.R.; Basamento: N.O.  
+- Retiros: frente N.O., lateral N.O., fondo N.O.  
+- Cuerpo saliente/voladizo: 2,00 m  
+- Otras condiciones: Altura máxima de perfil edilicio 10,00 m  
+
+## AGRUPADA  
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²  
+- FOT: S.R.  
+- Altura máxima: S.R.; Basamento: N.O.  
+- Retiros: frente N.O., lateral N.O., fondo N.O.  
+- Cuerpo saliente/voladizo: 2,00 m  
+- Otras condiciones: Altura máxima de perfil edilicio 10,00 m  
+
+## COLECTIVA ENTRE MEDIANERAS  
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²  
+- FOT: N.O.  
+- Altura máxima: PB+8 pisos; Basamento: 10,00 m  
+- Retiros: frente obligatorio a 21,00 m del cordón de vereda, lateral N.O., fondo N.O.  
+- Cuerpo saliente/voladizo: 2,00 m  
+- Otras condiciones: Altura máxima de perfil edilicio P1  
+
+## PERÍMETRO LIBRE  
+- División parcelaria mínima: frente 25,00 m, superficie 900 m²  
+- FOT: 10,00  
+- Altura máxima: PB+9 pisos; Basamento: 10,00 m  
+- Retiros: frente N.O., lateral N.O., fondo N.O.  
+- Cuerpo saliente/voladizo: 2,00 m  
+- Otras condiciones: Altura máxima de perfil edilicio P1  
+
+## SEMI PERÍMETRO LIBRE  
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²  
+- FOT: 10,00  
+- Altura máxima: PB+8 pisos; Basamento: 10,00 m  
+- Retiros: frente N.O., lateral N.O., fondo N.O.  
+- Cuerpo saliente/voladizo: 2,00 m  
+- Otras condiciones: Altura máxima de perfil edilicio P1  
+
+REFERENCIAS:  
+N.P. no permitido  
+S.R. sin restricciones  
+N.O. no obligatorio  
+
+NOTAS DE LA HOJA:  
+(1) Deberá cumplir con lo establecido en el art. 28º de la presente Ordenanza  
+(2) Excluidas las parcelas esquina  
+(3) La altura máxima varía según el retiro de la L.E.:  
+- Para edificación con retiro a 4,00 m. del cordón de vereda la altura máxima será la resultante de P.B. + 7 pisos  
+- Para edificación sin retiro de la L.E. la altura máxima será 6,00 m y no se permite cuerpo saliente.  
+(4) Idem a las establecidas para vivienda colectiva según la tipología.  
+(**) Vivienda no permitida en planta baja, en el área comprendida entre las calles Crisostomo Alvarez, San Juan, Junín - Ayacucho, Rivadavia - Las Heras.  
+(*) La estructura portante de las nuevas construcciones deberá estar como mínimo a 4,00 m del cordón de vereda. Se exceptúa de esta condición a las veredas de 4,00 m de ancho o más, donde la estructura podrá coincidir con la L.M.  
+NOTA: Hoja modificada por Ordenanza N° 3.112/01

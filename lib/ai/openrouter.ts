@@ -19,7 +19,7 @@ export function hasOpenRouterConfig() {
 
 export async function askUrbanAssistant(
   messages: UrbanAssistantMessage[],
-  options?: { maxTokens?: number; temperature?: number }
+  options: { model?: string; json?: boolean; maxTokens?: number; temperature?: number } = {}
 ): Promise<UrbanAssistantResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
@@ -27,7 +27,7 @@ export async function askUrbanAssistant(
     throw new Error("OPENROUTER_API_KEY is not configured");
   }
 
-  const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
+  const model = options?.model || process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
   const client = new OpenAI({
     apiKey,
     baseURL: "https://openrouter.ai/api/v1",
@@ -39,9 +39,10 @@ export async function askUrbanAssistant(
 
   const completion = await client.chat.completions.create({
     model,
-    temperature: options?.temperature ?? 0.35,
-    max_tokens: options?.maxTokens ?? 900,
-    messages
+    temperature: options.temperature ?? 0.35,
+    max_tokens: options.maxTokens ?? 900,
+    messages,
+    ...(options.json ? { response_format: { type: "json_object" } } : {})
   });
 
   return {

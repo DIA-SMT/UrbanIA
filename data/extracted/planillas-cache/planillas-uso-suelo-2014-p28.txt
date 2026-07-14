@@ -1,0 +1,63 @@
+HOJA: 28/63
+
+## FABRICACION DE TEXTILES
+- Permitido sin restricciones en: I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6, #
+
+## Preparado de fibras de algodón y fibras textiles vegetales
+- Permitido sin restricciones en: I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6, #
+
+## Lavadero de lana, blanqueo, teñido y apresto de textiles
+- Permitido sin restricciones en: I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6, #
+
+## Hilado de fibras textiles
+- Permitido sin restricciones en: I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6, #
+
+## Fabricación de tejidos, trenzados, trencillas, cordones y cintas, incluido el yute, puntillas, encajes, broderie y art. similares, tejidos elásticos con o sin confección de artículos terminados
+- Permitido sin restricciones en: I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6, #
+
+## Tejidos de seda natural y artificial, fibras sintéticas, lana, algodón y otras fibras
+- Permitido sin restricciones en: I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6, #
+
+## Tejidos de lana, algodón y otras fibras, excepto tejidos de punto
+- Permitido sin restricciones en: I1, I2
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 300 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: #
+
+## Confección de ropa de cama y mantelería
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 300 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: #
+
+## Confección de bolsas de arpillera y lienzos
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 300 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: #
+
+## Confección de art. de lona y sucedáneos de lona
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 300 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: #
+
+NOTAS DE LA HOJA:
+- * permitido sin restricciones.
+- # no permitido.
+- (+) en el interior de la parcela según Art.21° de las Reglamentaciones Particulares.
+- (+++) Sólo se permiten comercios minoristas en la manzana comprendida entre av Sarmiento y calles 25 de Mayo, Muñecas y España. Estos serán los mismos que los admitidos en el Distrito R1 y deberán ser complementarios a la vivienda.
+- (++) solo se permite exposición y venta sin depósito complementario
+- Todos los usos consignados en esta planilla incluyen el fraccionamiento y el envasado de los productos (Ord. N° 3.403/03).
+
+MODIFICADA POR:
+- Ordenanza N° 2648/98 (ordenado a mayo de 2014)

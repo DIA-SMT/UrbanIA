@@ -1,0 +1,62 @@
+HOJA: 20/63
+
+## Casa de reposo y convalecencia
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, R3a
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Centros o Institutos de Rehabilitación
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE3
+- Permitido con límite en: R1: (**)
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 4
+
+## Centros o Institutos de Especialidades Médicas con Internación Abreviada
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE3
+- Permitido con límite en: R1: (**)
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 4
+
+## Centros o Institutos de Especialidades Médicas con Urgencia
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE3
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 4
+- Notas: Ord. 4345/10
+
+## Consultorio de Especialidades Médicas (sólo consulta)
+- Permitido sin restricciones en: C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Permitido con límite en: C1a: (*)
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 5
+
+## Dispensario, prestación de primeros auxilios
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE3
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Establecimientos geriátricos, asilo para ancianos, residencia
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, R3a, R3b
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Hospital
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE3, R3a, R3b
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 1 #
+
+## Sanatorios y clínicas
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE3, R3a, R3b
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 1 #
+
+NOTAS DE LA HOJA:
+- (*) Sólo permitido en Distrito C1b
+- (**) Sólo permitido en el Distrito R1 Sur
+- (+) Los usos permitidos en el Distrito de Servicios 3 serán los que se permitan en las áreas que atraviesa dicho corredor. También se admiten los usos particulares indicados en estas Planillas.
+- (+++) Se permiten comercios minoristas en la manzana comprendida entre av Sarmiento y calles 25 de Mayo, Muñecas y España. Estos serán los mismos que los admitidos en el Distrito R1 y deberán ser complementarios a la vivienda.
+- N.O. No obligatorio
+- 1 a 7 en el interior de la parcela según Art.21º de las Reglamentaciones Particulares.
+- # en el interior de la parcela según Art.21º de las Reglamentaciones Particulares.
+
+MODIFICADA POR:
+- Ordenanzas N° 4345/10 y N° 4681/14

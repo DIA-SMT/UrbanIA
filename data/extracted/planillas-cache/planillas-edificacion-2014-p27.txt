@@ -1,0 +1,51 @@
+HOJA: 32/34  
+DISTRITO: CC Corredor Costanero (delimitación según Plano de Zonificación en Distritos)
+
+## VIVIENDA INDIVIDUAL
+- División parcelaria mínima: frente (*), superficie (*)
+- FOT: (*)
+- Altura máxima: (*); Basamento: (*)
+- Retiros: frente 10,00, lateral (*), fondo (*)
+- Cuerpo saliente/voladizo: (*)
+- Otras condiciones: (*)
+
+## AGRUPADA
+- División parcelaria mínima: frente (*), superficie (*)
+- FOT: (*)
+- Altura máxima: (*); Basamento: (*)
+- Retiros: frente (**), lateral (*), fondo (*)
+- Cuerpo saliente/voladizo: (*)
+- Otras condiciones: (*)
+
+## COUNTRY
+- División parcelaria mínima: frente (*), superficie (*)
+- FOT: (*)
+- Altura máxima: (*); Basamento: (*)
+- Retiros: frente (**), lateral (*), fondo (*)
+- Cuerpo saliente/voladizo: (*)
+- Otras condiciones: (*)
+
+## COLECTIVA
+- División parcelaria mínima: frente (*), superficie (*)
+- FOT: (*)
+- Altura máxima: (*); Basamento: (*)
+- Retiros: frente (**), lateral (*), fondo (*)
+- Cuerpo saliente/voladizo: (*)
+- Otras condiciones: (*)
+
+## OTROS USOS
+- División parcelaria mínima: frente (***), superficie (*)
+- FOT: (*)
+- Altura máxima: (*); Basamento: (*)
+- Retiros: frente (**), lateral (*), fondo (*)
+- Cuerpo saliente/voladizo: (*)
+- Otras condiciones: (*)
+
+REFERENCIAS:
+(*) Cumplirá con las Disposiciones Generales y Particulares definidas para los Distritos que atraviesa.  
+(**) El retiro de la L.E. a todo lo largo del corredor será obligatorio e irá arbolado para conformar una faja ambiental.  
+(***) Según los permitidos en las Planillas de Usos del Suelo para las áreas y corredores que atraviesa.  
+
+NOTAS DE LA HOJA:
+(1) Deberá cumplir con lo establecido en el Art. 28º de la presente Ordenanza.  
+LOS USOS PARA EL DISTRITO CC SE REGIRÁN POR LO ESTABLECIDO EN CAPÍTULO III (ART.18).

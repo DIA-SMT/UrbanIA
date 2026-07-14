@@ -1,0 +1,26 @@
+HOJA: 11/34  
+DISTRITO: AREA ESPECIAL 1 (AE1)  
+
+## PERFIL 7a (para edificación sin retiro de la Línea de edificación)
+- División parcelaria mínima: frente N.O., superficie N.O.
+- FOT: N.O.
+- Altura máxima: 13.00 m; Basamento: 7.00 m
+- Retiros: frente 0.00 m, lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: Línea de edificación coincidente con Línea Municipal. Línea de Frente Interno no mayor a 35.00 m de L.M.
+
+## PERFIL 7b (para edificación con retiro de la Línea de edificación)
+- División parcelaria mínima: frente N.O., superficie N.O.
+- FOT: N.O.
+- Altura máxima: 13.00 m; Basamento: 7.00 m
+- Retiros: frente 4.00 m, lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: Medida única de cuerpo saliente: 1.50 m
+- Otras condiciones: Línea de edificación a 4.00 m del cordón de la vereda. Línea de Frente Interno no mayor a 35.00 m de L.M.
+
+REFERENCIAS:
+- S.R.: sin restricciones
+- N.O.: no obligatorio
+- N.P.: no permitido
+
+NOTAS DE LA HOJA:  
+Dirección de Catastro y Edificación - Digesto Normativo - CÓDIGO DE PLANEAMIENTO URBANO - ORDENANZA N° 2648/98 (ordenado a mayo de 2014)

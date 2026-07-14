@@ -5,11 +5,9 @@ import {
   CalendarDays,
   ClipboardList,
   FileArchive,
-  FileText,
   FolderKanban,
-  GitBranch,
-  Landmark,
   Map,
+  MessagesSquare,
   Settings2,
   Users
 } from "lucide-react";
@@ -23,22 +21,29 @@ export const navItems = [
   { label: "Asistente IA", href: "/asistente", icon: BookOpen }
 ];
 
-export const sidebarSections = [
+type SidebarIcon = React.ComponentType<{ className?: string }>;
+type SidebarItem = { label: string; href: string; icon: SidebarIcon };
+type SidebarSection = {
+  title: string;
+  icon: SidebarIcon;
+  /** Si está presente, la sección es un link directo sin desplegable. */
+  href?: string;
+  items: SidebarItem[];
+};
+
+export const sidebarSections: SidebarSection[] = [
   {
-    title: "Mapa",
+    title: "Mapa territorial",
     icon: Map,
-    items: [
-      { label: "Mapa territorial", href: "/admin", icon: Map }
-    ]
+    href: "/admin",
+    items: []
   },
   {
-    title: "Expedientes",
+    title: "Propuestas",
     icon: FolderKanban,
     items: [
-      { label: "Propuestas", href: "/propuestas", icon: ClipboardList },
-      { label: "Proyectos", href: "/proyectos", icon: Building2 },
-      { label: "Escenarios", href: "/escenarios", icon: GitBranch },
-      { label: "Gabinete", href: "/gabinete", icon: Landmark }
+      { label: "Urbanas", href: "/propuestas", icon: ClipboardList },
+      { label: "Proyectos", href: "/proyectos", icon: Building2 }
     ]
   },
   {
@@ -50,12 +55,10 @@ export const sidebarSections = [
     ]
   },
   {
-    title: "Normativa",
-    icon: FileText,
-    items: [
-      { label: "Codigo de Planeamiento", href: "/normativa", icon: FileText },
-      { label: "Documentos normativos", href: "/datos", icon: FileArchive }
-    ]
+    title: "Consulta al CPU",
+    icon: MessagesSquare,
+    href: "/consulta-cpu",
+    items: []
   },
   {
     title: "Gestion",

@@ -1,0 +1,69 @@
+HOJA: 63/63
+## SERVICIOS DE TELECOMUNICACIONES
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+  
+## Local para cabinas de Telefonía Pública
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Oficina de radiocomunicación, telecomunicaciones, telegrafía, telefonía, radiodifusión, servicios especiales y espaciales, etc. sin instalaciones complementarias.
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Central de radiocomunicación, telecomunicaciones, telegrafía, telefonía, radiodifusión, servicios especiales y espaciales, etc. con instalaciones complementarias.
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Antenas sobre estructura monoposte autos soportada sobre terreno
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Antenas sobre estructura reticulada autos soportada sobre terreno
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Instalación de antenas parabólicas domiciliarias
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## TRANSPORTE
+### Expreso de carga liviana
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+### Garaje para ómnibus y colectivos
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+### Terminal de carga por automotor
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## TRANSFERENCIA Y SELECCIÓN DE RESIDUOS SÓLIDOS URBANOS
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## NOTAS DE LA HOJA
+- (*) Los usos permitidos en el Distrito de Servicios 3 serán los que se permiten en las áreas que atraviesan dicho corredor. También se admiten los usos particulares indicados en estas Planillas.
+- 1.- En los Distritos C2, C4 y C6, se permite instalar antenas sobre estructura monoposte autos soportada sobre terreno en parcelas medias, indicándose el sitio edificación al frente de Saldívar- Brígido Terán, Roca, Alem - Mitre, incluidas las mismas.
+- 2.- La distancia mínima exigida entre áreas, independientemente de la empresa a forma de la que pertenezcan será de 100 metros.
+- 3.- En distritos donde está permitida la instalación de estructura soportes para antenas deberá dar preferencia para su localización a predios con superficies no menores de 10.000 m2 de propiedad a edificios sociales y deportivos que cumplan con ese requisito de superficie.
+- 4.- Las estructuras con arriostramientos para soporte de antenas deberán resolverse en el interior de la parcela.
+- 5.- Altura de edificación mínima para colocar "estructuras sobre edificación" será de 20 metros.
+- 6.- Se establece como plano límite para la altura de las estructuras soportes de antenas de cualquier tipo 50 metros, medidos desde la cota de parcela.
+
+## MODIFICADA POR
+- Ordenanza N° 2977/00
+- Ordenanza N° 4.389/11

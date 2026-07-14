@@ -1,0 +1,80 @@
+HOJA: 3/63
+
+## Artículos y aparatos diversos para instalaciones eléctricas, iluminación, radiofonía, alarmas
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1
+- Permitido con límite en: R3a: hasta 100 m2, R3b: hasta 100 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Artículos para piletas de natación
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Artículos de gastronomía
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Artículos de refrigeración
+- Permitido con límite en: C1a: hasta 200 m2, C1b: hasta 200 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O., #
+
+## Artículos regionales
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Artefactos eléctricos del hogar (radios, equipos de audio, televisores, heladeras, lavarropas, etc.)
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 300 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+- Notas: (+++)
+
+## Automóviles, venta de nuevos y usados
+- Permitido con límite en: C1a: hasta 200 m2, C1b: hasta 200 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+- Notas: (+++)
+
+## Bazar y menajes, artículos de plástico
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5
+- Permitido con límite en: R3a: hasta 100 m2, R3b: hasta 100 m2, R4a: hasta 100 m2, R4b: hasta 100 m2, R2a: hasta 100 m2, R2b: hasta 100 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+- Notas: (+++)
+
+## Bicicletas (venta), sus repuestos y accesorios
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+- Notas: (+++)
+
+## Bombonería, licorería, tabaquería
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+- Notas: (+++)
+
+## Boutiques
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Cámaras, cubiertas y neumáticos
+- Permitido con límite en: C1a: hasta 200 m2, C1b: hasta 200 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+NOTAS DE LA HOJA:
+- (*) permitido sin restricciones.
+- (++) Sólo se permite exposición y venta sin depósito complementario.
+- (+++) Sólo se permiten comercios minoristas en la manzana comprendida entre av Sarmiento y calles 25 de Mayo, Muñecas y España. Estos serán los mismos que los admitidos en el Distrito R1 y deberán ser complementarios a la vivienda.
+- (++++) No permitido en calle Miguel Lillo entre San Lorenzo y Lamadrid, Las Piedras al 1400 y General Paz al 1400.
+- N.O. No obligatorio
+- # en el interior de la parcela según Art.21° de las Reglamentaciones Particulares.
+
+MODIFICADA POR:
+- Ordenanzas N° 3.325/03 y N° 4.681/14

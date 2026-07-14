@@ -17,9 +17,11 @@ import {
 } from "lucide-react";
 import { MigueCard } from "@/components/assistant/migue-card";
 import { MarkdownText } from "@/components/assistant/markdown-text";
+import { SourceCitation } from "@/components/assistant/source-citation";
 import { migueCapabilities, type MigueModule } from "@/lib/ai/migue";
+import type { AnswerSource } from "@/lib/ai/rag";
 
-type AssistantMode = "natural" | "normativa" | "gabinete" | "escenario" | "audiencias" | "documentos";
+type AssistantMode = "natural" | "normativa" | "audiencias" | "documentos";
 
 type AssistantPrompt = {
   id: string;
@@ -41,6 +43,7 @@ type LiveAssistantAnswer = {
   answer: string;
   model: string;
   provider: "openrouter";
+  source: AnswerSource | null;
 };
 
 const prompts: AssistantPrompt[] = [
@@ -57,20 +60,8 @@ const prompts: AssistantPrompt[] = [
     query: "Que puntos del Codigo de Planeamiento deberiamos revisar para la propuesta de alturas en corredor norte?"
   },
   {
-    id: "resumen-gabinete",
-    mode: "gabinete",
-    label: "Resumen de reunion",
-    query: "Resumi la reunion de gabinete sobre corredor Aconquija y separa decisiones, riesgos y pendientes."
-  },
-  {
-    id: "escenario-aconquija",
-    mode: "escenario",
-    label: "Escenario de decision",
-    query: "Converti la ciclovia de Av. Aconquija en una recomendacion ejecutiva para gabinete."
-  },
-  {
     id: "aportes-cidituc",
-    mode: "gabinete",
+    mode: "audiencias",
     label: "Aportes ciudadanos",
     query: "Que aportes ciudadanos deberiamos mirar antes de elevar una propuesta a audiencia publica?"
   },
@@ -123,59 +114,13 @@ const answers: Record<string, AssistantAnswer> = {
     ],
     sources: [
       { label: "Codigo de Planeamiento Urbano", detail: "Articulos vinculados a distrito, alturas y retiros", href: "/normativa" },
-      { label: "Reunion de gabinete", detail: "Revision normativa de alturas", href: "/gabinete" },
-      { label: "Escenario", detail: "Revision de alturas permitidas", href: "/escenarios/codigo-alturas" }
+      { label: "Proyecto vinculado", detail: "Revision de alturas permitidas", href: "/proyectos/codigo-alturas" }
     ],
     actions: [
-      { label: "Abrir escenario normativo", href: "/escenarios/codigo-alturas" },
-      { label: "Revisar acta de gabinete", href: "/gabinete" },
+      { label: "Ver proyecto", href: "/proyectos/codigo-alturas" },
       { label: "Preparar matriz legal" }
     ],
     caveat: "Respuesta demo. En produccion debe citar articulos reales del CPU y documentos oficiales cargados."
-  },
-  "resumen-gabinete": {
-    title: "Sintesis ejecutiva de reunion",
-    summary:
-      "La reunion sobre Av. Aconquija dejo una posible intervencion piloto, pero condicionada a relevamiento vial, gestion con frentistas y definicion de tramos. La conversacion no cerro una obra: ordeno los pasos para convertir la idea en escenario medible.",
-    findings: [
-      "Decision principal: solicitar relevamiento vial y preparar una alternativa piloto.",
-      "Riesgo central: conflicto con estacionamiento y resistencia comercial inicial.",
-      "Pendientes: mapa de conflictos, costo por tramo y antecedentes comparables.",
-      "Comunicacion deberia participar antes de anunciar cualquier traza."
-    ],
-    sources: [
-      { label: "Acta de gabinete", detail: "Movilidad y corredor Aconquija", href: "/gabinete" },
-      { label: "Proyecto vinculado", detail: "Nueva ciclovia en Av. Aconquija", href: "/proyectos/ciclovia-aconquija" },
-      { label: "Escenario", detail: "Escenario ciclovia Aconquija", href: "/escenarios/ciclovia-aconquija" }
-    ],
-    actions: [
-      { label: "Abrir registro de gabinete", href: "/gabinete" },
-      { label: "Abrir escenario", href: "/escenarios/ciclovia-aconquija" },
-      { label: "Generar informe de reunion" }
-    ],
-    caveat: "Respuesta generada desde mocks de acta. Luego deberia salir de transcripcion, notas y documentos adjuntos."
-  },
-  "escenario-aconquija": {
-    title: "Recomendacion ejecutiva para escenario Aconquija",
-    summary:
-      "La recomendacion es avanzar con un piloto controlado, no con una obra integral inmediata. El piloto permite medir impacto, reducir exposicion politica y ajustar el diseno antes de comprometer presupuesto mayor.",
-    findings: [
-      "Alternativa sugerida: piloto por tramo con medicion antes/despues.",
-      "Indicadores iniciales: seguridad vial, ocupacion de estacionamiento, flujo ciclista y percepcion comercial.",
-      "Areas requeridas: Movilidad, Planeamiento, Obras Publicas y Comunicacion.",
-      "Antes de gabinete final: cerrar costo estimado, tramos y estrategia de comunicacion."
-    ],
-    sources: [
-      { label: "Escenario de decision", detail: "Ciclovia Av. Aconquija", href: "/escenarios/ciclovia-aconquija" },
-      { label: "Proyecto", detail: "Ficha territorial de la propuesta", href: "/proyectos/ciclovia-aconquija" },
-      { label: "Mapa", detail: "Punto territorial vinculado", href: "/mapa" }
-    ],
-    actions: [
-      { label: "Abrir escenario", href: "/escenarios/ciclovia-aconquija" },
-      { label: "Ver proyecto", href: "/proyectos/ciclovia-aconquija" },
-      { label: "Armar minuta para gabinete" }
-    ],
-    caveat: "No usa todavia modelos de transito ni GIS real. Es simulacion estrategica para decision."
   },
   "aportes-cidituc": {
     title: "Lectura preliminar de aportes ciudadanos",
@@ -189,8 +134,7 @@ const answers: Record<string, AssistantAnswer> = {
     ],
     sources: [
       { label: "Aportes Cidituc", detail: "Integracion ciudadana prevista", href: "/participacion" },
-      { label: "Audiencias", detail: "Agenda deliberativa", href: "/audiencias" },
-      { label: "Gabinete", detail: "Decisiones y pendientes", href: "/gabinete" }
+      { label: "Audiencias", detail: "Agenda deliberativa", href: "/audiencias" }
     ],
     actions: [
       { label: "Ver aportes", href: "/participacion" },
@@ -211,7 +155,6 @@ const answers: Record<string, AssistantAnswer> = {
     ],
     sources: [
       { label: "Audiencias", detail: "Agenda deliberativa y materiales asociados", href: "/audiencias" },
-      { label: "Gabinete", detail: "Decisiones, riesgos y pendientes", href: "/gabinete" },
       { label: "Documentos", detail: "Actas, anexos y transcripciones aportadas" }
     ],
     actions: [
@@ -248,8 +191,6 @@ const answers: Record<string, AssistantAnswer> = {
 const modeStyles: Record<AssistantMode, string> = {
   natural: "border-emerald-300/20 bg-emerald-300/10 text-emerald-100",
   normativa: "border-cyan-300/20 bg-cyan-300/10 text-cyan-100",
-  gabinete: "border-sky-300/20 bg-sky-300/10 text-sky-100",
-  escenario: "border-amber-300/20 bg-amber-300/10 text-amber-100",
   audiencias: "border-violet-300/20 bg-violet-300/10 text-violet-100",
   documentos: "border-rose-300/20 bg-rose-300/10 text-rose-100"
 };
@@ -257,8 +198,6 @@ const modeStyles: Record<AssistantMode, string> = {
 const moduleByMode: Record<AssistantMode, MigueModule> = {
   natural: "asistente",
   normativa: "planeamiento",
-  gabinete: "dashboard",
-  escenario: "gemelo_digital",
   audiencias: "audiencias",
   documentos: "documentos"
 };
@@ -457,7 +396,10 @@ export function AiAssistantWorkbench() {
                 ) : null}
               </div>
               {liveAnswer ? (
-                <MarkdownText text={liveAnswer.answer} />
+                <>
+                  <MarkdownText text={liveAnswer.answer} />
+                  {liveAnswer.source ? <SourceCitation source={liveAnswer.source} /> : null}
+                </>
               ) : (
                 <p className="text-sm leading-6 text-amber-100">{liveError}</p>
               )}

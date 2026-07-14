@@ -1,0 +1,69 @@
+HOJA: 21/34  
+DISTRITO: R1 Residencial Exclusivo (RE) (delimitación según Plano de Zonificación en Distritos)
+
+## VIVIENDA INDIVIDUAL
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: Parcelas Mediales S.R., Parcelas Esquinas S.R.
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: N.O.
+
+## VIVIENDA AGRUPADA
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: Parcelas Mediales S.R., Parcelas Esquinas S.R.
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: N.O.
+
+## VIVIENDA COUNTRY
+- Tipología no permitida
+
+## VIVIENDA COLECTIVA
+- Edificación entre medianeras, L.E. sobre Línea Municipal
+  - FOT: Parcelas Mediales 5,5, Parcelas Esquinas 6
+  - Altura máxima: N.P.; Basamento: (*)
+  - Retiros: frente N.O., lateral N.O., fondo (++)
+  - Cuerpo saliente/voladizo: N.O.
+  - Otras condiciones: (++)
+  
+- Edificación entre medianeras, L.E. retiradas 5 mts. Mínimos de L.M.
+  - FOT: Parcelas Mediales 6,5, Parcelas Esquinas 7
+  - Altura máxima: N.P.; Basamento: (*)
+  - Retiros: frente 5 mts., lateral (++), fondo (++)
+  - Cuerpo saliente/voladizo: (++)
+  - Otras condiciones: (++)
+  
+- Edificación de Semi Perímetro Libre
+  - FOT: Parcelas Mediales 7, Parcelas Esquinas 7,5
+  - Altura máxima: N.P.; Basamento: (*)
+  - Retiros: frente (++), lateral (++), fondo (++)
+  - Cuerpo saliente/voladizo: (++)
+  - Otras condiciones: (++)
+  
+- Edificación de Perímetro Libre
+  - FOT: Parcelas Mediales 7,5, Parcelas Esquinas 8
+  - Altura máxima: N.P.; Basamento: (*)
+  - Retiros: frente (++), lateral (++), fondo (++)
+  - Cuerpo saliente/voladizo: (++)
+  - Otras condiciones: (++)
+  
+## OTROS USOS
+- FOT: **
+- Altura máxima: **; Basamento: **
+- Retiros: frente **, lateral **, fondo **
+- Cuerpo saliente/voladizo: **
+- Otras condiciones: **
+
+REFERENCIAS:
+- S.R. sin restricciones
+- N.O. no obligatorio
+- N.P. no permitido
+
+NOTAS DE LA HOJA:
+- ** Idem a las establecidas para vivienda colectiva según la tipología.
+- (++) Deberá cumplir con lo establecido en el Art. 25º de la presente Ordenanza
+- (*) Para la Manzana 0440 de la Sección 04, se fija altura de basamento de 10 (diez) metros en concordancia a las reglamentaciones vigentes para el Distrito C1b
+- Hoja modificada por Ordenanza Nº 3.112/01 y Nº 3.732/06
+- Hoja 22/34 eliminada por Ordenanza Nº 3.112/01

@@ -1,0 +1,29 @@
+HOJA: 10/34
+
+DISTRITO: AE1 Área Especial 1
+
+## PERFIL 5
+- Tipología edilicia: No especificada
+- División parcelaria mínima: No especificada
+- FOT: No especificado
+- Altura máxima: 18.00 m; Basamento: 7.00 m
+- Retiros: frente 0.00 m, lateral no especificado, fondo no especificado
+- Cuerpo saliente/voladizo: No especificado
+- Otras condiciones: Línea de edificación coincidente con Línea Municipal. Línea de Frente Interno no mayor a 35.00 m de L.M. Altura mínima: 13.00 m.
+
+## PERFIL 6
+- Tipología edilicia: No especificada
+- División parcelaria mínima: No especificada
+- FOT: No especificado
+- Altura máxima: 10.00 m; Basamento: 7.00 m
+- Retiros: frente 4.00 m, lateral no especificado, fondo no especificado
+- Cuerpo saliente/voladizo: No especificado
+- Otras condiciones: Línea de edificación coincidente con Línea Municipal. Línea de Frente Interno no mayor a 35.00 m de L.M. Altura mínima sobre línea: 7.00 m. Altura Máxima con retiro a 4.00 m del cordón de la vereda: 10.00 m.
+
+REFERENCIAS:
+- S.R.: Sin restricciones
+- N.O.: No obligatorio
+- N.P.: No permitido
+
+NOTAS DE LA HOJA:
+Dirección de Catastro y Edificación - Digesto Normativo - CÓDIGO DE PLANEAMIENTO URBANO - ORDENANZA N° 2648/98 (ordenado a mayo de 2014)

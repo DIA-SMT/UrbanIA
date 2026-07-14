@@ -2,288 +2,137 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import type { ProposalSource, ProposalStatus } from "@prisma/client";
 import {
   ArrowUpRight,
-  BarChart3,
-  CheckCircle2,
-  Clock3,
-  FileText,
-  Filter,
+  CalendarDays,
   Gauge,
+  Loader2,
   MapPin,
   MessageSquare,
   Plus,
   Search,
   Sparkles,
   ThumbsUp,
+  Users,
   X
 } from "lucide-react";
+import { proposalSourceLabels, proposalStatusLabels, PROJECT_STATUSES, type ProposalListItem } from "@/lib/proposals/shared";
 
-type ProjectStatus = "Realizado" | "En ejecucion" | "Planificado" | "En analisis";
-type ProjectLayer = "Transporte" | "Espacios verdes" | "Equipamiento" | "Zonificacion" | "Riesgos";
-type ProjectOrigin = "Gabinete" | "Area tecnica" | "Concejo" | "Audiencia publica" | "Cidituc" | "Landing ciudadana" | "Normativa" | "Caso comparado";
+const statusFilterOptions: Array<ProposalStatus | "Todas"> = [
+  "Todas",
+  "SUBMITTED",
+  "UNDER_REVIEW",
+  "NEEDS_DATA",
+  "FEASIBLE",
+  "APPROVED",
+  "IN_PROGRESS",
+  "COMPLETED"
+];
 
-type UrbanProject = {
-  id: string;
-  title: string;
-  layer: ProjectLayer;
-  status: ProjectStatus;
-  neighborhood: string;
-  author: string;
-  responsible: string;
-  origin: ProjectOrigin;
-  promoterArea: string;
-  linkedMeetingId?: string;
-  linkedHearingId?: string;
-  description: string;
-  objective: string;
-  impact: string[];
-  risks: string[];
-  nextSteps: string[];
-  votes: number;
-  comments: number;
-  budget: string;
-  timeline: string;
-  position: [number, number];
-  codeRelation?: string;
-  technicalJustification?: string;
-  attachedDocuments?: string[];
-  reviewStatus?: string;
-  aiNormativeImpact?: string;
-};
+const sourceFilterOptions: Array<ProposalSource | "Todas"> = ["Todas", "CITIZEN", "OFFICIAL", "CABINET", "TECHNICAL_TEAM"];
 
-const statusOptions: Array<ProjectStatus | "Todas"> = ["Todas", "En analisis", "Planificado", "En ejecucion", "Realizado"];
-const layerOptions: Array<ProjectLayer | "Todas"> = ["Todas", "Transporte", "Espacios verdes", "Equipamiento", "Zonificacion", "Riesgos"];
-const originOptions: Array<ProjectOrigin | "Todas"> = ["Todas", "Gabinete", "Area tecnica", "Concejo", "Audiencia publica", "Cidituc", "Landing ciudadana", "Normativa", "Caso comparado"];
-const formOriginOptions: ProjectOrigin[] = ["Gabinete", "Area tecnica", "Concejo", "Audiencia publica", "Cidituc", "Normativa", "Caso comparado"];
-const formLayerOptions: ProjectLayer[] = ["Transporte", "Espacios verdes", "Equipamiento", "Zonificacion", "Riesgos"];
-const formStatusOptions: ProjectStatus[] = ["En analisis", "Planificado", "En ejecucion", "Realizado"];
-const reviewStatusOptions = ["Pendiente tecnico", "En revision normativa", "Observada", "Apta para escenario", "Elevada a gabinete"];
-
-const statusStyles: Record<ProjectStatus, string> = {
-  "En analisis": "border-amber-300/20 bg-amber-300/10 text-amber-200",
-  Planificado: "border-cyan-300/20 bg-cyan-300/10 text-cyan-100",
-  "En ejecucion": "border-sky-300/20 bg-sky-300/10 text-sky-200",
-  Realizado: "border-violet-300/20 bg-violet-300/10 text-violet-200"
-};
-
-const layerStyles: Record<ProjectLayer, string> = {
-  Transporte: "bg-sky-400/15 text-sky-200",
-  "Espacios verdes": "bg-emerald-400/15 text-emerald-200",
-  Equipamiento: "bg-orange-400/15 text-orange-200",
-  Zonificacion: "bg-violet-400/15 text-violet-200",
-  Riesgos: "bg-rose-400/15 text-rose-200"
-};
-
-const originStyles: Record<ProjectOrigin, string> = {
-  Gabinete: "border-sky-300/20 bg-sky-300/10 text-sky-100",
-  "Area tecnica": "border-cyan-300/20 bg-cyan-300/10 text-cyan-100",
-  Concejo: "border-violet-300/20 bg-violet-300/10 text-violet-100",
-  "Audiencia publica": "border-amber-300/20 bg-amber-300/10 text-amber-100",
-  Cidituc: "border-sky-300/20 bg-sky-300/10 text-sky-100",
-  "Landing ciudadana": "border-emerald-300/20 bg-emerald-300/10 text-emerald-100",
-  Normativa: "border-rose-300/20 bg-rose-300/10 text-rose-100",
-  "Caso comparado": "border-orange-300/20 bg-orange-300/10 text-orange-100"
-};
-
-const originLabels: Record<ProjectOrigin, string> = {
-  Gabinete: "Gabinete",
-  "Area tecnica": "Area tecnica",
-  Concejo: "Concejo",
-  "Audiencia publica": "Audiencia publica",
-  Cidituc: "Cidituc",
-  "Landing ciudadana": "Iniciativa ciudadana",
-  Normativa: "Normativa",
-  "Caso comparado": "Caso comparado"
-};
-
-const originFilterOptions = originOptions.map((option) => ({
-  value: option,
-  label: option === "Todas" ? "Todas" : originLabels[option]
-}));
-
-type ProposalsResponse = {
-  proposals?: UrbanProject[];
-  error?: string;
+const statusStyles: Partial<Record<ProposalStatus, string>> = {
+  SUBMITTED: "border-cyan-300/20 bg-cyan-300/10 text-cyan-100",
+  UNDER_REVIEW: "border-amber-300/20 bg-amber-300/10 text-amber-200",
+  NEEDS_DATA: "border-orange-300/20 bg-orange-300/10 text-orange-200",
+  FEASIBLE: "border-emerald-300/20 bg-emerald-300/10 text-emerald-100",
+  NOT_FEASIBLE: "border-rose-300/20 bg-rose-300/10 text-rose-200",
+  APPROVED: "border-sky-300/20 bg-sky-300/10 text-sky-200",
+  IN_PROGRESS: "border-violet-300/20 bg-violet-300/10 text-violet-200",
+  COMPLETED: "border-slate-300/20 bg-slate-300/10 text-slate-200"
 };
 
 type ProposalForm = {
   title: string;
   description: string;
-  neighborhood: string;
-  author: string;
-  responsible: string;
-  origin: ProjectOrigin;
-  promoterArea: string;
-  layer: ProjectLayer;
-  status: ProjectStatus;
-  reviewStatus: string;
-  codeRelation: string;
-  technicalJustification: string;
-  documentation: string[];
+  source: ProposalSource;
 };
 
-const emptyForm: ProposalForm = {
-  title: "",
-  description: "",
-  neighborhood: "",
-  author: "",
-  responsible: "Planeamiento Urbano",
-  origin: "Gabinete",
-  promoterArea: "Planeamiento Urbano",
-  layer: "Zonificacion",
-  status: "En analisis",
-  reviewStatus: "Pendiente tecnico",
-  codeRelation: "",
-  technicalJustification: "",
-  documentation: []
-};
+const emptyForm: ProposalForm = { title: "", description: "", source: "OFFICIAL" };
 
 export function ProposalsBoard() {
-  const [projects, setProjects] = useState<UrbanProject[]>([]);
+  const [proposals, setProposals] = useState<ProposalListItem[]>([]);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<ProjectStatus | "Todas">("Todas");
-  const [layer, setLayer] = useState<ProjectLayer | "Todas">("Todas");
-  const [origin, setOrigin] = useState<ProjectOrigin | "Todas">("Todas");
+  const [status, setStatus] = useState<ProposalStatus | "Todas">("Todas");
+  const [source, setSource] = useState<ProposalSource | "Todas">("Todas");
   const [selectedId, setSelectedId] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [form, setForm] = useState<ProposalForm>(emptyForm);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
-  const [submitError, setSubmitError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
-    let isMounted = true;
+    let cancelled = false;
 
     async function loadProposals() {
       try {
         const response = await fetch("/api/proposals", { cache: "no-store" });
-        const data = (await response.json()) as ProposalsResponse;
+        if (!response.ok) throw new Error("request failed");
+        const data = (await response.json()) as { proposals?: ProposalListItem[] };
 
-        if (!response.ok) {
-          throw new Error(data.error ?? "No pudimos cargar las propuestas.");
+        if (!cancelled) {
+          setProposals(data.proposals ?? []);
+          setSelectedId((current) => current || data.proposals?.[0]?.id || "");
+          setLoadState("ready");
         }
-
-        if (isMounted) {
-          const nextProjects = data.proposals ?? [];
-          setProjects(nextProjects);
-          setSelectedId(nextProjects[0]?.id ?? "");
-          setLoadError("");
-        }
-      } catch (error) {
-        if (isMounted) {
-          setProjects([]);
-          setSelectedId("");
-          setLoadError(error instanceof Error ? error.message : "No pudimos cargar las propuestas.");
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+      } catch {
+        if (!cancelled) setLoadState("error");
       }
     }
 
     loadProposals();
-
     return () => {
-      isMounted = false;
+      cancelled = true;
     };
   }, []);
 
-  const filteredProjects = useMemo(() => {
+  const filteredProposals = useMemo(() => {
     const normalized = query.trim().toLowerCase();
 
-    return projects.filter((project) => {
-      const searchableValues = [
-        project.title,
-        project.neighborhood,
-        project.description,
-        project.responsible,
-        project.author,
-        getProjectOrigin(project),
-        project.promoterArea ?? project.responsible,
-        project.codeRelation ?? "",
-        project.technicalJustification ?? "",
-        project.aiNormativeImpact ?? ""
-      ];
-      const matchesQuery = normalized ? searchableValues.some((value) => value.toLowerCase().includes(normalized)) : true;
-      const matchesStatus = status === "Todas" || project.status === status;
-      const matchesLayer = layer === "Todas" || project.layer === layer;
-      const matchesOrigin = origin === "Todas" || getProjectOrigin(project) === origin;
+    return proposals.filter((proposal) => {
+      const matchesQuery =
+        !normalized ||
+        [proposal.title, proposal.description, proposal.citizen?.zone ?? "", proposal.citizen?.axis ?? ""]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalized);
+      const matchesStatus = status === "Todas" || proposal.status === status;
+      const matchesSource = source === "Todas" || proposal.source === source;
 
-      return matchesQuery && matchesStatus && matchesLayer && matchesOrigin;
+      return matchesQuery && matchesStatus && matchesSource;
     });
-  }, [projects, query, status, layer, origin]);
+  }, [proposals, query, status, source]);
 
-  const selectedProject = filteredProjects.find((project) => project.id === selectedId) ?? filteredProjects[0] ?? projects[0] ?? null;
-  const activeProjects = projects.filter((project) => project.status !== "Realizado").length;
-  const cabinetProjects = projects.filter((project) => getProjectOrigin(project) === "Gabinete").length;
-  const technicalProjects = projects.filter((project) => getProjectOrigin(project) === "Area tecnica").length;
-
-  function updateForm<K extends keyof ProposalForm>(key: K, value: ProposalForm[K]) {
-    setForm((current) => ({ ...current, [key]: value }));
-  }
+  const selectedProposal = proposals.find((proposal) => proposal.id === selectedId) ?? filteredProposals[0] ?? null;
+  const citizenCount = proposals.filter((proposal) => proposal.source === "CITIZEN").length;
+  const inReviewCount = proposals.filter((proposal) => proposal.status === "UNDER_REVIEW" || proposal.status === "SUBMITTED").length;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    const trimmedTitle = form.title.trim();
-    const trimmedDescription = form.description.trim();
-    const trimmedNeighborhood = form.neighborhood.trim();
-    const trimmedAuthor = form.author.trim();
-    const trimmedCodeRelation = form.codeRelation.trim();
-    const trimmedJustification = form.technicalJustification.trim();
-
-    if (!trimmedTitle || !trimmedDescription || !trimmedNeighborhood || !trimmedAuthor || !trimmedCodeRelation || !trimmedJustification) {
-      return;
-    }
+    setSaving(true);
+    setFormError("");
 
     try {
       const response = await fetch("/api/proposals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: trimmedTitle,
-          description: `${trimmedDescription}\n\nRelacion CPU: ${trimmedCodeRelation}\nJustificacion tecnica: ${trimmedJustification}`,
-          neighborhood: trimmedNeighborhood,
-          author: trimmedAuthor,
-          responsible: form.responsible.trim() || "Planeamiento Urbano",
-          origin: form.origin,
-          status: form.status
-        })
+        body: JSON.stringify(form)
       });
-      const data = (await response.json()) as { proposal?: UrbanProject; error?: string };
+      const payload = await response.json();
 
-      if (!response.ok || !data.proposal) {
-        throw new Error(data.error ?? "No pudimos guardar la propuesta.");
-      }
+      if (!response.ok) throw new Error(payload?.error || "No pudimos guardar la propuesta.");
 
-      const proposal = {
-        ...data.proposal,
-        layer: form.layer,
-        promoterArea: form.promoterArea.trim() || form.responsible.trim() || "Planeamiento Urbano",
-        codeRelation: trimmedCodeRelation,
-        technicalJustification: trimmedJustification,
-        attachedDocuments: form.documentation,
-        reviewStatus: form.reviewStatus,
-        aiNormativeImpact: buildNormativeImpact({
-          ...form,
-          title: trimmedTitle,
-          description: trimmedDescription,
-          neighborhood: trimmedNeighborhood,
-          author: trimmedAuthor,
-          codeRelation: trimmedCodeRelation,
-          technicalJustification: trimmedJustification
-        })
-      };
-
-      setProjects((current) => [proposal, ...current]);
-      setSelectedId(proposal.id);
+      const created = payload.proposal as ProposalListItem;
+      setProposals((current) => [created, ...current]);
+      setSelectedId(created.id);
       setForm(emptyForm);
-      setSubmitError("");
       setIsFormOpen(false);
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "No pudimos guardar la propuesta.");
+      setFormError(error instanceof Error ? error.message : "No pudimos guardar la propuesta.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -298,12 +147,12 @@ export function ProposalsBoard() {
             </div>
             <h1 className="max-w-3xl text-3xl font-black leading-tight text-white md:text-5xl">Propuestas urbanas</h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 md:text-base">
-              Cartera oficial de iniciativas urbanas surgidas de gabinete, areas tecnicas, Concejo, audiencias o aportes enviados desde la landing.
+              Cartera oficial de iniciativas urbanas registradas en la base de datos: surgidas de gabinete, areas tecnicas, Concejo o aportes ciudadanos enviados desde la landing.
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <MetricCard label="Activas" value={activeProjects.toString()} icon={Gauge} />
-              <MetricCard label="Origen gabinete" value={cabinetProjects.toString()} icon={ThumbsUp} />
-              <MetricCard label="Area tecnica" value={technicalProjects.toString()} icon={MessageSquare} />
+              <MetricCard label="Registradas" value={proposals.length.toString()} icon={Gauge} />
+              <MetricCard label="Ciudadanas" value={citizenCount.toString()} icon={Users} />
+              <MetricCard label="En revision" value={inReviewCount.toString()} icon={MessageSquare} />
             </div>
           </div>
 
@@ -311,12 +160,12 @@ export function ProposalsBoard() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-black text-white">Flujo recomendado</p>
-                <p className="mt-1 text-sm leading-6 text-slate-400">Reunion o area promotora, evaluacion tecnica, escenario e informe para gabinete.</p>
+                <p className="mt-1 text-sm leading-6 text-slate-400">Reunion o area promotora, evaluacion tecnica e informe para gabinete.</p>
               </div>
               <span className="rounded-md bg-sky-400/15 px-3 py-1 text-xs font-black text-sky-200">MVP</span>
             </div>
             <div className="mt-4 grid gap-2">
-              {["Definir origen", "Vincular reunion", "Cruzar normativa", "Preparar escenario"].map((step, index) => (
+              {["Definir origen", "Vincular reunion", "Cruzar normativa", "Preparar informe"].map((step, index) => (
                 <div key={step} className="urban-lift flex items-center gap-3 rounded-md border border-white/8 bg-white/[0.03] p-3">
                   <span className="flex h-7 w-7 items-center justify-center rounded-md bg-sky-400/15 text-xs font-black text-sky-200">{index + 1}</span>
                   <span className="text-sm font-semibold text-slate-200">{step}</span>
@@ -328,30 +177,101 @@ export function ProposalsBoard() {
       </section>
 
       {isFormOpen ? (
-        <ProposalFormPanel
-          form={form}
-          onClose={() => setIsFormOpen(false)}
-          onSubmit={handleSubmit}
-          onUpdate={updateForm}
-          submitError={submitError}
-        />
+        <section className="urban-card rounded-lg p-4 lg:p-5">
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Nueva propuesta</p>
+              <h2 className="mt-2 text-2xl font-black text-white">Registro en la base de datos municipal</h2>
+            </div>
+            <button onClick={() => setIsFormOpen(false)} className="urban-button rounded-md border border-white/10 bg-white/[0.04] p-2 text-slate-300" aria-label="Cerrar formulario">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="grid gap-4">
+            <label className="grid gap-2">
+              <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Titulo</span>
+              <input
+                value={form.title}
+                onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                placeholder="Ej.: Recuperacion de veredas en Barrio Norte"
+                required
+                minLength={5}
+                className="h-12 w-full rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-300/50"
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Descripcion</span>
+              <textarea
+                value={form.description}
+                onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+                placeholder="Problema, ubicacion, solucion propuesta y beneficiarios."
+                required
+                minLength={10}
+                rows={4}
+                className="w-full resize-y rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm font-semibold leading-6 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-300/50"
+              />
+            </label>
+            <label className="grid gap-2 sm:max-w-xs">
+              <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Origen</span>
+              <select
+                value={form.source}
+                onChange={(event) => setForm((current) => ({ ...current, source: event.target.value as ProposalSource }))}
+                className="h-12 w-full rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-100 outline-none transition focus:border-sky-300/50"
+              >
+                {(["OFFICIAL", "CABINET", "TECHNICAL_TEAM", "CITIZEN"] as ProposalSource[]).map((option) => (
+                  <option key={option} value={option}>
+                    {proposalSourceLabels[option]}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {formError ? <p className="text-sm font-semibold text-amber-200">{formError}</p> : null}
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="submit"
+                disabled={saving}
+                className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {saving ? "Guardando..." : "Guardar propuesta"}
+              </button>
+              <button type="button" onClick={() => setIsFormOpen(false)} className="urban-button rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-slate-200">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </section>
       ) : null}
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="urban-card rounded-lg p-4 lg:p-5">
-          <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_170px_170px_190px_auto]">
+          <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_190px_190px_auto]">
             <label className="relative block">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar por barrio, area o propuesta..."
+                placeholder="Buscar por titulo, zona o tema..."
                 className="h-14 w-full rounded-md border border-white/10 bg-slate-950/70 pl-10 pr-3 text-sm font-semibold text-slate-100 outline-none transition focus:border-sky-300/50"
               />
             </label>
-            <SelectFilter label="Estado" value={status} options={statusOptions} onChange={(value) => setStatus(value as ProjectStatus | "Todas")} />
-            <SelectFilter label="Capa urbana" value={layer} options={layerOptions} onChange={(value) => setLayer(value as ProjectLayer | "Todas")} />
-            <SelectFilter label="Origen" value={origin} options={originFilterOptions} onChange={(value) => setOrigin(value as ProjectOrigin | "Todas")} />
+            <SelectFilter
+              label="Estado"
+              value={status}
+              options={statusFilterOptions}
+              format={(value) => (value === "Todas" ? "Todas" : proposalStatusLabels[value])}
+              onChange={(value) => setStatus(value)}
+            />
+            <SelectFilter
+              label="Origen"
+              value={source}
+              options={sourceFilterOptions}
+              format={(value) => (value === "Todas" ? "Todos" : proposalSourceLabels[value])}
+              onChange={(value) => setSource(value)}
+            />
             <button
               onClick={() => setIsFormOpen(true)}
               className="urban-button inline-flex h-14 w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 text-sm font-black text-white"
@@ -361,354 +281,169 @@ export function ProposalsBoard() {
             </button>
           </div>
 
-          {loadError ? (
-            <div className="mb-4 rounded-md border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm font-bold text-amber-100">
-              {loadError}
+          {loadState === "loading" ? (
+            <div className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-white/15 p-10 text-sm font-semibold text-slate-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Cargando propuestas desde la base de datos...
             </div>
           ) : null}
 
-          <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-            {filteredProjects.map((project) => (
-              <ProposalCard key={project.id} project={project} selected={project.id === selectedProject?.id} onSelect={() => setSelectedId(project.id)} />
-            ))}
-          </div>
+          {loadState === "error" ? (
+            <div className="rounded-lg border border-amber-300/25 bg-amber-300/10 p-8 text-center text-sm leading-6 text-amber-100">
+              No pudimos conectar con la base de datos. Reintenta en unos segundos o revisa la configuracion.
+            </div>
+          ) : null}
 
-          {isLoading ? (
-            <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-slate-400">
-              Cargando propuestas desde la base de datos...
-            </div>
-          ) : filteredProjects.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-slate-400">
-              No hay propuestas reales cargadas con esos filtros. Cuando se cree una propuesta o llegue un aporte ciudadano, aparecera aca.
-            </div>
+          {loadState === "ready" ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+                {filteredProposals.map((proposal) => (
+                  <ProposalCard
+                    key={proposal.id}
+                    proposal={proposal}
+                    selected={selectedProposal?.id === proposal.id}
+                    onSelect={() => setSelectedId(proposal.id)}
+                  />
+                ))}
+              </div>
+
+              {filteredProposals.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm leading-6 text-slate-400">
+                  {proposals.length === 0
+                    ? "Todavia no hay propuestas registradas. Crea la primera con el boton Nueva o desde la landing ciudadana."
+                    : "No hay propuestas con esos filtros. Proba cambiar la busqueda, el estado o el origen."}
+                </div>
+              ) : null}
+            </>
           ) : null}
         </div>
 
-        {selectedProject ? <ProposalDetail project={selectedProject} /> : <EmptyProposalDetail />}
+        {selectedProposal ? <ProposalDetail proposal={selectedProposal} /> : <EmptyDetail />}
       </section>
     </div>
   );
 }
 
-function ProposalFormPanel({
-  form,
-  onClose,
-  onSubmit,
-  onUpdate,
-  submitError
-}: {
-  form: ProposalForm;
-  onClose: () => void;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
-  onUpdate: <K extends keyof ProposalForm>(key: K, value: ProposalForm[K]) => void;
-  submitError: string;
-}) {
-  return (
-    <section className="urban-card rounded-lg p-4 lg:p-5">
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Nueva propuesta</p>
-          <h2 className="mt-2 text-2xl font-black text-white">Registro urbano con analisis normativo</h2>
-        </div>
-        <button onClick={onClose} className="urban-button rounded-md border border-white/10 bg-white/[0.04] p-2 text-slate-300" aria-label="Cerrar formulario">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      <form onSubmit={onSubmit} className="grid gap-4">
-        <div className="grid gap-3 lg:grid-cols-2">
-          <TextInput label="Titulo de la propuesta" value={form.title} onChange={(value) => onUpdate("title", value)} required />
-          <TextInput label="Ubicacion" value={form.neighborhood} onChange={(value) => onUpdate("neighborhood", value)} placeholder="Barrio, corredor o punto urbano" required />
-          <TextInput label="Actor proponente" value={form.author} onChange={(value) => onUpdate("author", value)} placeholder="Gabinete, area municipal, Concejo o Cidituc" required />
-          <TextInput label="Area responsable" value={form.responsible} onChange={(value) => onUpdate("responsible", value)} />
-          <SelectInput label="Origen" value={form.origin} options={formOriginOptions} onChange={(value) => onUpdate("origin", value as ProjectOrigin)} />
-          <TextInput label="Area promotora" value={form.promoterArea} onChange={(value) => onUpdate("promoterArea", value)} />
-          <SelectInput label="Capa urbana" value={form.layer} options={formLayerOptions} onChange={(value) => onUpdate("layer", value as ProjectLayer)} />
-          <SelectInput label="Estado de revision" value={form.reviewStatus} options={reviewStatusOptions} onChange={(value) => onUpdate("reviewStatus", value)} />
-          <SelectInput label="Estado del proyecto" value={form.status} options={formStatusOptions} onChange={(value) => onUpdate("status", value as ProjectStatus)} />
-        </div>
-
-        <TextArea label="Descripcion" value={form.description} onChange={(value) => onUpdate("description", value)} required />
-        <TextArea
-          label="Relacion con el Codigo de Planeamiento Urbano"
-          value={form.codeRelation}
-          onChange={(value) => onUpdate("codeRelation", value)}
-          placeholder="Indicar distrito, uso, retiro, altura, FOT/FOS, movilidad, riesgo o criterio aplicable."
-          required
-        />
-        <TextArea
-          label="Justificacion tecnica"
-          value={form.technicalJustification}
-          onChange={(value) => onUpdate("technicalJustification", value)}
-          placeholder="Fundamento urbano, problema detectado, evidencia y beneficio esperado."
-          required
-        />
-
-        <label className="grid gap-2">
-          <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Documentacion adjunta</span>
-          <input
-            type="file"
-            multiple
-            onChange={(event) => onUpdate("documentation", Array.from(event.target.files ?? []).map((file) => file.name))}
-            className="w-full rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm font-semibold text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-civic-blue file:px-3 file:py-2 file:text-sm file:font-black file:text-white"
-          />
-          <span className="text-xs leading-5 text-slate-500">En este MVP se registran los nombres de archivo para dejar trazabilidad documental.</span>
-        </label>
-
-        <div className="rounded-lg border border-sky-300/20 bg-sky-300/10 p-4">
-          <p className="text-sm font-black text-sky-100">Analisis automatico de impacto normativo</p>
-          <p className="mt-2 text-sm leading-6 text-slate-300">{buildNormativeImpact(form)}</p>
-        </div>
-
-        {submitError ? (
-          <div className="rounded-md border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm font-bold text-amber-100">
-            {submitError}
-          </div>
-        ) : null}
-
-        <div className="flex flex-wrap justify-end gap-3">
-          <button type="button" onClick={onClose} className="urban-button rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-slate-200">
-            Cancelar
-          </button>
-          <button type="submit" className="urban-button rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white">
-            Registrar propuesta
-          </button>
-        </div>
-      </form>
-    </section>
-  );
-}
-
-function MetricCard({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Gauge }) {
-  return (
-    <div className="urban-lift rounded-md border border-white/10 bg-white/[0.04] p-4">
-      <div className="flex items-center gap-2 text-civic-sky">
-        <Icon className="h-4 w-4" />
-        <p className="text-2xl font-black">{value}</p>
-      </div>
-      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-    </div>
-  );
-}
-
-function SelectFilter({
-  label,
-  value,
-  options,
-  onChange
-}: {
-  label: string;
-  value: string;
-  options: Array<string | { value: string; label: string }>;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="relative block">
-      <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-      <span className="pointer-events-none absolute left-10 top-2 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</span>
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-14 w-full appearance-none rounded-md border border-white/10 bg-slate-950/70 pb-2 pl-10 pr-3 pt-6 text-sm font-black text-slate-100 outline-none transition hover:border-sky-300/25 focus:border-sky-300/50"
-      >
-        {options.map((option) => {
-          const optionValue = typeof option === "string" ? option : option.value;
-          const optionLabel = typeof option === "string" ? option : option.label;
-
-          return (
-            <option key={optionValue} value={optionValue}>
-              {optionLabel}
-            </option>
-          );
-        })}
-      </select>
-    </label>
-  );
-}
-
-function ProposalCard({ project, selected, onSelect }: { project: UrbanProject; selected: boolean; onSelect: () => void }) {
+function ProposalCard({ proposal, selected, onSelect }: { proposal: ProposalListItem; selected: boolean; onSelect: () => void }) {
   return (
     <button
       onClick={onSelect}
-      className={`urban-lift group rounded-lg border p-4 text-left transition ${
-        selected ? "border-sky-300/45 bg-sky-300/10" : "border-white/10 bg-white/[0.03] hover:border-sky-300/25"
+      className={`urban-lift rounded-lg border p-4 text-left transition ${
+        selected ? "border-sky-300/40 bg-sky-300/10" : "border-white/10 bg-white/[0.03] hover:border-sky-300/25"
       }`}
     >
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className={`rounded-md border px-2.5 py-1 text-[11px] font-black ${statusStyles[project.status]}`}>{project.status}</span>
-        <span className={`rounded-md px-2.5 py-1 text-[11px] font-black ${layerStyles[project.layer]}`}>{project.layer}</span>
-        <span className={`rounded-md border px-2.5 py-1 text-[11px] font-black ${originStyles[getProjectOrigin(project)]}`}>{formatOrigin(getProjectOrigin(project))}</span>
-      </div>
-      <h3 className="text-base font-black leading-6 text-white group-hover:text-sky-100">{project.title}</h3>
-      <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-400">{project.description}</p>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs font-semibold text-slate-400">
-        <span className="inline-flex items-center gap-1.5">
-          <MapPin className="h-3.5 w-3.5" />
-          {project.neighborhood}
+      <div className="mb-3 flex flex-wrap gap-2">
+        <span className={`rounded-md border px-2 py-1 text-[11px] font-black ${statusStyles[proposal.status] ?? "border-white/10 bg-white/[0.05] text-slate-300"}`}>
+          {proposalStatusLabels[proposal.status]}
         </span>
-        <span className="inline-flex items-center gap-3 text-slate-300">
-          <span>{project.votes} apoyos</span>
-          <span>{project.comments} com.</span>
+        <span className="rounded-md bg-white/[0.06] px-2 py-1 text-[11px] font-bold text-slate-300">{proposalSourceLabels[proposal.source]}</span>
+      </div>
+      <h3 className="text-base font-black leading-6 text-white">{proposal.title}</h3>
+      <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-400">{proposal.description}</p>
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+        {proposal.citizen ? (
+          <span className="inline-flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5" />
+            {proposal.citizen.zone}
+          </span>
+        ) : null}
+        <span className="inline-flex items-center gap-1.5">
+          <ThumbsUp className="h-3.5 w-3.5" />
+          {proposal.votes}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <MessageSquare className="h-3.5 w-3.5" />
+          {proposal.comments}
         </span>
       </div>
     </button>
   );
 }
 
-function ProposalDetail({ project }: { project: UrbanProject }) {
+function ProposalDetail({ proposal }: { proposal: ProposalListItem }) {
+  const isProject = PROJECT_STATUSES.includes(proposal.status);
+
   return (
-    <aside className="urban-card rounded-lg p-5">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Detalle seleccionado</p>
-          <h2 className="mt-2 text-2xl font-black leading-tight text-white">{project.title}</h2>
-        </div>
-        <span className={`shrink-0 rounded-md border px-3 py-1 text-xs font-black ${statusStyles[project.status]}`}>{project.status}</span>
+    <aside className="urban-card h-fit rounded-lg p-5">
+      <div className="mb-3 flex flex-wrap gap-2">
+        <span className={`rounded-md border px-2.5 py-1 text-[11px] font-black ${statusStyles[proposal.status] ?? "border-white/10 bg-white/[0.05] text-slate-300"}`}>
+          {proposalStatusLabels[proposal.status]}
+        </span>
+        <span className="rounded-md bg-white/[0.06] px-2.5 py-1 text-[11px] font-bold text-slate-300">{proposalSourceLabels[proposal.source]}</span>
       </div>
 
-      <p className="text-sm leading-6 text-slate-300">{project.objective}</p>
-
-      <div className="mt-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
-        <MiniStat label="Apoyos" value={project.votes.toString()} icon={ThumbsUp} />
-        <MiniStat label="Comentarios" value={project.comments.toString()} icon={MessageSquare} />
-        <MiniStat label="Plazo" value={project.timeline} icon={Clock3} />
-        <MiniStat label="Presupuesto" value={project.budget} icon={BarChart3} />
-      </div>
+      <h2 className="text-xl font-black leading-7 text-white">{proposal.title}</h2>
+      <p className="mt-3 text-sm leading-6 text-slate-300">{proposal.description}</p>
 
       <div className="mt-5 grid gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-        <DetailBlock label="Origen" value={formatOrigin(getProjectOrigin(project))} />
-        <DetailBlock label="Area promotora" value={project.promoterArea ?? project.responsible} />
-        <DetailBlock label="Actor proponente" value={project.author} />
-        <DetailBlock label="Ubicacion" value={project.neighborhood} />
-        <DetailBlock label="Estado de revision" value={project.reviewStatus ?? project.status} />
-        <DetailBlock label="Relacion CPU" value={project.codeRelation ?? "Pendiente de carga normativa"} />
-        <DetailBlock label="Justificacion tecnica" value={project.technicalJustification ?? project.objective} />
-        {project.linkedMeetingId ? <DetailBlock label="Reunion vinculada" value={project.linkedMeetingId.replace("gabinete-", "")} /> : null}
+        <DetailBlock label="Origen" value={proposalSourceLabels[proposal.source]} />
+        <DetailBlock label="Estado" value={proposalStatusLabels[proposal.status]} />
+        <DetailBlock
+          label="Registrada"
+          value={new Date(proposal.createdAt).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })}
+        />
+        {proposal.citizen ? <DetailBlock label="Vecino/a" value={proposal.citizen.name} /> : null}
+        {proposal.citizen ? <DetailBlock label="Zona" value={proposal.citizen.zone} /> : null}
+        {proposal.citizen ? <DetailBlock label="Eje detectado" value={proposal.citizen.axis} /> : null}
+        {proposal.latitude != null && proposal.longitude != null ? (
+          <DetailBlock label="Ubicacion" value={`${proposal.latitude.toFixed(4)}, ${proposal.longitude.toFixed(4)}`} />
+        ) : null}
       </div>
 
-      {project.linkedMeetingId ? (
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <MiniStat label="Apoyos" value={proposal.votes.toString()} icon={ThumbsUp} />
+        <MiniStat label="Comentarios" value={proposal.comments.toString()} icon={MessageSquare} />
+      </div>
+
+      {isProject ? (
         <Link
-          href="/gabinete"
+          href="/proyectos"
           className="urban-button mt-5 inline-flex w-full items-center justify-between rounded-md border border-sky-300/25 bg-sky-300/10 px-4 py-3 text-sm font-black text-sky-100"
         >
-          Ver reunion vinculada
+          Ver en cartera de proyectos
           <ArrowUpRight className="h-4 w-4" />
         </Link>
       ) : null}
-      {project.linkedHearingId ? (
-        <Link
-          href="/audiencias"
-          className="urban-button mt-3 inline-flex w-full items-center justify-between rounded-md border border-cyan-300/25 bg-cyan-300/10 px-4 py-3 text-sm font-black text-cyan-100"
-        >
-          Ver audiencia vinculada
-          <ArrowUpRight className="h-4 w-4" />
-        </Link>
-      ) : null}
-      <div className="mt-5 rounded-lg border border-sky-300/20 bg-sky-300/10 p-4">
-        <p className="mb-2 flex items-center gap-2 text-sm font-black text-sky-100">
-          <Sparkles className="h-4 w-4" />
-          Analisis IA de impacto normativo
-        </p>
-        <p className="text-sm leading-6 text-slate-300">{project.aiNormativeImpact ?? "Sin analisis automatico cargado para esta propuesta."}</p>
-      </div>
-
-      <div className="mt-5 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-        <p className="mb-3 text-sm font-black text-white">Documentacion adjunta</p>
-        {project.attachedDocuments?.length ? (
-          <div className="space-y-2">
-            {project.attachedDocuments.map((document) => (
-              <div key={document} className="flex items-center gap-2 text-sm text-slate-300">
-                <FileText className="h-4 w-4 text-sky-300" />
-                {document}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500">Sin documentacion adjunta registrada.</p>
-        )}
-      </div>
-
-      <div className="mt-5 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-        <p className="mb-3 text-sm font-black text-white">Proximas acciones</p>
-        <div className="space-y-2">
-          {project.nextSteps.map((step) => (
-            <div key={step} className="flex items-center gap-2 text-sm text-slate-300">
-              <CheckCircle2 className="h-4 w-4 text-sky-300" />
-              {step}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-5 grid gap-3">
-        <Link href={`/escenarios/${project.id}`} className="urban-button inline-flex items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white">
-          <Sparkles className="h-4 w-4" />
-          Convertir en escenario
-        </Link>
-        <Link href={`/proyectos/${project.id}`} className="urban-button inline-flex items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-slate-200">
-          Abrir ficha completa
-          <ArrowUpRight className="h-4 w-4" />
-        </Link>
-      </div>
     </aside>
   );
 }
 
-function EmptyProposalDetail() {
+function EmptyDetail() {
   return (
-    <aside className="urban-card rounded-lg p-5">
-      <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Detalle seleccionado</p>
-      <h2 className="mt-2 text-2xl font-black leading-tight text-white">Sin propuesta seleccionada</h2>
-      <p className="mt-3 text-sm leading-6 text-slate-400">
-        Todavia no hay propuestas reales cargadas en la base de datos. Cuando se registre una iniciativa municipal o llegue un aporte ciudadano, el detalle aparecera aca.
-      </p>
-      <div className="mt-5 rounded-lg border border-dashed border-white/15 bg-white/[0.03] p-4 text-sm leading-6 text-slate-400">
-        Usa el boton Nueva para crear la primera propuesta real o carga aportes desde el portal ciudadano.
+    <aside className="urban-card h-fit rounded-lg p-5">
+      <div className="rounded-lg border border-dashed border-white/15 p-8 text-center">
+        <CalendarDays className="mx-auto h-6 w-6 text-slate-500" />
+        <p className="mt-3 text-sm leading-6 text-slate-400">Selecciona una propuesta para ver el detalle.</p>
       </div>
     </aside>
   );
 }
 
-function TextInput({
+function SelectFilter<T extends string>({
   label,
   value,
-  onChange,
-  placeholder,
-  required
+  options,
+  format,
+  onChange
 }: {
   label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  required?: boolean;
+  value: T;
+  options: T[];
+  format: (value: T) => string;
+  onChange: (value: T) => void;
 }) {
   return (
-    <label className="grid gap-2">
-      <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</span>
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        required={required}
-        className="h-11 w-full rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-300/50"
-      />
-    </label>
-  );
-}
-
-function SelectInput({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  return (
-    <label className="grid gap-2">
-      <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</span>
+    <label className="grid gap-1">
+      <span className="sr-only">{label}</span>
       <select
         value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-100 outline-none transition focus:border-sky-300/50"
+        onChange={(event) => onChange(event.target.value as T)}
+        className="h-14 w-full rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm font-semibold text-slate-100 outline-none transition focus:border-sky-300/50"
+        aria-label={label}
       >
         {options.map((option) => (
           <option key={option} value={option}>
-            {option}
+            {format(option)}
           </option>
         ))}
       </select>
@@ -716,73 +451,31 @@ function SelectInput({ label, value, options, onChange }: { label: string; value
   );
 }
 
-function TextArea({
-  label,
-  value,
-  onChange,
-  placeholder,
-  required
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  required?: boolean;
-}) {
+function MetricCard({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Gauge }) {
   return (
-    <label className="grid gap-2">
-      <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</span>
-      <textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        required={required}
-        rows={4}
-        className="w-full resize-y rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm font-semibold leading-6 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-300/50"
-      />
-    </label>
+    <div className="urban-lift rounded-md border border-white/8 bg-white/[0.03] p-3">
+      <Icon className="mb-2 h-4 w-4 text-civic-sky" />
+      <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</p>
+      <p className="mt-1 text-xl font-black text-white">{value}</p>
+    </div>
+  );
+}
+
+function MiniStat({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Gauge }) {
+  return (
+    <div className="rounded-md border border-white/8 bg-white/[0.03] p-3">
+      <Icon className="mb-1.5 h-4 w-4 text-civic-sky" />
+      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</p>
+      <p className="mt-0.5 text-lg font-black text-white">{value}</p>
+    </div>
   );
 }
 
 function DetailBlock({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</p>
-      <p className="mt-1 text-sm leading-6 text-slate-300">{value}</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-semibold leading-6 text-slate-200">{value}</p>
     </div>
   );
-}
-
-function MiniStat({ label, value, icon: Icon }: { label: string; value: string; icon: typeof ThumbsUp }) {
-  return (
-    <div className="urban-lift rounded-md border border-white/8 bg-white/[0.03] p-3">
-      <Icon className="mb-2 h-4 w-4 text-civic-sky" />
-      <p className="text-sm font-black leading-5 text-white">{value}</p>
-      <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-    </div>
-  );
-}
-
-function getProjectOrigin(project: UrbanProject): ProjectOrigin {
-  return project.origin ?? "Area tecnica";
-}
-
-function formatOrigin(origin: ProjectOrigin) {
-  return originLabels[origin];
-}
-
-function buildNormativeImpact(form: ProposalForm) {
-  const codeRelation = form.codeRelation.trim();
-  const justification = form.technicalJustification.trim();
-  const base = codeRelation
-    ? `La propuesta requiere contrastar ${codeRelation} con parametros vigentes del Codigo de Planeamiento Urbano`
-    : "El analisis queda pendiente hasta completar la relacion con el Codigo de Planeamiento Urbano";
-  const technical = justification
-    ? "La justificacion tecnica aporta insumos para evaluar factibilidad, compatibilidad de uso y mitigaciones."
-    : "Falta justificacion tecnica para estimar factibilidad y mitigaciones.";
-  const documentation = form.documentation.length
-    ? `Cuenta con ${form.documentation.length} documento(s) adjunto(s) para trazabilidad.`
-    : "Conviene adjuntar planos, fotos, antecedentes o informes para respaldar la revision.";
-
-  return `${base}. Capa principal: ${form.layer}. ${technical} ${documentation} Recomendacion IA: mantener estado "${form.reviewStatus}" hasta completar revision tecnica y normativa.`;
 }

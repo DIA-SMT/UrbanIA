@@ -1,0 +1,73 @@
+HOJA: 24/34  
+DISTRITO: RESIDENCIAL 3b (R3b) (delimitación según Plano de Zonificación en Distritos)
+
+## vivienda individual
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: Parcelas Mediales S.R., Parcelas Esquinas S.R.
+- Altura máxima: N.O.; Basamento: *
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: (*) Excluidas las parcelas esquina.
+
+## agrupada
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: Parcelas Mediales S.R., Parcelas Esquinas S.R.
+- Altura máxima: N.O.; Basamento: *
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: (*) Excluidas las parcelas esquina.
+
+## colectiva Edificación entre medianeras, L.E. sobre Línea Municipal
+- División parcelaria mínima: no especificada
+- FOT: Parcelas Mediales 7, Parcelas Esquinas 7,5
+- Altura máxima: N.P.; Basamento: N.O.
+- Retiros: frente N.O. excepto (**), lateral N.O., fondo (++)
+- Cuerpo saliente/voladizo: no especificado
+- Otras condiciones: (**) Sobre av Mate de Luna el retiro obligatorio de la L.E. será de 7.00 m. En parcelas esquina ese retiro se hará sólo sobre dicha avenida.
+
+## colectiva Edificación entre medianeras, L.E. retiradas 5 mts. Mínimos de L.M.
+- División parcelaria mínima: no especificada
+- FOT: Parcelas Mediales 8, Parcelas Esquinas 8,5
+- Altura máxima: N.P.; Basamento: 5 mts.
+- Retiros: frente N.O. excepto (**), lateral N.O., fondo (++)
+- Cuerpo saliente/voladizo: no especificado
+- Otras condiciones: (**) Sobre av Mate de Luna el retiro obligatorio de la L.E. será de 7.00 m. En parcelas esquina ese retiro se hará sólo sobre dicha avenida.
+
+## colectiva Edificación de Semi Perímetro Libre
+- División parcelaria mínima: no especificada
+- FOT: Parcelas Mediales 8,5, Parcelas Esquinas 9
+- Altura máxima: N.P.; Basamento: (++)
+- Retiros: frente (++) excepto (**), lateral (++), fondo (++)
+- Cuerpo saliente/voladizo: no especificado
+- Otras condiciones: (**) Sobre av Mate de Luna el retiro obligatorio de la L.E. será de 7.00 m. En parcelas esquina ese retiro se hará sólo sobre dicha avenida.
+
+## colectiva Edificación de Perímetro Libre
+- División parcelaria mínima: no especificada
+- FOT: Parcelas Mediales 9, Parcelas Esquinas 9,5
+- Altura máxima: N.P.; Basamento: (++)
+- Retiros: frente (++) excepto (**), lateral (++), fondo (++)
+- Cuerpo saliente/voladizo: no especificado
+- Otras condiciones: (**) Sobre av Mate de Luna el retiro obligatorio de la L.E. será de 7.00 m. En parcelas esquina ese retiro se hará sólo sobre dicha avenida.
+
+## otros usos
+- División parcelaria mínima: no especificada
+- FOT: **, **
+- Altura máxima: **; Basamento: **
+- Retiros: frente **, lateral **, fondo **
+- Cuerpo saliente/voladizo: no especificado
+- Otras condiciones: ** Idem a las establecidas para vivienda colectiva según la tipología.
+
+REFERENCIAS:
+S.R. sin restricciones  
+N.O. no obligatorio  
+N.P. no permitido  
+
+NOTAS DE LA HOJA:  
+(*) Excluidas las parcelas esquina.  
+(**) Sobre av Mate de Luna el retiro obligatorio de la L.E. será de 7.00 m. En parcelas esquina ese retiro se hará sólo sobre dicha avenida.  
+* La zona de retiro obligatorio se podrá ocupar en un 30% con cocheras abiertas en 2 (dos) de sus lados como mínimo, en el caso de vivienda individual y/o agrupada.  
+** Idem a las establecidas para vivienda colectiva según la tipología.  
+(++) Deberá cumplir con lo establecido en el art. 25º de la presente Ordenanza  
+
+NOTA: Hoja modificada por Ordenanza Nº 3.112/01  
+Hoja 25/34 eliminada por Ordenanza Nº 3.112/01

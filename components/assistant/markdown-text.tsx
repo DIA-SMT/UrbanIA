@@ -1,11 +1,33 @@
 import type { ReactNode } from "react";
 
+type MarkdownTone = "dark" | "adaptive";
+
 type MarkdownTextProps = {
   text: string;
   compact?: boolean;
+  /** "dark" mantiene el texto claro para paneles oscuros fijos; "adaptive" sigue el tema activo. */
+  tone?: MarkdownTone;
 };
 
-export function MarkdownText({ text, compact = false }: MarkdownTextProps) {
+const palettes = {
+  dark: {
+    body: "text-slate-300",
+    headingStrong: "text-white",
+    headingSoft: "text-sky-100",
+    strong: "text-slate-100",
+    emphasis: "text-sky-100"
+  },
+  adaptive: {
+    body: "text-slate-600 dark:text-slate-300",
+    headingStrong: "text-slate-900 dark:text-white",
+    headingSoft: "text-sky-700 dark:text-sky-100",
+    strong: "text-slate-900 dark:text-slate-100",
+    emphasis: "text-sky-700 dark:text-sky-100"
+  }
+} as const;
+
+export function MarkdownText({ text, compact = false, tone = "dark" }: MarkdownTextProps) {
+  const palette = palettes[tone];
   const lines = text.split(/\r?\n/);
   const blocks: ReactNode[] = [];
   let listItems: string[] = [];
@@ -20,8 +42,8 @@ export function MarkdownText({ text, compact = false }: MarkdownTextProps) {
     blocks.push(
       <ul key={`list-${blocks.length}`} className={`${compact ? "my-2" : "my-3"} space-y-1 pl-4`}>
         {items.map((item, index) => (
-          <li key={`${item}-${index}`} className="list-disc text-sm leading-6 text-slate-300">
-            {formatInline(item)}
+          <li key={`${item}-${index}`} className={`list-disc text-sm leading-6 ${palette.body}`}>
+            {formatInline(item, palette)}
           </li>
         ))}
       </ul>
@@ -47,8 +69,8 @@ export function MarkdownText({ text, compact = false }: MarkdownTextProps) {
 
     if (line.startsWith("### ")) {
       blocks.push(
-        <h4 key={index} className={`${compact ? "mt-3" : "mt-4"} text-sm font-black text-sky-100`}>
-          {formatInline(line.slice(4))}
+        <h4 key={index} className={`${compact ? "mt-3" : "mt-4"} text-sm font-black ${palette.headingSoft}`}>
+          {formatInline(line.slice(4), palette)}
         </h4>
       );
       return;
@@ -56,8 +78,8 @@ export function MarkdownText({ text, compact = false }: MarkdownTextProps) {
 
     if (line.startsWith("## ")) {
       blocks.push(
-        <h3 key={index} className={`${compact ? "mt-3" : "mt-4"} text-base font-black text-white`}>
-          {formatInline(line.slice(3))}
+        <h3 key={index} className={`${compact ? "mt-3" : "mt-4"} text-base font-black ${palette.headingStrong}`}>
+          {formatInline(line.slice(3), palette)}
         </h3>
       );
       return;
@@ -65,16 +87,16 @@ export function MarkdownText({ text, compact = false }: MarkdownTextProps) {
 
     if (line.startsWith("# ")) {
       blocks.push(
-        <h2 key={index} className={`${compact ? "mt-2" : "mt-3"} text-lg font-black leading-7 text-white`}>
-          {formatInline(line.slice(2))}
+        <h2 key={index} className={`${compact ? "mt-2" : "mt-3"} text-lg font-black leading-7 ${palette.headingStrong}`}>
+          {formatInline(line.slice(2), palette)}
         </h2>
       );
       return;
     }
 
     blocks.push(
-      <p key={index} className="text-sm leading-6 text-slate-300">
-        {formatInline(line)}
+      <p key={index} className={`text-sm leading-6 ${palette.body}`}>
+        {formatInline(line, palette)}
       </p>
     );
   });
@@ -84,13 +106,13 @@ export function MarkdownText({ text, compact = false }: MarkdownTextProps) {
   return <div className="space-y-2">{blocks}</div>;
 }
 
-function formatInline(text: string) {
+function formatInline(text: string, palette: (typeof palettes)[MarkdownTone]) {
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
 
   return parts.map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
-        <strong key={`${part}-${index}`} className="font-black text-slate-100">
+        <strong key={`${part}-${index}`} className={`font-black ${palette.strong}`}>
           {part.slice(2, -2)}
         </strong>
       );
@@ -98,7 +120,7 @@ function formatInline(text: string) {
 
     if (part.startsWith("*") && part.endsWith("*")) {
       return (
-        <strong key={`${part}-${index}`} className="font-bold text-sky-100">
+        <strong key={`${part}-${index}`} className={`font-bold ${palette.emphasis}`}>
           {part.slice(1, -1)}
         </strong>
       );

@@ -1,0 +1,50 @@
+HOJA: 30/63  
+## 2-2 INDUSTRIA DEL CUERO Y PRODUCTOS DE CUERO Y SUCEDANEOS DE CUERO Y PIELES, EXCEPTO EL CALZADO Y OTRAS PRENDAS DE VESTIR
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R2a, R2b
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 300 m2, R4a: hasta 300 m2, R4b: hasta 300 m2
+- No permitido en: S1, S2, S3, I1, I2
+- Estacionamiento/carga: 6
+- Notas: (+) no permitido, (#) en el interior de la parcela según Art.21° de las Reglamentaciones Particulares.
+
+## Saladeros y peladeros de cuero
+- Permitido sin restricciones en: resto de los distritos
+- No permitido en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- Estacionamiento/carga: #
+- Notas: no permitido
+
+## Curtiembre y talleres de acabado, preparación y teñido de cuero y piel
+- Permitido sin restricciones en: resto de los distritos
+- No permitido en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- Estacionamiento/carga: #
+- Notas: no permitido
+
+## Fabricación de bolsas, valijas, carteras, arneses, sillas de montar y baúles
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R2a, R2b
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 300 m2
+- No permitido en: S1, S2, S3, I1, I2
+- Estacionamiento/carga: 6
+- Notas: (+) no permitido, (#) en el interior de la parcela según Art.21° de las Reglamentaciones Particulares.
+
+## Fabricación de otros productos de cuero, excepto calzado y prendas de vestir
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R2a, R2b
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 300 m2
+- No permitido en: S1, S2, S3, I1, I2
+- Estacionamiento/carga: 6
+- Notas: (+) no permitido, (#) en el interior de la parcela según Art.21° de las Reglamentaciones Particulares.
+
+## Fabricación de calzado de cuero o de tela
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R2a, R2b
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 300 m2
+- No permitido en: S1, S2, S3, I1, I2
+- Estacionamiento/carga: 6
+- Notas: (+) no permitido, (#) en el interior de la parcela según Art.21° de las Reglamentaciones Particulares.
+
+## NOTAS DE LA HOJA
+(+) no permitido.  
+(#) en el interior de la parcela según Art.21° de las Reglamentaciones Particulares.  
+(++) Solo se permiten comercios minoristas en la manzana comprendida entre Sarmiento y calles 25 de Mayo, Muñecas y España. Estos serán los mismos que los admitidos en el Distrito R1 y R2.  
+(++) solo se permite exposición y venta sin dispositivo complementario.  
+Todos los usos consignados en esta planilla incluyen el fraccionamiento y el envasado de los productos (Ord. N° 3-403/03).
+
+## MODIFICADA POR
+Ordenanza N° 2648/98 (ordenado a mayo de 2014).

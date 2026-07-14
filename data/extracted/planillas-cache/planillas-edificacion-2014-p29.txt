@@ -1,0 +1,36 @@
+HOJA: 34/34  
+DISTRITO: LE Localizaciones Especiales (delimitación según Plano de Zonificación en Distritos)
+
+## VIVIENDA INDIVIDUAL
+- División parcelaria mínima: frente 50,00 m, superficie 5.000 m2
+- FOT: S.R.
+- Altura máxima: (1); Basamento: S.R.
+- Retiros: frente 10,00 m, lateral 10,00 m, fondo 10,00 m
+- Cuerpo saliente/voladizo: N.P.
+- Otras condiciones: sólo como complemento de la actividad principal y como máximo 1 (una) unidad por parcela
+
+## USOS PERMITIDOS SEGÚN ARTÍCULO 15
+- División parcelaria mínima: frente 100,00 m, superficie 10.000 m2
+- FOT: 5
+- Altura máxima: 12,00 m; Basamento: N.P.
+- Retiros: frente 10,00 m, lateral 15,00 m, fondo 15,00 m
+- Cuerpo saliente/voladizo: N.P.
+- Otras condiciones: arbolado obligatorio en la parcela
+
+## CEMENTERIOS
+- División parcelaria mínima: frente 100,00 m, superficie 50.000 m2
+- FOT: 5 (*)
+- Altura máxima: 12,00 m; Basamento: N.P.
+- Retiros: frente 10,00 m, lateral 15,00 m, fondo 15,00 m
+- Cuerpo saliente/voladizo: N.P.
+- Otras condiciones: para disposiciones particulares ver Ordenanza vigente
+
+REFERENCIAS:
+- N.P. no permitido
+- S.R. sin restricciones
+
+NOTAS DE LA HOJA:
+(1) Deberá cumplir con lo establecido en el Art. 28º de la presente Ordenanza  
+(*) Sólo se permite en el Área de Localizaciones Especiales 2  
+LOS USOS PARA EL DISTRITO LE SE REGIRÁN POR LO ESTABLECIDO EN CAPÍTULO III (ART. 15) Y CAPÍTULO VI (ART. 38)  
+NOTA: Planilla modificada por Ordenanza Nº 3580/05

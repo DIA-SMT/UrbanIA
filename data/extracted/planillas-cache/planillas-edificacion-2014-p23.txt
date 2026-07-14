@@ -1,0 +1,68 @@
+HOJA: 28/34  
+DISTRITO: R2b Residencial 2b (delimitación según Plano de Zonificación en Distritos)
+
+## VIVIENDA INDIVIDUAL
+- División parcelaria mínima: frente 10,00 m, superficie 300 m²
+- FOT: 70
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: N.O.
+
+## AGRUPADA
+- División parcelaria mínima: frente S.R., superficie S.R.
+- FOT: 70
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: N.O.
+
+## COUNTRY
+- División parcelaria mínima: frente 50 m, superficie 10.000 m²
+- FOT: 30
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente 5,00 m, lateral 6,00 m, fondo 6,00 m
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: N.O.
+
+## COLECTIVA ENTRE MEDIANERAS
+- División parcelaria mínima: frente S.R., superficie S.R.
+- FOT: S.R.
+- Altura máxima: 9,00 m; Basamento: 4,50 m
+- Retiros: frente N.O., lateral N.O., fondo (++)
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: (++) 
+
+## PERÍMETRO LIBRE
+- División parcelaria mínima: frente 20,00 m, superficie S.R.
+- FOT: 70
+- Altura máxima: 12,00 m; Basamento: 4,50 m
+- Retiros: frente N.O., lateral (++), fondo (++)
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: (++) 
+
+## SEMI PERÍMETRO LIBRE
+- División parcelaria mínima: frente 15,00 m, superficie S.R.
+- FOT: 70
+- Altura máxima: 9,00 m; Basamento: 4,50 m
+- Retiros: frente N.O., lateral (++), fondo (++)
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: (++) 
+
+## OTROS USOS
+- División parcelaria mínima: frente *, superficie *
+- FOT: 70
+- Altura máxima: *; Basamento: *
+- Retiros: frente *, lateral *, fondo *
+- Cuerpo saliente/voladizo: *
+- Otras condiciones: *
+
+REFERENCIAS:
+- S.R. sin restricciones
+- N.O. no obligatorio
+
+NOTAS DE LA HOJA:
+(1) Deberá cumplir con lo establecido en el Art. 28º de la presente Ordenanza  
+(*) Excluidas las parcelas esquina.  
+* Idem a las establecidas para vivienda colectiva según la tipología.  
+(++) Deberá cumplir con lo establecido en el art. 25º de la presente Ordenanza

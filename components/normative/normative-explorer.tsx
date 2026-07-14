@@ -1,15 +1,18 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookOpen, Check, ChevronRight, Clipboard, FileWarning, Link2, Plus, Search, X } from "lucide-react";
 import type { NormativeExplorerArticle, NormativeExplorerData, NormativeExplorerLink } from "@/lib/normative/data";
 import { normalizeForSearch } from "@/lib/normative/parser";
 
 const relationshipLabels: Record<string, string> = { APPLIES: "Aplica", REFERENCES: "Referencia", SUPPORTS: "Sustenta", REQUIRES_REVIEW: "Requiere revisión", POTENTIAL_CONFLICT: "Posible conflicto", MODIFIES: "Modifica" };
 
-export function NormativeExplorer({ data }: { data: NormativeExplorerData }) {
-  const [selectedId, setSelectedId] = useState(data.articles[0]?.id ?? "");
+export type NormativeFocusRequest = { number: string; nonce: number };
+
+export function NormativeExplorer({ data, focusRequest }: { data: NormativeExplorerData; focusRequest?: NormativeFocusRequest | null }) {
+  const initialSelectedId = (focusRequest && data.articles.find((article) => article.number === focusRequest.number)?.id) || data.articles[0]?.id || "";
+  const [selectedId, setSelectedId] = useState(initialSelectedId);
   const [query, setQuery] = useState("");
   const [chapterId, setChapterId] = useState<string>("all");
   const [relationsOpen, setRelationsOpen] = useState(false);
@@ -27,6 +30,21 @@ export function NormativeExplorer({ data }: { data: NormativeExplorerData }) {
     setRelationsOpen(false);
     window.history.replaceState(null, "", `#articulo-${article.number}`);
   }
+
+  useEffect(() => {
+    if (!focusRequest) return;
+    const target = data.articles.find((article) => article.number === focusRequest.number);
+    if (!target) return;
+    setChapterId("all");
+    setQuery("");
+    setSelectedId(target.id);
+    setRelationsOpen(false);
+    window.history.replaceState(null, "", `#articulo-${target.number}`);
+    const timer = window.setTimeout(() => {
+      document.getElementById(`articulo-${target.number}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 420);
+    return () => window.clearTimeout(timer);
+  }, [focusRequest, data.articles]);
 
   return <div>
     <header className="mb-6">
@@ -60,5 +78,5 @@ function EmptyResults() { return <div className="surface-panel grid min-h-72 pla
 function ManualRelationForm({ article, onCreated }: { article: NormativeExplorerArticle; onCreated: (link: NormativeExplorerLink) => void }) {
   const [sourceType, setSourceType] = useState("project"); const [sourceId, setSourceId] = useState(""); const [relationshipType, setRelationshipType] = useState("REFERENCES"); const [status, setStatus] = useState(""); const [saving, setSaving] = useState(false);
   async function submit(event: React.FormEvent) { event.preventDefault(); setSaving(true); setStatus(""); try { const response = await fetch("/api/normativa/links", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ articleId: article.id, sourceType, sourceId, relationshipType }) }); const payload = await response.json(); if (!response.ok) throw new Error(payload.detail || payload.error); onCreated(payload); setSourceId(""); setStatus("Relación guardada"); } catch (error) { setStatus(error instanceof Error ? error.message : "No se pudo guardar"); } finally { setSaving(false); } }
-  return <form onSubmit={submit} className="surface-panel p-5"><div className="flex items-center gap-2"><Link2 className="h-4 w-4 text-[#1f89f6]" /><h3 className="text-sm font-black text-slate-950 dark:text-white">Vincular manualmente</h3></div><div className="mt-4 grid gap-3"><select value={sourceType} onChange={(event) => setSourceType(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-white/[0.04]"><option value="project">Proyecto</option><option value="proposal">Propuesta</option><option value="hearing">Audiencia</option><option value="scenario">Escenario</option><option value="document">Documento</option><option value="territory">Territorio</option></select><input required value={sourceId} onChange={(event) => setSourceId(event.target.value)} placeholder="Identificador o expediente" className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-white/[0.04]" /><select value={relationshipType} onChange={(event) => setRelationshipType(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-white/[0.04]">{Object.entries(relationshipLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><button disabled={saving} className="primary-button flex">{saving ? "Guardando..." : <><Check className="h-4 w-4" />Guardar relación</>}</button>{status && <p className="text-xs leading-5 text-slate-500">{status}</p>}</div></form>;
+  return <form onSubmit={submit} className="surface-panel p-5"><div className="flex items-center gap-2"><Link2 className="h-4 w-4 text-[#1f89f6]" /><h3 className="text-sm font-black text-slate-950 dark:text-white">Vincular manualmente</h3></div><div className="mt-4 grid gap-3"><select value={sourceType} onChange={(event) => setSourceType(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-white/[0.04]"><option value="project">Proyecto</option><option value="proposal">Propuesta</option><option value="hearing">Audiencia</option><option value="document">Documento</option><option value="territory">Territorio</option></select><input required value={sourceId} onChange={(event) => setSourceId(event.target.value)} placeholder="Identificador o expediente" className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-white/[0.04]" /><select value={relationshipType} onChange={(event) => setRelationshipType(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-white/[0.04]">{Object.entries(relationshipLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><button disabled={saving} className="primary-button flex">{saving ? "Guardando..." : <><Check className="h-4 w-4" />Guardar relación</>}</button>{status && <p className="text-xs leading-5 text-slate-500">{status}</p>}</div></form>;
 }

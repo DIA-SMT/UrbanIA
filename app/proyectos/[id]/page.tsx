@@ -1,13 +1,21 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/shell";
-import { Project360 } from "@/components/projects/project-360";
-import { getUrbanProject, urbanProjects } from "@/lib/demo/urban-projects";
+import { ProjectDetail } from "@/components/projects/project-detail";
+import { getProposalById } from "@/lib/proposals/data";
 
-export function generateStaticParams() { return urbanProjects.map((project) => ({ id: project.id })); }
+export const dynamic = "force-dynamic";
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const project = getUrbanProject(id);
+
+  if (!process.env.DATABASE_URL) notFound();
+
+  const project = await getProposalById(id).catch(() => null);
   if (!project) notFound();
-  return <AppShell><Project360 project={project} /></AppShell>;
+
+  return (
+    <AppShell>
+      <ProjectDetail project={project} />
+    </AppShell>
+  );
 }

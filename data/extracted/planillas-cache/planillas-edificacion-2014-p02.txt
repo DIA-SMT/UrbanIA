@@ -1,0 +1,64 @@
+HOJA: 2/34  
+DISTRITO: C1b Comercial 1b (delimitación según Plano de Zonificación en Distritos)  
+Área comprendida por calle Santiago, Av. Marco Avellaneda - Av. Bernabé Aráoz, General Paz y Salta - Jujuy  
+
+## VIVIENDA INDIVIDUAL
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: Parcelas Mediales S.R., Parcelas Esquinas S.R.
+- Altura máxima: N.P.; Basamento: N.O.
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: No figura
+- Otras condiciones: No figura
+
+## VIVIENDA AGRUPADA
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: Parcelas Mediales S.R., Parcelas Esquinas S.R.
+- Altura máxima: N.P.; Basamento: N.O.
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: No figura
+- Otras condiciones: No figura
+
+## VIVIENDA COLECTIVA
+- Edificación entre medianeras, L.E. sobre Línea Municipal
+  - FOT: Parcelas Mediales 6,5, Parcelas Esquinas 7
+  - Altura máxima: 10,00; Basamento: N.O.
+  - Retiros: frente N.O., lateral N.O., fondo (++)
+  - Cuerpo saliente/voladizo: No figura
+  - Otras condiciones: No figura
+
+- Edificación entre medianeras, L.E. retiradas 5 mts. Mínimos de L.M.
+  - FOT: Parcelas Mediales 7,5, Parcelas Esquinas 8
+  - Altura máxima: 10,00; Basamento: 5 mts.
+  - Retiros: frente N.O., lateral N.O., fondo (++)
+  - Cuerpo saliente/voladizo: No figura
+  - Otras condiciones: Retiro a L.M. y líneas divisorias de parcelas N.O. Para el basamento
+
+- Edificación de Semi Perímetro Libre
+  - FOT: Parcelas Mediales 8, Parcelas Esquinas 8,5
+  - Altura máxima: 10,00; Basamento: (++)
+  - Retiros: frente (++), lateral (++), fondo (++)
+  - Cuerpo saliente/voladizo: No figura
+  - Otras condiciones: No figura
+
+- Edificación de Perímetro Libre
+  - FOT: Parcelas Mediales 8,5, Parcelas Esquinas 9
+  - Altura máxima: 10,00; Basamento: (++)
+  - Retiros: frente (++), lateral (++), fondo (++)
+  - Cuerpo saliente/voladizo: No figura
+  - Otras condiciones: No figura
+
+## OTROS USOS
+- FOT: ** 
+- Altura máxima: **; Basamento: **
+- Retiros: frente **, lateral **, fondo **
+- Cuerpo saliente/voladizo: No figura
+- Otras condiciones: Idem a las establecidas para vivienda colectiva según la tipología.
+
+REFERENCIAS:
+- S.R. sin restricciones
+- N.O. no obligatorio
+- N.P. no permitido
+
+NOTAS DE LA HOJA:
+Hoja 3/34 eliminada por Ordenanza Nº 3.112/01  
+(++) Deberá cumplir con lo establecido en el Art. 25º de la presente Ordenanza

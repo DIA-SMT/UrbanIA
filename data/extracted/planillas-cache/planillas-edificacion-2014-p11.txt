@@ -1,0 +1,16 @@
+HOJA: 13/34  
+DISTRITO: AE1 Área Especial 1  
+
+## TIPOLOGÍA EDILICIA
+- División parcelaria mínima: frente N.P., superficie N.P.
+- FOT: N.P.
+- Altura máxima: 7.00 m; Basamento: 7.00 m
+- Retiros: frente N.P., lateral N.P., fondo N.P.
+- Cuerpo saliente/voladizo: N.P.
+- Otras condiciones: Línea de edificación coincidente con la Línea de edificación de la Casa de la Independencia. Basamento respetando el FOS del Distrito.
+
+REFERENCIAS:
+- N.P.: no permitido
+
+NOTAS DE LA HOJA:  
+Dirección de Catastro y Edificación - Digesto Normativo - CÓDIGO DE PLANEAMIENTO URBANO - ORDENANZA N° 2648/98 (ordenado a mayo de 2014).

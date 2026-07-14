@@ -1,0 +1,58 @@
+HOJA: 15/34  
+DISTRITO: AE Áreas Especiales (AE)  
+(delimitación según Planos de Zonificación en Distritos y de Áreas Especiales)
+
+## vivienda individual
+- División parcelaria mínima: frente 20,00 m, superficie 900 m2
+- FOT: S.R.
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente a 4,00 m, lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: 2,00 m
+- Otras condiciones: no permitida en planta baja
+
+## vivienda agrupada
+- Tipología edilicia: TIPOLOGIA NO PERMITIDA
+
+## country
+- Tipología edilicia: TIPOLOGIA NO PERMITIDA
+
+## colectiva entre medianeras
+- División parcelaria mínima: frente N.O., superficie N.O.
+- FOT: 80
+- Altura máxima: 18,00 m; Basamento: 10,00 m
+- Retiros: frente N.O., lateral (++), fondo N.P.
+- Cuerpo saliente/voladizo: N.P.
+- Otras condiciones: P2a
+
+## perímetro libre
+- División parcelaria mínima: frente 20,00 m, superficie N.O.
+- FOT: 80
+- Altura máxima: 21,00 m; Basamento: **
+- Retiros: frente (++), lateral (++), fondo N.P.
+- Cuerpo saliente/voladizo: N.P.
+- Otras condiciones: la construcción del basamento será Optativo
+
+## semi perímetro libre
+- División parcelaria mínima: frente 15,00 m, superficie N.O.
+- FOT: 80
+- Altura máxima: **; Basamento: **
+- Retiros: frente (++), lateral (++), fondo N.P.
+- Cuerpo saliente/voladizo: N.P.
+
+## otros usos
+- División parcelaria mínima: frente ***, superficie ***
+- FOT: 80
+- Altura máxima: ***; Basamento: ***
+- Retiros: frente ***, lateral ***, fondo ***
+- Cuerpo saliente/voladizo: ***
+- Otras condiciones: ***
+
+REFERENCIAS:
+- N.P. no permitido
+- S.R. sin restricciones
+
+NOTAS DE LA HOJA:
+(1) Deberá cumplir con lo establecido en el Art. 28º de la presente Ordenanza  
+(*) Excluidas las parcelas esquina.  
+** Retiro obligatorio de L.E. a 4.00 m del cordón.  
+*** Idem a las establecidas para vivienda colectiva según la tipología.

@@ -1,0 +1,34 @@
+HOJA: 33/34  
+DISTRITO: GE Grandes Equipamientos (delimitación según Plano de Zonificación en Distritos)  
+
+## VIVIENDA INDIVIDUAL  
+- Tipología edilicia: Tipología no permitida  
+
+## AGRUPADA  
+- Tipología edilicia: Tipología no permitida  
+
+## COUNTRY  
+- Tipología edilicia: Tipología no permitida  
+
+## COLECTIVA  
+- Tipología edilicia: Tipología no permitida  
+
+## OTROS USOS  
+- Tipología edilicia: Perímetro Libre  
+- División parcelaria mínima: frente 50,00 m, superficie 2.500 m²  
+- FOT: 40  
+- Altura máxima: (**)  
+- Basamento: 30,00 m  
+- Retiros: frente 11,00 m, lateral 7,00 m, fondo h/d=3  
+- Perfil edilicio: h/d=3  
+- Otras condiciones: . no rigen las disposiciones para centro libre de manzana. . parquización obligatoria de la superficie libre de la parcela.  
+
+REFERENCIAS:  
+- S.R.: Sin restricciones  
+- N.O.: No obligatorio  
+- N.P.: No permitido  
+
+NOTAS DE LA HOJA:  
+(1) Deberá cumplir con lo establecido en el Art. 28º de la presente Ordenanza  
+(**) Altura máxima de Edificación: Se regirá por la relación R = h/d = 2  
+NOTA: Los usos para el distrito GE se regirán por lo establecido en Capítulo III (Art. 16º) y Capítulo VI (Art. 37º)
