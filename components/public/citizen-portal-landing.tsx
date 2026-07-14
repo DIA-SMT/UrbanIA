@@ -21,7 +21,6 @@ import {
   Sparkles,
   Sun,
   TreePine,
-  Trash2,
   UserRound
 } from "lucide-react";
 import { MigueFloatingChat } from "@/components/assistant/migue-floating-chat";
@@ -64,8 +63,6 @@ type SavedContribution = {
   status?: string;
   createdAt: string;
 };
-
-const contributionsStorageKey = "urbania-citizen-contributions";
 
 const urbanAxes: Axis[] = [
   {
@@ -168,21 +165,31 @@ export function CitizenPortalLanding() {
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("urbania-portal-theme") === "dark" ? "dark" : "light";
-    const storedContributions = window.localStorage.getItem(contributionsStorageKey);
-
-    if (storedContributions) {
-      try {
-        const parsed = JSON.parse(storedContributions) as SavedContribution[];
-        setSavedContributions(Array.isArray(parsed) ? parsed : []);
-      } catch {
-        setSavedContributions([]);
-      }
-    }
 
     setTheme(savedTheme);
     applyTheme(savedTheme);
 
+    let isMounted = true;
+
+    async function loadContributions() {
+      try {
+        const response = await fetch("/api/citizen-contributions", { cache: "no-store" });
+        const data = (await response.json()) as { contributions?: SavedContribution[] };
+
+        if (isMounted && response.ok) {
+          setSavedContributions(data.contributions ?? []);
+        }
+      } catch {
+        if (isMounted) {
+          setSavedContributions([]);
+        }
+      }
+    }
+
+    loadContributions();
+
     return () => {
+      isMounted = false;
       document.documentElement.classList.remove("urban-light");
       document.documentElement.style.colorScheme = "light";
     };
@@ -249,10 +256,8 @@ export function CitizenPortalLanding() {
         throw new Error(result.error ?? "No pudimos guardar el aporte ciudadano.");
       }
 
-      const nextContributions = [result.contribution, ...savedContributions].slice(0, 12);
-
-      setSavedContributions(nextContributions);
-      window.localStorage.setItem(contributionsStorageKey, JSON.stringify(nextContributions));
+      const savedContribution = result.contribution;
+      setSavedContributions((current) => [savedContribution, ...current]);
       setSaveSuccess("Guardado correctamente. Ya queda disponible para revision interna.");
       setCitizenText("");
       setSelectedFile("");
@@ -261,13 +266,6 @@ export function CitizenPortalLanding() {
     } finally {
       setIsSavingContribution(false);
     }
-  }
-
-  function deleteContribution(id: string) {
-    const nextContributions = savedContributions.filter((contribution) => contribution.id !== id);
-
-    setSavedContributions(nextContributions);
-    window.localStorage.setItem(contributionsStorageKey, JSON.stringify(nextContributions));
   }
 
   return (
@@ -602,14 +600,6 @@ export function CitizenPortalLanding() {
                       Archivo adjunto: {contribution.fileName}
                     </p>
                   ) : null}
-                  <button
-                    type="button"
-                    onClick={() => deleteContribution(contribution.id)}
-                    className={isLight ? "urban-button mt-4 inline-flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700" : "urban-button mt-4 inline-flex items-center gap-2 rounded-md border border-rose-300/20 bg-rose-300/10 px-3 py-2 text-xs font-black text-rose-100"}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Ocultar de esta vista
-                  </button>
                 </article>
               ))}
             </div>

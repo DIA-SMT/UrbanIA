@@ -254,6 +254,17 @@ body {
   color: #0f172a;
 }
 
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 1;
+}
+
+.leaflet-control-container {
+  position: relative;
+  z-index: 2;
+}
+
 .leaflet-control-zoom a {
   background: rgba(15, 23, 42, 0.92) !important;
   border-color: rgba(255, 255, 255, 0.12) !important;

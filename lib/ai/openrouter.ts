@@ -19,7 +19,7 @@ export function hasOpenRouterConfig() {
 
 export async function askUrbanAssistant(
   messages: UrbanAssistantMessage[],
-  options: { model?: string; json?: boolean } = {}
+  options: { model?: string; json?: boolean; maxTokens?: number; temperature?: number } = {}
 ): Promise<UrbanAssistantResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
@@ -39,8 +39,8 @@ export async function askUrbanAssistant(
 
   const completion = await client.chat.completions.create({
     model,
-    temperature: 0.35,
-    max_tokens: 900,
+    temperature: options.temperature ?? 0.35,
+    max_tokens: options.maxTokens ?? 900,
     messages,
     ...(options.json ? { response_format: { type: "json_object" } } : {})
   });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -24,18 +24,94 @@ import {
   Sparkles,
   Users,
   Upload,
-  Youtube,
   X
 } from "lucide-react";
-import {
-  publicHearings,
-  type HearingModality,
-  type HearingStatus,
-  type PublicHearing,
-  type TopicImportance
-} from "@/lib/demo/public-hearings";
-
 const STORAGE_KEY = "urbania-public-hearings";
+
+type HearingStatus = "Programada" | "En curso" | "Finalizada" | "Reprogramada" | "Suspendida";
+type HearingModality = "Presencial" | "Virtual" | "Mixta";
+type TopicImportance = "Bajo" | "Medio" | "Alto" | "Critico";
+
+type HearingParticipant = {
+  name: string;
+  institution: string;
+  role: string;
+  actorType: string;
+  attended: boolean;
+  intervention: string;
+};
+
+type HearingDocument = {
+  name: string;
+  type: string;
+  url?: string;
+  uploadedAt: string;
+  uploadedBy: string;
+  description: string;
+};
+
+type ObservedTopic = {
+  topic: string;
+  description: string;
+  importance: TopicImportance;
+  relatedArticle: string;
+  relatedProposal: string;
+  technicalObservation: string;
+  citizenObservation: string;
+};
+
+type HearingDebateMessage = {
+  id: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
+};
+
+type HearingContribution = {
+  id: string;
+  participantName: string;
+  content: string;
+  createdAt: string;
+  fileNames: string[];
+};
+
+type PublicHearing = {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  place: string;
+  modality: HearingModality;
+  status: HearingStatus;
+  mainTopic: string;
+  secondaryTopics: string[];
+  recordNumber: string;
+  recordTitle: string;
+  relatedProposal: string;
+  proposalOrigin: "Concejo" | "Ciudadania" | "Codigo urbano";
+  promotingArea: string;
+  recordStatus: string;
+  recordDocument?: string;
+  linkedProjectId?: string;
+  relatedArticles: string[];
+  participants: HearingParticipant[];
+  documents: HearingDocument[];
+  debateMessages?: HearingDebateMessage[];
+  contributions?: HearingContribution[];
+  aiSummary?: string;
+  aiKeyPoints?: string[];
+  conclusions: {
+    summary: string;
+    agreements: string;
+    disagreements: string;
+    nextSteps: string;
+    technicalRecommendations: string;
+    decisions: string;
+    proposalStatusAfter: string;
+  };
+  observedTopics: ObservedTopic[];
+};
+
 const statuses: Array<HearingStatus | "Todos"> = ["Todos", "Programada", "En curso", "Finalizada", "Reprogramada", "Suspendida"];
 const modalities: HearingModality[] = ["Presencial", "Virtual", "Mixta"];
 const origins: PublicHearing["proposalOrigin"][] = ["Concejo", "Ciudadania", "Codigo urbano"];
@@ -57,6 +133,24 @@ const importanceStyles: Record<TopicImportance, string> = {
 };
 
 type DetailTab = "Resumen" | "Debate" | "Aportes" | "Participantes" | "Documentos" | "Conclusiones" | "Temas observados" | "IA";
+type WorkflowCommand = {
+  action: "import" | "analyze";
+  hearingId: string;
+  token: number;
+};
+
+type HearingAiDraft = {
+  summary: string;
+  keyPoints: string[];
+  participants: HearingParticipant[];
+  title?: string;
+  mainTopic: string;
+  secondaryTopics: string[];
+  relatedArticles: string[];
+  relatedProposal: string;
+  conclusions: PublicHearing["conclusions"];
+  observedTopics: ObservedTopic[];
+};
 
 type HearingForm = {
   title: string;
@@ -131,8 +225,8 @@ const emptyForm: HearingForm = {
 };
 
 export function HearingsBoard() {
-  const [hearings, setHearings] = useState<PublicHearing[]>(publicHearings);
-  const [selectedId, setSelectedId] = useState(publicHearings[0]?.id ?? "");
+  const [hearings, setHearings] = useState<PublicHearing[]>([]);
+  const [selectedId, setSelectedId] = useState("");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<HearingStatus | "Todos">("Todos");
   const [topic, setTopic] = useState("Todas");
@@ -140,28 +234,37 @@ export function HearingsBoard() {
   const [form, setForm] = useState<HearingForm>(emptyForm);
   const [detailTab, setDetailTab] = useState<DetailTab>("IA");
   const [processedHearingIds, setProcessedHearingIds] = useState<string[]>([]);
+  const [storageReady, setStorageReady] = useState(false);
+  const [workflowCommand, setWorkflowCommand] = useState<WorkflowCommand | null>(null);
   const agendaRef = useRef<HTMLElement>(null);
+  const intakeRef = useRef<HTMLElement>(null);
   const queryRef = useRef<HTMLInputElement>(null);
   const topicRef = useRef<HTMLSelectElement>(null);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (!stored) return;
+    if (!stored) {
+      setStorageReady(true);
+      return;
+    }
 
     try {
       const userHearings = JSON.parse(stored) as PublicHearing[];
-      setHearings([...userHearings, ...publicHearings]);
-      setSelectedId(userHearings[0]?.id ?? publicHearings[0]?.id ?? "");
+      setHearings(userHearings);
+      setSelectedId(userHearings[0]?.id ?? "");
     } catch {
       window.localStorage.removeItem(STORAGE_KEY);
+    } finally {
+      setStorageReady(true);
     }
   }, []);
 
   const userHearings = useMemo(() => hearings.filter((hearing) => hearing.id.startsWith("hearing-")), [hearings]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(userHearings));
-  }, [userHearings]);
+  }, [storageReady, userHearings]);
 
   const topics = useMemo(
     () => ["Todas", ...Array.from(new Set(hearings.flatMap((hearing) => [hearing.mainTopic, ...hearing.secondaryTopics]))).sort()],
@@ -173,7 +276,7 @@ export function HearingsBoard() {
 
     return hearings
       .filter((hearing) => {
-        const searchable = [hearing.title, hearing.recordNumber, hearing.recordTitle, hearing.relatedProposal, hearing.promotingArea, hearing.mainTopic];
+        const searchable = [hearing.title, hearing.relatedProposal, hearing.promotingArea, hearing.mainTopic];
         const matchesQuery = !normalized || searchable.some((value) => value.toLowerCase().includes(normalized));
         const matchesStatus = status === "Todos" || hearing.status === status;
         const matchesTopic = topic === "Todas" || hearing.mainTopic === topic || hearing.secondaryTopics.includes(topic);
@@ -182,7 +285,7 @@ export function HearingsBoard() {
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [hearings, query, status, topic]);
 
-  const selectedHearing = filteredHearings.find((hearing) => hearing.id === selectedId) ?? filteredHearings[0] ?? hearings[0];
+  const selectedHearing = filteredHearings.find((hearing) => hearing.id === selectedId) ?? filteredHearings[0];
   const selectedHearingWasProcessed = selectedHearing ? processedHearingIds.includes(selectedHearing.id) || Boolean(selectedHearing.aiSummary) : false;
 
   function updateForm<K extends keyof HearingForm>(key: K, value: HearingForm[K]) {
@@ -191,6 +294,25 @@ export function HearingsBoard() {
 
   function openAgenda() {
     agendaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function runWorkflowStep(action: "import" | "analyze" | "consolidate") {
+    if (!selectedHearing) {
+      setIsFormOpen(true);
+      window.setTimeout(() => {
+        document.getElementById("hearing-form-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+      return;
+    }
+
+    if (action === "consolidate") {
+      setDetailTab("IA");
+      agendaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    intakeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setWorkflowCommand({ action, hearingId: selectedHearing.id, token: Date.now() });
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -209,13 +331,13 @@ export function HearingsBoard() {
       status: form.status,
       mainTopic: form.mainTopic.trim(),
       secondaryTopics: splitList(form.secondaryTopics),
-      recordNumber: form.recordNumber.trim(),
-      recordTitle: form.recordTitle.trim(),
+      recordNumber: buildInternalHearingCode(),
+      recordTitle: form.relatedProposal.trim() || form.title.trim(),
       relatedProposal: form.relatedProposal.trim(),
       proposalOrigin: form.proposalOrigin,
       promotingArea: form.promotingArea.trim(),
-      recordStatus: form.recordStatus.trim(),
-      recordDocument: form.recordDocument.trim(),
+      recordStatus: "En tratamiento",
+      recordDocument: "",
       relatedArticles: articles,
       participants: participantNames.map((name) => ({
         name,
@@ -300,9 +422,9 @@ export function HearingsBoard() {
           </div>
 
           <div className="grid gap-3">
-            <WorkflowStep index="1" title="Subir grabacion" text="Audio o video de la audiencia." />
-            <WorkflowStep index="2" title="Procesar con IA" text="Transcripcion, actores y temas." />
-            <WorkflowStep index="3" title="Vincular decision" text="Codigo urbano, proyectos y mapa." />
+            <WorkflowStep index="1" title="Importar Pinpoint" text="TXT, VTT o SRT revisable." onClick={() => runWorkflowStep("import")} />
+            <WorkflowStep index="2" title="Analizar con Migue" text="Actores, reclamos, compromisos y preguntas." onClick={() => runWorkflowStep("analyze")} />
+            <WorkflowStep index="3" title="Consolidar memoria" text="Normativa, propuestas y gabinete." onClick={() => runWorkflowStep("consolidate")} />
           </div>
         </div>
       </section>
@@ -317,7 +439,7 @@ export function HearingsBoard() {
         ))}
       </section>
 
-      {selectedHearing ? <HearingAiIntake hearing={selectedHearing} onAnalyze={handleAnalyze} /> : null}
+      {selectedHearing ? <HearingAiIntake refElement={intakeRef} hearing={selectedHearing} command={workflowCommand} onAnalyze={handleAnalyze} /> : null}
 
       {isFormOpen ? <HearingFormPanel form={form} onClose={() => setIsFormOpen(false)} onSubmit={handleSubmit} onUpdate={updateForm} /> : null}
 
@@ -338,7 +460,7 @@ export function HearingsBoard() {
                 ref={queryRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar audiencia, propuesta o expediente..."
+                placeholder="Buscar audiencia, propuesta o area..."
                 className="h-11 w-full rounded-md border border-white/10 bg-slate-950/70 pl-10 pr-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-300/50"
               />
             </label>
@@ -372,7 +494,9 @@ export function HearingsBoard() {
           ) : (
             <PendingAnalysisPanel hearing={selectedHearing} />
           )
-        ) : null}
+        ) : (
+          <EmptyAudiencesPanel onCreate={() => setIsFormOpen(true)} />
+        )}
       </section>
     </div>
   );
@@ -402,36 +526,49 @@ function HearingCard({ hearing, selected, onSelect }: { hearing: PublicHearing; 
         <span className="rounded-md bg-white/[0.06] px-2 py-1 text-[11px] font-bold text-slate-300">{hearing.mainTopic}</span>
       </div>
       <div className="mt-3 grid gap-1.5 text-xs text-slate-400">
-        <span className="flex min-w-0 items-center gap-2"><FileText className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{hearing.recordNumber}</span></span>
+        <span className="flex min-w-0 items-center gap-2"><FileText className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{hearing.relatedProposal || hearing.title}</span></span>
         <span className="flex min-w-0 items-center gap-2"><MapPin className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{hearing.place}</span></span>
       </div>
     </button>
   );
 }
 
-function WorkflowStep({ index, title, text }: { index: string; title: string; text: string }) {
+function WorkflowStep({ index, title, text, onClick }: { index: string; title: string; text: string; onClick: () => void }) {
   return (
-    <div className="urban-lift rounded-md border border-white/10 bg-slate-950/45 p-4">
+    <button
+      type="button"
+      onClick={onClick}
+      className="urban-lift group rounded-md border border-white/10 bg-slate-950/45 p-4 text-left transition hover:border-sky-300/35 hover:bg-sky-300/[0.06] focus:outline-none focus:ring-2 focus:ring-sky-300/35"
+    >
       <div className="flex items-start gap-3">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-sky-300/10 text-sm font-black text-sky-200">{index}</span>
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-sky-300/10 text-sm font-black text-sky-200 transition group-hover:bg-sky-300/20">{index}</span>
         <div>
           <h3 className="text-sm font-black text-white">{title}</h3>
           <p className="mt-1 text-xs leading-5 text-slate-400">{text}</p>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
-function HearingAiIntake({ hearing, onAnalyze }: { hearing: PublicHearing; onAnalyze: (hearing: PublicHearing) => void }) {
+function HearingAiIntake({
+  refElement,
+  hearing,
+  command,
+  onAnalyze
+}: {
+  refElement: React.RefObject<HTMLElement | null>;
+  hearing: PublicHearing;
+  command: WorkflowCommand | null;
+  onAnalyze: (hearing: PublicHearing) => void;
+}) {
   const [fileName, setFileName] = useState("");
-  const [youtubeUrl, setYoutubeUrl] = useState("");
   const [transcript, setTranscript] = useState("");
-  const [isTranscribing, setIsTranscribing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const normalizedYoutubeUrl = youtubeUrl.trim();
-  const hasYoutubeUrl = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(normalizedYoutubeUrl);
-  const hasSource = Boolean(fileName || hasYoutubeUrl);
+  const [workflowNotice, setWorkflowNotice] = useState("");
+  const [draft, setDraft] = useState<HearingAiDraft | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const transcriptRef = useRef<HTMLTextAreaElement>(null);
   const transcriptReady = transcript.trim().length > 20;
 
   function importTranscriptFile(file?: File) {
@@ -444,96 +581,92 @@ function HearingAiIntake({ hearing, onAnalyze }: { hearing: PublicHearing; onAna
     reader.readAsText(file);
   }
 
-  function transcribeSource() {
-    if (!hasSource) return;
-    setIsTranscribing(true);
-    window.setTimeout(() => {
-      setTranscript(buildDemoHearingTranscript(hearing, fileName || normalizedYoutubeUrl));
-      setIsTranscribing(false);
-    }, 650);
+  const analyzeRecording = useCallback(async () => {
+    if (!transcriptReady) {
+      setWorkflowNotice("Primero importa o pega una transcripcion de Pinpoint para que Migue pueda analizarla.");
+      transcriptRef.current?.focus();
+      return;
+    }
+    setIsAnalyzing(true);
+    setWorkflowNotice("");
+    try {
+      const nextDraft = await requestHearingAiDraft(hearing, transcript);
+      setDraft(nextDraft);
+      setWorkflowNotice("Migue preparo un borrador con analisis IA. Revisalo y aplicalo solo si esta correcto.");
+    } catch {
+      setDraft(buildHearingAiDraft(hearing, transcript));
+      setWorkflowNotice("Migue no pudo responder con IA. Arme un borrador preliminar con deteccion local para que no pierdas el avance.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [hearing, transcript, transcriptReady]);
+
+  function applyDraft() {
+    if (!draft) return;
+
+    onAnalyze({
+      ...hearing,
+      mainTopic: draft.mainTopic,
+      secondaryTopics: draft.secondaryTopics,
+      relatedArticles: draft.relatedArticles,
+      relatedProposal: draft.relatedProposal,
+      participants: draft.participants,
+      observedTopics: draft.observedTopics,
+      conclusions: draft.conclusions,
+      aiSummary: draft.summary,
+      aiKeyPoints: draft.keyPoints
+    });
+    setDraft(null);
+    setWorkflowNotice("Borrador aplicado a la audiencia.");
   }
 
-  function analyzeRecording() {
-    if (!transcriptReady) return;
-    setIsAnalyzing(true);
-    window.setTimeout(() => {
-      const analysis = buildHearingAiAnalysis(hearing);
-      onAnalyze({ ...hearing, aiSummary: analysis.summary, aiKeyPoints: analysis.keyPoints });
-      setIsAnalyzing(false);
-    }, 650);
-  }
+  useEffect(() => {
+    if (!command || command.hearingId !== hearing.id) return;
+
+    if (command.action === "import") {
+      setWorkflowNotice("Selecciona el archivo TXT, VTT o SRT de Pinpoint para cargar la transcripcion.");
+      fileInputRef.current?.click();
+    }
+
+    if (command.action === "analyze") {
+      analyzeRecording();
+    }
+  }, [analyzeRecording, command, hearing.id]);
 
   const analysisReady = Boolean(hearing.aiSummary);
+  const visibleParticipants = draft?.participants.length ?? hearing.participants.length;
+  const visibleTopics = draft ? 1 + draft.secondaryTopics.length : 1 + hearing.secondaryTopics.length;
+  const visibleProposal = draft?.relatedProposal || hearing.relatedProposal || "Pendiente";
+  const visibleArticle = draft?.relatedArticles[0] ?? hearing.relatedArticles[0] ?? "Sin articulo";
 
   return (
-    <section className="urban-card rounded-lg p-4 lg:p-5">
+    <section ref={refElement} className="scroll-mt-4 rounded-lg p-4 lg:p-5 urban-card">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)]">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Procesamiento de audiencia</p>
-          <h2 className="mt-2 text-2xl font-black text-white">Grabacion a memoria publica</h2>
+          <h2 className="mt-2 text-2xl font-black text-white">Transcripcion a memoria publica</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-            Primero transcribi la fuente, pega una transcripcion externa o importa un archivo de Pinpoint. Despues Migue analiza esa evidencia para producir la memoria estructurada.
+            Importa la transcripcion generada en Pinpoint, revisala si hace falta y despues Migue la transforma en memoria estructurada para gabinete, normativa y propuestas.
           </p>
           <div className="mt-4 grid gap-3">
-            <div className="grid gap-3 xl:grid-cols-3">
-              <label className="urban-button flex min-h-14 cursor-pointer items-center gap-3 rounded-md border border-dashed border-sky-300/25 bg-sky-300/[0.04] px-4 py-3">
-                <Upload className="h-5 w-5 shrink-0 text-sky-200" />
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-black text-white">{fileName || "Subir audio o video"}</span>
-                  <span className="block text-xs text-slate-500">MP3, WAV, MP4, MOV</span>
-                </span>
-                <input
-                  type="file"
-                  accept="audio/*,video/*"
-                  className="hidden"
-                  onChange={(event) => {
-                    setFileName(event.target.files?.[0]?.name ?? "");
-                    setTranscript("");
-                  }}
-                />
-              </label>
-              <label className="flex min-h-14 items-center gap-3 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3">
-                <Youtube className="h-5 w-5 shrink-0 text-rose-200" />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-xs font-black uppercase tracking-[0.12em] text-slate-500">Link de YouTube</span>
-                  <input
-                    type="url"
-                    value={youtubeUrl}
-                    onChange={(event) => {
-                      setYoutubeUrl(event.target.value);
-                      setTranscript("");
-                    }}
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    className="mt-1 w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-600"
-                  />
-                </span>
-              </label>
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
               <label className="urban-button flex min-h-14 cursor-pointer items-center gap-3 rounded-md border border-dashed border-emerald-300/25 bg-emerald-300/[0.05] px-4 py-3">
                 <FileText className="h-5 w-5 shrink-0 text-emerald-200" />
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-black text-white">Importar transcripcion</span>
-                  <span className="block text-xs text-slate-500">Pinpoint, TXT, VTT, SRT</span>
+                  <span className="block truncate text-sm font-black text-white">{fileName || "Importar transcripcion de Pinpoint"}</span>
+                  <span className="block text-xs text-slate-500">TXT, VTT, SRT</span>
                 </span>
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept=".txt,.vtt,.srt,text/plain,text/vtt"
                   className="hidden"
                   onChange={(event) => importTranscriptFile(event.target.files?.[0])}
                 />
               </label>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                onClick={transcribeSource}
-                disabled={!hasSource || isTranscribing || isAnalyzing}
-                className="urban-button inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-sky-300/25 bg-sky-300/[0.08] px-4 py-3 text-sm font-black text-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <FileText className="h-4 w-4" />
-                {isTranscribing ? "Transcribiendo..." : transcriptReady ? "Transcribir otra vez" : "Transcribir audiencia"}
-              </button>
               <button
                 onClick={analyzeRecording}
-                disabled={!transcriptReady || isAnalyzing || isTranscribing}
+                disabled={!transcriptReady || isAnalyzing}
                 className="urban-button inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Sparkles className="h-4 w-4" />
@@ -541,9 +674,8 @@ function HearingAiIntake({ hearing, onAnalyze }: { hearing: PublicHearing; onAna
               </button>
             </div>
           </div>
-          {!hasSource && !transcriptReady ? <p className="mt-2 text-xs font-semibold text-amber-200">Subi una grabacion, pega un link de YouTube o importa una transcripcion de Pinpoint.</p> : null}
-          {normalizedYoutubeUrl && !hasYoutubeUrl ? <p className="mt-2 text-xs font-semibold text-rose-200">El enlace debe ser de youtube.com o youtu.be.</p> : null}
-          {hasSource && !transcriptReady ? <p className="mt-2 text-xs font-semibold text-slate-500">Migue se habilita cuando existe una transcripcion revisable.</p> : null}
+          {!transcriptReady ? <p className="mt-2 text-xs font-semibold text-amber-200">Importa una transcripcion de Pinpoint para habilitar el analisis de Migue.</p> : null}
+          {workflowNotice ? <p className="mt-2 text-xs font-semibold text-sky-200">{workflowNotice}</p> : null}
           {transcript ? (
             <label className="mt-4 grid gap-2">
               <span className="flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.12em] text-slate-400">
@@ -551,24 +683,75 @@ function HearingAiIntake({ hearing, onAnalyze }: { hearing: PublicHearing; onAna
                 <span className="rounded-md border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] text-emerald-100">Lista para Migue</span>
               </span>
               <textarea
+                ref={transcriptRef}
                 rows={6}
                 value={transcript}
                 onChange={(event) => setTranscript(event.target.value)}
                 className="w-full resize-y rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm font-semibold leading-6 text-slate-100 outline-none transition focus:border-sky-300/50"
               />
-              <span className="text-xs leading-5 text-slate-500">En produccion, este texto vendria de subtitulos de YouTube o de transcripcion de audio. El equipo puede corregirlo antes del analisis.</span>
+              <span className="text-xs leading-5 text-slate-500">Este texto viene de Pinpoint u otra fuente de transcripcion. El equipo puede corregirlo antes del analisis.</span>
             </label>
           ) : null}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <AnalysisResultCard icon={Users} label="Participantes" value={`${hearing.participants.length} detectados`} active={analysisReady} />
-          <AnalysisResultCard icon={MessageSquareText} label="Topicos" value={`${1 + hearing.secondaryTopics.length} temas`} active={analysisReady} />
-          <AnalysisResultCard icon={ListChecks} label="Propuestas" value={hearing.relatedProposal || "Pendiente"} active={analysisReady} />
-          <AnalysisResultCard icon={BookOpen} label="Codigo urbano" value={hearing.relatedArticles[0] ?? "Sin articulo"} active={analysisReady} />
+          <AnalysisResultCard icon={Users} label="Participantes" value={`${visibleParticipants} detectados`} active={analysisReady || Boolean(draft)} />
+          <AnalysisResultCard icon={MessageSquareText} label="Topicos" value={`${visibleTopics} temas`} active={analysisReady || Boolean(draft)} />
+          <AnalysisResultCard icon={ListChecks} label="Propuestas" value={visibleProposal} active={analysisReady || Boolean(draft)} />
+          <AnalysisResultCard icon={BookOpen} label="Codigo urbano" value={visibleArticle} active={analysisReady || Boolean(draft)} />
         </div>
       </div>
+
+      {draft ? (
+        <div className="mt-4 rounded-lg border border-sky-300/20 bg-sky-300/[0.06] p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Borrador pendiente de aprobacion</p>
+              <h3 className="mt-1 text-xl font-black text-white">Autocompletado sugerido por Migue</h3>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{draft.summary}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setDraft(null)}
+                className="urban-button rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black text-slate-200"
+              >
+                Descartar
+              </button>
+              <button
+                type="button"
+                onClick={applyDraft}
+                className="urban-button rounded-md bg-civic-blue px-3 py-2 text-xs font-black text-white"
+              >
+                Aplicar a audiencia
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            <DraftPreviewBlock label="Participantes" items={draft.participants.map((participant) => `${participant.name} - ${participant.actorType}`)} />
+            <DraftPreviewBlock label="Temas" items={[draft.mainTopic, ...draft.secondaryTopics]} />
+            <DraftPreviewBlock label="Normativa" items={draft.relatedArticles} />
+            <DraftPreviewBlock label="Puntos clave" items={draft.keyPoints.slice(0, 4)} />
+          </div>
+        </div>
+      ) : null}
     </section>
+  );
+}
+
+function DraftPreviewBlock({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div className="rounded-md border border-white/10 bg-slate-950/40 p-3">
+      <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</p>
+      <div className="mt-2 space-y-1.5">
+        {items.length ? (
+          items.map((item, index) => <p key={`${item}-${index}`} className="text-sm leading-5 text-slate-300">{item}</p>)
+        ) : (
+          <p className="text-sm text-slate-500">Sin datos detectados.</p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -582,14 +765,56 @@ function PendingAnalysisPanel({ hearing }: { hearing: PublicHearing }) {
         <p className="mt-5 text-xs font-black uppercase tracking-[0.14em] text-sky-300">Pendiente de procesamiento</p>
         <h2 className="mt-2 max-w-xl text-2xl font-black leading-tight text-white">{hearing.title}</h2>
         <p className="mt-3 max-w-lg text-sm leading-7 text-slate-400">
-          Los participantes, topicos, propuestas, puntos fuertes y relacion normativa se van a mostrar cuando cargues una grabacion arriba y ejecutes el analisis IA.
+          Los participantes, reclamos, compromisos, preguntas abiertas y relacion normativa se van a mostrar cuando importes una transcripcion de Pinpoint y ejecutes el analisis IA.
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
-          <span className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-slate-300">{hearing.recordNumber}</span>
+          <span className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-slate-300">{hearing.relatedProposal || "Propuesta pendiente"}</span>
           <span className="rounded-md border border-sky-300/15 bg-sky-300/[0.06] px-3 py-2 text-xs font-bold text-sky-100">{hearing.mainTopic}</span>
         </div>
       </div>
     </article>
+  );
+}
+
+function EmptyAudiencesPanel({ onCreate }: { onCreate: () => void }) {
+  return (
+    <article className="surface-panel min-w-0 overflow-hidden">
+      <div className="grid min-h-[520px] content-center gap-6 p-6 lg:p-8">
+        <div className="max-w-2xl">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-sky-200">
+            <Sparkles className="h-4 w-4" />
+            Sin audiencias cargadas
+          </div>
+          <h2 className="text-3xl font-black leading-tight text-white">Crea una audiencia e importa la transcripcion de Pinpoint</h2>
+          <p className="mt-3 text-sm leading-7 text-slate-400">
+            UrbanIA va a trabajar solo con evidencia cargada por el equipo: tematica, propuesta relacionada y transcripcion revisable. No se muestran datos de ejemplo ni conclusiones simuladas.
+          </p>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <ProcessCard icon={FileText} title="1. Registrar" text="Carga titulo, tematica, propuesta relacionada, lugar y area responsable." />
+          <ProcessCard icon={Upload} title="2. Importar" text="Adjunta TXT, VTT o SRT exportado desde Pinpoint." />
+          <ProcessCard icon={Brain} title="3. Analizar" text="Migue genera memoria, reclamos, compromisos y preguntas." />
+        </div>
+
+        <div>
+          <button onClick={onCreate} className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white">
+            <Plus className="h-4 w-4" />
+            Registrar primera audiencia
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function ProcessCard({ icon: Icon, title, text }: { icon: typeof FileText; title: string; text: string }) {
+  return (
+    <div className="rounded-md border border-white/8 bg-white/[0.025] p-4">
+      <Icon className="h-5 w-5 text-sky-200" />
+      <h3 className="mt-3 text-sm font-black text-white">{title}</h3>
+      <p className="mt-2 text-xs leading-5 text-slate-400">{text}</p>
+    </div>
   );
 }
 
@@ -679,7 +904,7 @@ function HearingDetail({ hearing, activeTab, onTabChange, onUpdate }: {
         {activeTab === "Documentos" ? <DocumentsTab hearing={hearing} /> : null}
         {activeTab === "Conclusiones" ? <ConclusionsTab hearing={hearing} /> : null}
         {activeTab === "Temas observados" ? <ObservedTopicsTab hearing={hearing} /> : null}
-        {activeTab === "IA" ? <AiTab hearing={hearing} onUpdate={onUpdate} /> : null}
+        {activeTab === "IA" ? <AiTab hearing={hearing} /> : null}
       </div>
     </article>
   );
@@ -695,14 +920,12 @@ function SummaryTab({ hearing }: { hearing: PublicHearing }) {
       </div>
 
       <div className="rounded-md border border-sky-300/15 bg-sky-300/[0.05] p-4">
-        <div className="flex items-center gap-2 text-sm font-black text-sky-200"><Link2 className="h-4 w-4" /> Expediente relacionado</div>
-        <h3 className="mt-3 text-xl font-black text-white">{hearing.recordNumber}</h3>
-        <p className="mt-1 text-sm leading-6 text-slate-300">{hearing.recordTitle}</p>
+        <div className="flex items-center gap-2 text-sm font-black text-sky-200"><Link2 className="h-4 w-4" /> Propuesta relacionada</div>
+        <h3 className="mt-3 text-xl font-black text-white">{hearing.relatedProposal || "Sin propuesta vinculada"}</h3>
+        <p className="mt-1 text-sm leading-6 text-slate-300">{hearing.promotingArea}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <DetailBlock label="Propuesta vinculada" value={hearing.relatedProposal} />
           <DetailBlock label="Autor o area impulsora" value={hearing.promotingArea} />
-          <DetailBlock label="Estado del expediente" value={hearing.recordStatus} />
-          <DetailBlock label="Documento o enlace" value={hearing.recordDocument || "Sin documento adjunto"} />
+          <DetailBlock label="Origen de la propuesta" value={hearing.proposalOrigin} />
         </div>
         {hearing.linkedProjectId ? (
           <Link
@@ -877,19 +1100,14 @@ function ContributionsTab({ hearing, isClosed, onUpdate }: { hearing: PublicHear
   );
 }
 
-function AiTab({ hearing, onUpdate }: { hearing: PublicHearing; onUpdate: (hearing: PublicHearing) => void }) {
-  function generateAnalysis() {
-    const analysis = buildHearingAiAnalysis(hearing);
-    onUpdate({ ...hearing, aiSummary: analysis.summary, aiKeyPoints: analysis.keyPoints });
-  }
-
+function AiTab({ hearing }: { hearing: PublicHearing }) {
   function downloadReport() {
     const content = buildHearingReport(hearing);
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `Audiencia_${hearing.recordNumber.replace(/[^a-zA-Z0-9-]/g, "_")}.txt`;
+    link.download = `Audiencia_${hearing.title.replace(/[^a-zA-Z0-9-]/g, "_")}.txt`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -897,20 +1115,11 @@ function AiTab({ hearing, onUpdate }: { hearing: PublicHearing; onUpdate: (heari
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <SectionTitle eyebrow="Lectura asistida" title="Sintesis de deliberacion" />
+        <SectionTitle eyebrow="Lectura asistida" title="Memoria generada por Migue" />
         {hearing.aiSummary ? <button onClick={downloadReport} className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black text-slate-200"><Download className="h-4 w-4" /> Descargar reporte</button> : null}
       </div>
 
-      <div className="rounded-md border border-sky-300/15 bg-sky-300/[0.04] p-4">
-        <div className="flex items-start gap-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-sky-400/15 text-sky-200"><Sparkles className="h-5 w-5" /></div>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-black text-white">Resultado esperado del analisis</h3>
-            <p className="mt-1 text-sm leading-6 text-slate-400">La IA organiza la grabacion en participantes, topicos, propuestas, puntos fuertes y relacion normativa.</p>
-            <button onClick={generateAnalysis} className="urban-button mt-3 inline-flex items-center gap-2 rounded-md bg-civic-blue px-3 py-2 text-xs font-black text-white"><Brain className="h-4 w-4" /> {hearing.aiSummary ? "Regenerar sintesis" : "Generar sintesis"}</button>
-          </div>
-        </div>
-      </div>
+      {!hearing.aiSummary ? <EmptyState icon={Brain} text="Todavia no hay analisis de Migue. Importa una transcripcion de Pinpoint en el panel superior." /> : null}
 
       <div className="grid gap-3 lg:grid-cols-2">
         <AiFindingCard
@@ -926,16 +1135,16 @@ function AiTab({ hearing, onUpdate }: { hearing: PublicHearing; onUpdate: (heari
           empty="Sin topicos detectados."
         />
         <AiFindingCard
-          title="Propuestas"
+          title="Propuesta vinculada"
           icon={ListChecks}
-          items={[hearing.relatedProposal, hearing.conclusions.nextSteps].filter(Boolean)}
-          empty="Sin propuestas extraidas."
+          items={[hearing.relatedProposal].filter(Boolean)}
+          empty="Sin propuesta vinculada."
         />
         <AiFindingCard
-          title="Puntos fuertes"
+          title="Puntos clave de Migue"
           icon={CheckCircle2}
-          items={[hearing.conclusions.agreements, hearing.conclusions.technicalRecommendations].filter(Boolean)}
-          empty="Sin puntos fuertes identificados."
+          items={hearing.aiKeyPoints ?? []}
+          empty="Sin puntos clave generados."
         />
       </div>
 
@@ -1100,18 +1309,169 @@ function HearingFormPanel({ form, onClose, onSubmit, onUpdate }: {
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onUpdate: <K extends keyof HearingForm>(key: K, value: HearingForm[K]) => void;
 }) {
+  const [transcriptFileName, setTranscriptFileName] = useState("");
+  const [transcript, setTranscript] = useState("");
+  const [isAnalyzingTranscript, setIsAnalyzingTranscript] = useState(false);
+  const [formDraft, setFormDraft] = useState<HearingAiDraft | null>(null);
+  const [formDraftNotice, setFormDraftNotice] = useState("");
+  const transcriptReady = transcript.trim().length > 20;
+
+  function importFormTranscriptFile(file?: File) {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setTranscript(String(reader.result ?? ""));
+      setTranscriptFileName(file.name);
+      setFormDraft(null);
+      setFormDraftNotice("Transcripcion cargada. Revisala y pedi el borrador a Migue.");
+    };
+    reader.readAsText(file);
+  }
+
+  async function analyzeFormTranscript() {
+    if (!transcriptReady) {
+      setFormDraftNotice("Importa o pega una transcripcion de Pinpoint antes de autocompletar.");
+      return;
+    }
+
+    setIsAnalyzingTranscript(true);
+    try {
+      const temporaryHearing = buildTemporaryHearingFromForm(form);
+      setFormDraft(await requestHearingAiDraft(temporaryHearing, transcript));
+      setFormDraftNotice("Migue preparo un borrador con analisis IA. Revisalo antes de aplicarlo al formulario.");
+    } catch {
+      setFormDraft(buildHearingAiDraft(buildTemporaryHearingFromForm(form), transcript));
+      setFormDraftNotice("Migue no pudo responder con IA. Arme un borrador preliminar con deteccion local para revisar.");
+    } finally {
+      setIsAnalyzingTranscript(false);
+    }
+  }
+
+  function applyFormDraft() {
+    if (!formDraft) return;
+
+    const firstParticipant = formDraft.participants[0];
+    const firstObservedTopic = formDraft.observedTopics[0];
+
+    onUpdate("title", form.title.trim() || buildTitleFromDraft(formDraft));
+    onUpdate("mainTopic", formDraft.mainTopic);
+    onUpdate("secondaryTopics", formDraft.secondaryTopics.join(", "));
+    onUpdate("relatedProposal", formDraft.relatedProposal);
+    onUpdate("relatedArticles", formDraft.relatedArticles.join(", "));
+    onUpdate("participantNames", formDraft.participants.map((participant) => participant.name).join(", "));
+    onUpdate("participantInstitution", firstParticipant?.institution ?? form.participantInstitution);
+    onUpdate("participantRole", firstParticipant?.role ?? form.participantRole);
+    onUpdate("participantType", firstParticipant?.actorType ?? form.participantType);
+    onUpdate("participantIntervention", firstParticipant?.intervention ?? form.participantIntervention);
+    onUpdate("summary", formDraft.conclusions.summary);
+    onUpdate("agreements", formDraft.conclusions.agreements);
+    onUpdate("disagreements", formDraft.conclusions.disagreements);
+    onUpdate("nextSteps", formDraft.conclusions.nextSteps);
+    onUpdate("recommendations", formDraft.conclusions.technicalRecommendations);
+    onUpdate("decisions", formDraft.conclusions.decisions);
+    onUpdate("proposalStatusAfter", formDraft.conclusions.proposalStatusAfter);
+    onUpdate("observedTopics", formDraft.observedTopics.map((topic) => topic.topic).join(", "));
+    onUpdate("topicImportance", firstObservedTopic?.importance ?? form.topicImportance);
+    onUpdate("technicalObservation", firstObservedTopic?.technicalObservation ?? form.technicalObservation);
+    onUpdate("citizenObservation", firstObservedTopic?.citizenObservation ?? form.citizenObservation);
+    setFormDraftNotice("Borrador aplicado al formulario. Revisalo antes de registrar la audiencia.");
+    setFormDraft(null);
+  }
+
   return (
-    <section className="urban-card rounded-lg p-4 lg:p-5">
+    <section id="hearing-form-panel" className="scroll-mt-4 rounded-lg p-4 lg:p-5 urban-card">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Nueva audiencia</p>
           <h2 className="mt-2 text-2xl font-black text-white">Registro de deliberacion publica</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">Completa la convocatoria, el expediente y la memoria inicial. Las conclusiones pueden actualizarse al finalizar.</p>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">Completa la convocatoria, la propuesta relacionada y la memoria inicial. Las conclusiones pueden actualizarse al finalizar.</p>
         </div>
         <button type="button" onClick={onClose} aria-label="Cerrar formulario" className="urban-button rounded-md border border-white/10 bg-white/[0.04] p-2 text-slate-300"><X className="h-4 w-4" /></button>
       </div>
 
       <form onSubmit={onSubmit} className="mt-6 space-y-6">
+        <FormSection title="Autocompletar desde transcripcion">
+          <div className="rounded-lg border border-sky-300/20 bg-sky-300/[0.05] p-4">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+              <label className="urban-button flex min-h-14 cursor-pointer items-center gap-3 rounded-md border border-dashed border-emerald-300/25 bg-emerald-300/[0.05] px-4 py-3">
+                <FileText className="h-5 w-5 shrink-0 text-emerald-200" />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-black text-white">
+                    {transcriptFileName || "Cargar transcripcion de Pinpoint"}
+                  </span>
+                  <span className="block text-xs text-slate-500">TXT, VTT o SRT</span>
+                </span>
+                <input
+                  type="file"
+                  accept=".txt,.vtt,.srt,text/plain,text/vtt"
+                  className="hidden"
+                  onChange={(event) => importFormTranscriptFile(event.target.files?.[0])}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={analyzeFormTranscript}
+                disabled={!transcriptReady || isAnalyzingTranscript}
+                className="urban-button inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Sparkles className="h-4 w-4" />
+                {isAnalyzingTranscript ? "Analizando..." : "Completar con Migue"}
+              </button>
+            </div>
+
+            {formDraftNotice ? <p className="mt-2 text-xs font-semibold text-sky-200">{formDraftNotice}</p> : null}
+
+            <label className="mt-4 grid gap-2">
+              <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Transcripcion editable</span>
+              <textarea
+                rows={5}
+                value={transcript}
+                onChange={(event) => {
+                  setTranscript(event.target.value);
+                  setFormDraft(null);
+                }}
+                placeholder="Pega aca la transcripcion de Pinpoint si no queres subir un archivo."
+                className="w-full resize-y rounded-md border border-white/10 bg-slate-950/70 px-3 py-3 text-sm font-semibold leading-6 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-300/50"
+              />
+            </label>
+
+            {formDraft ? (
+              <div className="mt-4 rounded-md border border-white/10 bg-slate-950/45 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-sky-300">Borrador pendiente</p>
+                    <h3 className="mt-1 text-lg font-black text-white">{buildTitleFromDraft(formDraft)}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">{formDraft.summary}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormDraft(null)}
+                      className="urban-button rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black text-slate-200"
+                    >
+                      Descartar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={applyFormDraft}
+                      className="urban-button rounded-md bg-civic-blue px-3 py-2 text-xs font-black text-white"
+                    >
+                      Aplicar al formulario
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                  <DraftPreviewBlock label="Participantes" items={formDraft.participants.map((participant) => `${participant.name} - ${participant.actorType}`)} />
+                  <DraftPreviewBlock label="Temas" items={[formDraft.mainTopic, ...formDraft.secondaryTopics]} />
+                  <DraftPreviewBlock label="Normativa" items={formDraft.relatedArticles} />
+                  <DraftPreviewBlock label="Puntos clave" items={formDraft.keyPoints.slice(0, 4)} />
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </FormSection>
+
         <FormSection title="Datos generales">
           <div className="grid gap-3 lg:grid-cols-2">
             <TextInput label="Titulo de la audiencia" value={form.title} onChange={(value) => onUpdate("title", value)} required />
@@ -1125,15 +1485,11 @@ function HearingFormPanel({ form, onClose, onSubmit, onUpdate }: {
           </div>
         </FormSection>
 
-        <FormSection title="Expediente y normativa">
+        <FormSection title="Propuesta y normativa">
           <div className="grid gap-3 lg:grid-cols-2">
-            <TextInput label="Numero de expediente" value={form.recordNumber} onChange={(value) => onUpdate("recordNumber", value)} placeholder="EXP-2026-00000" required />
-            <TextInput label="Titulo del expediente" value={form.recordTitle} onChange={(value) => onUpdate("recordTitle", value)} required />
             <TextInput label="Propuesta relacionada" value={form.relatedProposal} onChange={(value) => onUpdate("relatedProposal", value)} required />
             <SelectInput label="Origen de la propuesta" value={form.proposalOrigin} options={origins} onChange={(value) => onUpdate("proposalOrigin", value as PublicHearing["proposalOrigin"])} />
             <TextInput label="Autor o area impulsora" value={form.promotingArea} onChange={(value) => onUpdate("promotingArea", value)} required />
-            <TextInput label="Estado del expediente" value={form.recordStatus} onChange={(value) => onUpdate("recordStatus", value)} required />
-            <TextInput label="Documento o enlace" value={form.recordDocument} onChange={(value) => onUpdate("recordDocument", value)} />
             <TextInput label="Articulos del Codigo" value={form.relatedArticles} onChange={(value) => onUpdate("relatedArticles", value)} placeholder="Articulo 12, Articulo 18" required />
           </div>
         </FormSection>
@@ -1239,8 +1595,175 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
+function buildTemporaryHearingFromForm(form: HearingForm): PublicHearing {
+  const articles = splitList(form.relatedArticles);
+  const participantNames = splitList(form.participantNames);
+  const relatedProposal = form.relatedProposal.trim() || form.title.trim() || "Propuesta pendiente de identificar";
+
+  return {
+    id: "draft-hearing",
+    title: form.title.trim() || "Audiencia pendiente de titulo",
+    date: form.date,
+    time: form.time,
+    place: form.place.trim() || "Lugar pendiente",
+    modality: form.modality,
+    status: form.status,
+    mainTopic: form.mainTopic.trim() || "Tematica pendiente",
+    secondaryTopics: splitList(form.secondaryTopics),
+    recordNumber: buildInternalHearingCode(),
+    recordTitle: relatedProposal,
+    relatedProposal,
+    proposalOrigin: form.proposalOrigin,
+    promotingArea: form.promotingArea.trim() || "Area pendiente",
+    recordStatus: "En tratamiento",
+    recordDocument: "",
+    relatedArticles: articles,
+    participants: participantNames.map((name) => ({
+      name,
+      institution: form.participantInstitution.trim() || "Pendiente de validar",
+      role: form.participantRole.trim() || "Participante",
+      actorType: form.participantType,
+      attended: form.status === "Finalizada",
+      intervention: form.participantIntervention.trim() || "Intervencion pendiente de validar."
+    })),
+    documents: form.documents.map((name) => ({
+      name,
+      type: inferDocumentType(name),
+      uploadedAt: new Date().toISOString().slice(0, 10),
+      uploadedBy: form.promotingArea.trim() || "UrbanIA",
+      description: "Documento adjunto al registrar la audiencia."
+    })),
+    debateMessages: [],
+    contributions: [],
+    conclusions: {
+      summary: form.summary.trim(),
+      agreements: form.agreements.trim(),
+      disagreements: form.disagreements.trim(),
+      nextSteps: form.nextSteps.trim(),
+      technicalRecommendations: form.recommendations.trim(),
+      decisions: form.decisions.trim(),
+      proposalStatusAfter: form.proposalStatusAfter.trim()
+    },
+    observedTopics: splitList(form.observedTopics).map((topic) => ({
+      topic,
+      description: `Tema registrado en la memoria de la audiencia.`,
+      importance: form.topicImportance,
+      relatedArticle: articles[0] ?? "Sin articulo vinculado",
+      relatedProposal,
+      technicalObservation: form.technicalObservation.trim() || "Pendiente de observacion tecnica.",
+      citizenObservation: form.citizenObservation.trim() || "Pendiente de observacion ciudadana."
+    }))
+  };
+}
+
+function buildTitleFromDraft(draft: HearingAiDraft) {
+  return draft.title?.trim() || `Audiencia sobre ${draft.mainTopic.toLowerCase()}`;
+}
+
+function buildInternalHearingCode() {
+  return `audiencia-${Date.now()}`;
+}
+
 function splitList(value: string) {
   return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+async function requestHearingAiDraft(hearing: PublicHearing, transcript: string): Promise<HearingAiDraft> {
+  const response = await fetch("/api/hearings/analyze-transcript", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      transcript,
+      context: {
+        title: hearing.title,
+        mainTopic: hearing.mainTopic,
+        relatedProposal: hearing.relatedProposal,
+        relatedArticles: hearing.relatedArticles
+      }
+    })
+  });
+  const data = (await response.json().catch(() => ({}))) as { draft?: Partial<HearingAiDraft>; error?: string };
+
+  if (!response.ok || !data.draft) {
+    throw new Error(data.error ?? "No pudimos analizar la transcripcion.");
+  }
+
+  return normalizeHearingAiDraft(hearing, data.draft);
+}
+
+function normalizeHearingAiDraft(hearing: PublicHearing, draft: Partial<HearingAiDraft>): HearingAiDraft {
+  const fallback = buildHearingAiDraft(hearing, "Sin transcripcion disponible.");
+  const relatedProposal = cleanText(draft.relatedProposal) || hearing.relatedProposal || fallback.relatedProposal;
+  const relatedArticles = normalizeStringArray(draft.relatedArticles).length
+    ? normalizeStringArray(draft.relatedArticles)
+    : hearing.relatedArticles.length
+      ? hearing.relatedArticles
+      : fallback.relatedArticles;
+
+  return {
+    summary: cleanText(draft.summary) || fallback.summary,
+    keyPoints: normalizeStringArray(draft.keyPoints).length ? normalizeStringArray(draft.keyPoints) : fallback.keyPoints,
+    participants: normalizeParticipants(draft.participants),
+    title: cleanText(draft.title),
+    mainTopic: cleanText(draft.mainTopic) || hearing.mainTopic || fallback.mainTopic,
+    secondaryTopics: normalizeStringArray(draft.secondaryTopics),
+    relatedArticles,
+    relatedProposal,
+    conclusions: {
+      summary: cleanText(draft.conclusions?.summary) || cleanText(draft.summary) || fallback.conclusions.summary,
+      agreements: cleanText(draft.conclusions?.agreements) || fallback.conclusions.agreements,
+      disagreements: cleanText(draft.conclusions?.disagreements) || fallback.conclusions.disagreements,
+      nextSteps: cleanText(draft.conclusions?.nextSteps) || fallback.conclusions.nextSteps,
+      technicalRecommendations: cleanText(draft.conclusions?.technicalRecommendations) || fallback.conclusions.technicalRecommendations,
+      decisions: cleanText(draft.conclusions?.decisions) || fallback.conclusions.decisions,
+      proposalStatusAfter: cleanText(draft.conclusions?.proposalStatusAfter) || "En tratamiento"
+    },
+    observedTopics: normalizeObservedTopics(draft.observedTopics, relatedArticles, relatedProposal)
+  };
+}
+
+function normalizeParticipants(participants: HearingAiDraft["participants"] | undefined) {
+  return (participants ?? [])
+    .map((participant) => ({
+      name: cleanText(participant.name) || "Participante sin identificar",
+      institution: cleanText(participant.institution) || "Pendiente de validar",
+      role: cleanText(participant.role) || "Participante detectado",
+      actorType: cleanText(participant.actorType) || "Vecino",
+      attended: true,
+      intervention: cleanText(participant.intervention) || "Intervencion detectada en transcripcion. Requiere revision manual."
+    }))
+    .slice(0, 16);
+}
+
+function normalizeObservedTopics(
+  topics: HearingAiDraft["observedTopics"] | undefined,
+  relatedArticles: string[],
+  relatedProposal: string
+) {
+  return (topics ?? [])
+    .map((topic, index) => ({
+      topic: cleanText(topic.topic) || "Tema detectado",
+      description: cleanText(topic.description) || "Tema detectado por Migue en la transcripcion de la audiencia.",
+      importance: normalizeImportance(topic.importance),
+      relatedArticle: cleanText(topic.relatedArticle) || relatedArticles[index] || relatedArticles[0] || "Pendiente de cruce normativo",
+      relatedProposal: cleanText(topic.relatedProposal) || relatedProposal,
+      technicalObservation: cleanText(topic.technicalObservation) || "Pendiente de validacion tecnica municipal.",
+      citizenObservation: cleanText(topic.citizenObservation) || "Sin observacion ciudadana especifica detectada."
+    }))
+    .slice(0, 10);
+}
+
+function normalizeStringArray(value: string[] | undefined) {
+  return Array.from(new Set((value ?? []).map(cleanText).filter(Boolean))).slice(0, 12);
+}
+
+function cleanText(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeImportance(value: unknown): TopicImportance {
+  if (value === "Bajo" || value === "Medio" || value === "Alto" || value === "Critico") return value;
+  return "Medio";
 }
 
 function inferDocumentType(name: string) {
@@ -1253,51 +1776,173 @@ function inferDocumentType(name: string) {
   return "Documento adjunto";
 }
 
-function buildDemoHearingTranscript(hearing: PublicHearing, source: string) {
+function buildHearingAiAnalysis(hearing: PublicHearing, transcript: string) {
   const messages = hearing.debateMessages ?? [];
   const contributions = hearing.contributions ?? [];
-  const sourceLabel = source.startsWith("http") ? "YouTube" : "archivo local";
-  const interventions = [
-    ...messages.map((item) => `${item.authorName}: ${item.content}`),
-    ...contributions.map((item) => `${item.participantName}: ${item.content}`)
-  ];
-  const fallbackInterventions = [
-    `${hearing.promotingArea}: Se presenta la audiencia ${hearing.recordNumber} vinculada a ${hearing.relatedProposal}.`,
-    `Participantes: La discusion principal se concentra en ${hearing.mainTopic.toLowerCase()} y en sus efectos urbanos.`,
-    `Equipo tecnico: Se solicita revisar ${hearing.relatedArticles.join(", ") || "la normativa aplicable"} antes de modificar el estado del expediente.`,
-    `Cierre institucional: ${hearing.conclusions.nextSteps}`
-  ];
-
-  return [
-    `[Transcripcion preliminar desde ${sourceLabel}: ${source}]`,
-    `Audiencia: ${hearing.title}`,
-    `Expediente: ${hearing.recordNumber}`,
-    "",
-    ...(interventions.length ? interventions : fallbackInterventions)
-  ].join("\n");
-}
-
-function buildHearingAiAnalysis(hearing: PublicHearing) {
-  const messages = hearing.debateMessages ?? [];
-  const contributions = hearing.contributions ?? [];
+  const transcriptSentences = splitTranscriptIntoSentences(transcript);
   const actors = Array.from(new Set([
     ...hearing.participants.map((item) => item.name),
     ...messages.map((item) => item.authorName),
-    ...contributions.map((item) => item.participantName)
+    ...contributions.map((item) => item.participantName),
+    ...extractSpeakerNames(transcript)
   ]));
   const criticalTopics = hearing.observedTopics.filter((item) => item.importance === "Alto" || item.importance === "Critico");
-  const sourceCount = messages.length + contributions.length;
+  const transcriptWordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
   const articleText = hearing.relatedArticles.length ? hearing.relatedArticles.join(", ") : "sin articulos asociados";
-  const summary = `La memoria de la audiencia ${hearing.recordNumber} consolida ${actors.length} participantes detectados${sourceCount ? ` y ${sourceCount} intervenciones registradas` : ""}. El intercambio se concentra en ${hearing.mainTopic.toLowerCase()} y su relacion con ${articleText}. ${hearing.conclusions.summary} La revision automatica recomienda contrastar propuestas, puntos fuertes y observaciones normativas antes de modificar el estado del expediente.`;
+  const objections = pickSentences(transcriptSentences, ["reclamo", "problema", "preocupa", "objecion", "objeción", "riesgo", "falta", "no estamos de acuerdo", "rechazo"]);
+  const commitments = pickSentences(transcriptSentences, ["compromiso", "se acuerda", "vamos a", "se solicita", "queda pendiente", "proximo", "próximo", "dictamen", "relevar"]);
+  const questions = transcriptSentences.filter((sentence) => sentence.includes("?")).slice(0, 3);
+  const summary = [
+    `Migue proceso una transcripcion de ${transcriptWordCount.toLocaleString("es-AR")} palabras para la audiencia "${hearing.title}".`,
+    `El eje central es ${hearing.mainTopic.toLowerCase()} y su relacion con ${articleText}.`,
+    actors.length ? `Se detectaron ${actors.length} actores o participantes mencionados.` : "No se detectaron hablantes identificables en la transcripcion.",
+    objections.length ? `La tension principal aparece en: ${objections[0]}` : `No aparecen objeciones explicitas fuertes en el fragmento procesado.`,
+    commitments.length ? `Compromiso o pendiente principal: ${commitments[0]}` : `Quedan pendientes a definir antes de cerrar la memoria institucional.`,
+    `Recomendacion: validar la transcripcion, marcar citas relevantes y vincular los puntos sensibles con normativa y propuesta antes de elevar a gabinete.`
+  ].join(" ");
   const keyPoints = [
-    `${actors.length} participantes identificados: ${actors.slice(0, 4).join(", ")}${actors.length > 4 ? "..." : ""}.`,
+    actors.length ? `Participantes/hablantes detectados: ${actors.slice(0, 5).join(", ")}${actors.length > 5 ? "..." : ""}.` : "Participantes: requiere identificar hablantes en la transcripcion.",
     criticalTopics.length ? `Temas prioritarios: ${criticalTopics.map((item) => item.topic).join(", ")}.` : `Tema principal: ${hearing.mainTopic}.`,
+    objections.length ? `Reclamos u objeciones: ${objections.slice(0, 2).join(" / ")}` : "Reclamos u objeciones: sin patrones claros en el texto procesado.",
+    commitments.length ? `Compromisos o pendientes: ${commitments.slice(0, 2).join(" / ")}` : `Compromisos o pendientes: ${hearing.conclusions.nextSteps}`,
+    questions.length ? `Preguntas abiertas: ${questions.join(" / ")}` : "Preguntas abiertas: no se detectaron preguntas literales.",
     `Propuesta vinculada: ${hearing.relatedProposal}.`,
     `Normativa vinculada: ${articleText}.`,
-    `Proximo paso institucional: ${hearing.conclusions.nextSteps}`
+    `Proximo paso institucional recomendado: revisar citas, completar responsables y actualizar la memoria de la audiencia.`
   ];
 
   return { summary, keyPoints };
+}
+
+function buildHearingAiDraft(hearing: PublicHearing, transcript: string): HearingAiDraft {
+  const analysis = buildHearingAiAnalysis(hearing, transcript);
+  const sentences = splitTranscriptIntoSentences(transcript);
+  const speakerNames = extractSpeakerNames(transcript);
+  const existingNames = hearing.participants.map((participant) => participant.name);
+  const participantNames = Array.from(new Set([...existingNames, ...speakerNames])).slice(0, 12);
+  const detectedTopics = detectHearingTopics(transcript, hearing.mainTopic, hearing.secondaryTopics);
+  const detectedArticles = detectArticleReferences(transcript, hearing.relatedArticles);
+  const objections = pickSentences(sentences, ["reclamo", "problema", "preocupa", "objecion", "objeción", "riesgo", "falta", "rechazo"]);
+  const agreements = pickSentences(sentences, ["acuerdo", "coincidimos", "acompañamos", "apoyamos", "consenso", "se aprueba"]);
+  const commitments = pickSentences(sentences, ["compromiso", "se acuerda", "vamos a", "se solicita", "queda pendiente", "proximo", "próximo", "dictamen", "relevar"]);
+  const relatedProposal = detectRelatedProposal(transcript, hearing.relatedProposal, hearing.title);
+
+  const participants = participantNames.length
+    ? participantNames.map((name) => {
+        const existing = hearing.participants.find((participant) => participant.name === name);
+
+        return existing ?? {
+          name,
+          institution: "Pendiente de validar",
+          role: "Participante detectado",
+          actorType: inferActorType(name, transcript),
+          attended: true,
+          intervention: findSpeakerIntervention(name, transcript) || "Intervencion detectada en transcripcion. Requiere revision manual."
+        };
+      })
+    : hearing.participants;
+
+  const conclusions = {
+    summary: analysis.summary,
+    agreements: agreements.length ? agreements.join(" ") : hearing.conclusions.agreements,
+    disagreements: objections.length ? objections.join(" ") : hearing.conclusions.disagreements,
+    nextSteps: commitments.length ? commitments.join(" ") : hearing.conclusions.nextSteps,
+    technicalRecommendations: commitments[0] ?? hearing.conclusions.technicalRecommendations,
+    decisions: agreements[0] ?? hearing.conclusions.decisions,
+    proposalStatusAfter: hearing.conclusions.proposalStatusAfter || "En tratamiento"
+  };
+
+  return {
+    summary: analysis.summary,
+    keyPoints: analysis.keyPoints,
+    participants,
+    mainTopic: detectedTopics[0] ?? hearing.mainTopic,
+    secondaryTopics: detectedTopics.slice(1),
+    relatedArticles: detectedArticles,
+    relatedProposal,
+    conclusions,
+    observedTopics: detectedTopics.map((topic, index) => ({
+      topic,
+      description: `Tema detectado por Migue en la transcripcion de la audiencia.`,
+      importance: index === 0 ? "Alto" : "Medio",
+      relatedArticle: detectedArticles[index] ?? detectedArticles[0] ?? "Sin articulo vinculado",
+      relatedProposal,
+      technicalObservation: commitments[index] ?? "Pendiente de validacion tecnica municipal.",
+      citizenObservation: objections[index] ?? "Sin observacion ciudadana especifica detectada."
+    }))
+  };
+}
+
+function detectHearingTopics(transcript: string, mainTopic: string, secondaryTopics: string[]) {
+  const normalized = transcript.toLowerCase();
+  const detected = [
+    mainTopic,
+    ...secondaryTopics,
+    normalized.includes("altura") || normalized.includes("densidad") ? "Alturas y densidad" : "",
+    normalized.includes("transito") || normalized.includes("tránsito") || normalized.includes("movilidad") ? "Movilidad" : "",
+    normalized.includes("ambiente") || normalized.includes("arbol") || normalized.includes("árbol") || normalized.includes("plaza") ? "Ambiente y espacio publico" : "",
+    normalized.includes("patrimonio") || normalized.includes("area central") || normalized.includes("área central") ? "Patrimonio urbano" : "",
+    normalized.includes("vecino") || normalized.includes("barrio") ? "Impacto barrial" : ""
+  ];
+
+  return Array.from(new Set(detected.map((topic) => topic.trim()).filter(Boolean))).slice(0, 6);
+}
+
+function detectArticleReferences(transcript: string, currentArticles: string[]) {
+  const matches = Array.from(transcript.matchAll(/art(?:iculo|ículo|\.)?\s*(\d+[a-z]?)/gi)).map((match) => `Articulo ${match[1]}`);
+  const articles = Array.from(new Set([...currentArticles, ...matches].filter(Boolean)));
+
+  return articles.length ? articles.slice(0, 8) : ["Pendiente de cruce normativo"];
+}
+
+function detectRelatedProposal(transcript: string, currentProposal: string, fallback: string) {
+  if (currentProposal.trim()) return currentProposal;
+
+  const proposalMatch = transcript.match(/(?:propuesta|proyecto|iniciativa)\s+(?:de|sobre|para)?\s*([^.,;\n]{8,90})/i);
+  return proposalMatch?.[1]?.trim() || fallback || "Propuesta pendiente de identificar";
+}
+
+function inferActorType(name: string, transcript: string) {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const contextMatch = transcript.match(new RegExp(`.{0,80}${escapedName}.{0,140}`, "i"));
+  const context = contextMatch?.[0]?.toLowerCase() ?? "";
+
+  if (context.includes("concejal")) return "Concejal";
+  if (context.includes("vecino") || context.includes("vecina")) return "Vecino";
+  if (context.includes("colegio")) return "Colegio profesional";
+  if (context.includes("universidad")) return "Universidad";
+  if (context.includes("camara") || context.includes("cámara")) return "Camara empresarial";
+  if (context.includes("municip")) return "Funcionario municipal";
+  return "Vecino";
+}
+
+function findSpeakerIntervention(name: string, transcript: string) {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = transcript.match(new RegExp(`${escapedName}:\\s*([^\\n]{20,320})`, "i"));
+  return match?.[1]?.trim() ?? "";
+}
+
+function splitTranscriptIntoSentences(transcript: string) {
+  return transcript
+    .replace(/\s+/g, " ")
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length > 20)
+    .slice(0, 160);
+}
+
+function extractSpeakerNames(transcript: string) {
+  const matches = Array.from(transcript.matchAll(/(?:^|\n)([A-ZÁÉÍÓÚÑ][^:\n]{2,58}):/g));
+  return matches.map((match) => match[1].trim()).filter(Boolean).slice(0, 12);
+}
+
+function pickSentences(sentences: string[], keywords: string[]) {
+  return sentences
+    .filter((sentence) => {
+      const normalized = sentence.toLowerCase();
+      return keywords.some((keyword) => normalized.includes(keyword));
+    })
+    .slice(0, 4);
 }
 
 function buildHearingReport(hearing: PublicHearing) {
@@ -1307,7 +1952,7 @@ function buildHearingReport(hearing: PublicHearing) {
     `URBANIA - MEMORIA DE AUDIENCIA`,
     `Titulo: ${hearing.title}`,
     `Fecha: ${formatDate(hearing.date)} ${hearing.time} hs`,
-    `Expediente: ${hearing.recordNumber} - ${hearing.recordTitle}`,
+    `Propuesta relacionada: ${hearing.relatedProposal || "Sin propuesta vinculada"}`,
     `Estado: ${hearing.status}`,
     `Normativa: ${hearing.relatedArticles.join(", ") || "Sin articulos vinculados"}`,
     "",
