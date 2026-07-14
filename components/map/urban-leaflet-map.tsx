@@ -51,7 +51,8 @@ export function UrbanLeafletMap() {
 
   useEffect(() => () => requestRef.current?.abort(), []);
   const deferredQuery = useDeferredValue(query.trim().toLowerCase());
-  const filtered = useMemo(() => ({ ...data, features: data.features.filter((feature) => matchesGeometry(feature.geometry, geometry) && (!deferredQuery || JSON.stringify(feature.properties ?? {}).toLowerCase().includes(deferredQuery))) }), [data, geometry, deferredQuery]);
+  const searchIndex = useMemo(() => data.features.map((feature) => JSON.stringify(feature.properties ?? {}).toLowerCase()), [data]);
+  const filtered = useMemo(() => ({ ...data, features: data.features.filter((feature, index) => matchesGeometry(feature.geometry, geometry) && (!deferredQuery || searchIndex[index].includes(deferredQuery))) }), [data, searchIndex, geometry, deferredQuery]);
 
   return <section className="relative h-[calc(100vh-190px)] min-h-[620px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm dark:border-white/10 dark:bg-[#071724]">
     <MapContainer center={center} zoom={13} minZoom={10} scrollWheelZoom preferCanvas className="h-full w-full" zoomControl={false}>
