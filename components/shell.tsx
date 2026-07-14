@@ -137,7 +137,7 @@ function SidebarGroup({ section, pathname, open, collapsed = false, onToggle }: 
 function MobileBottomNavigation({ pathname, onMore }: { pathname: string; onMore: () => void }) {
   const items = [
     { label: "Mapa", href: "/admin", icon: Map },
-    { label: "Expedientes", href: "/propuestas", icon: FolderKanban },
+    { label: "Propuestas", href: "/propuestas", icon: FolderKanban },
     { label: "Participacion", href: "/audiencias", icon: Users },
     { label: "Normativa", href: "/normativa", icon: FileText }
   ];
@@ -155,7 +155,6 @@ function applyTheme(theme: ThemeMode) {
 }
 
 function isActive(pathname: string, href: string) {
-  if (href.startsWith("/escenarios/")) return pathname.startsWith("/escenarios/");
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

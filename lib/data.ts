@@ -7,8 +7,6 @@ import {
   FileArchive,
   FileText,
   FolderKanban,
-  GitBranch,
-  Landmark,
   Map,
   Settings2,
   Users
@@ -32,13 +30,11 @@ export const sidebarSections = [
     ]
   },
   {
-    title: "Expedientes",
+    title: "Propuestas",
     icon: FolderKanban,
     items: [
-      { label: "Propuestas", href: "/propuestas", icon: ClipboardList },
-      { label: "Proyectos", href: "/proyectos", icon: Building2 },
-      { label: "Escenarios", href: "/escenarios", icon: GitBranch },
-      { label: "Gabinete", href: "/gabinete", icon: Landmark }
+      { label: "Urbanas", href: "/propuestas", icon: ClipboardList },
+      { label: "Proyectos", href: "/proyectos", icon: Building2 }
     ]
   },
   {
