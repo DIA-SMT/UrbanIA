@@ -19,7 +19,7 @@ export function hasOpenRouterConfig() {
 
 export async function askUrbanAssistant(
   messages: UrbanAssistantMessage[],
-  options?: { model?: string }
+  options: { model?: string; json?: boolean } = {}
 ): Promise<UrbanAssistantResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
@@ -41,7 +41,8 @@ export async function askUrbanAssistant(
     model,
     temperature: 0.35,
     max_tokens: 900,
-    messages
+    messages,
+    ...(options.json ? { response_format: { type: "json_object" } } : {})
   });
 
   return {

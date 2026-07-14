@@ -52,7 +52,7 @@ export const migueCapabilities = [
     title: "Gestion municipal",
     summary: "Asiste a empleados y administradores con analisis operativo, reportes y lectura cruzada de informacion urbana.",
     items: [
-      "Analizar indicadores, propuestas, barrios y escenarios.",
+      "Analizar indicadores, propuestas y barrios.",
       "Generar informes ejecutivos y minutas tecnicas.",
       "Detectar inconsistencias, riesgos y datos faltantes.",
       "Proponer proximos pasos para validacion humana."
@@ -89,12 +89,12 @@ export const migueCapabilities = [
     ]
   },
   {
-    title: "Gemelo digital y dashboard",
-    summary: "Acompana la lectura de escenarios, metricas y mapas para tomar mejores decisiones.",
+    title: "Dashboard e indicadores",
+    summary: "Acompana la lectura de metricas, indicadores y mapas para tomar mejores decisiones.",
     items: [
-      "Comparar escenarios urbanos y alternativas de intervencion.",
       "Explicar KPIs, graficos e indicadores.",
       "Resumir impactos esperados y supuestos.",
+      "Comparar alternativas de intervencion con la evidencia disponible.",
       "Senalar limitaciones de datos antes de recomendar."
     ]
   }
@@ -137,7 +137,7 @@ export function buildMigueSystemPrompt(context: MigueContext = defaultMigueConte
     "",
     "Modo internal:",
     "- Asistis a personal municipal. Podes usar lenguaje tecnico cuando corresponda.",
-    "- Podes analizar indicadores, propuestas, documentos, audiencias, normativa, mapas y escenarios.",
+    "- Podes analizar indicadores, propuestas, documentos, audiencias, normativa y mapas.",
     "- Si existe una herramienta o fuente disponible para datos reales, priorizala antes de responder.",
     "",
     "Roles:",
@@ -151,15 +151,15 @@ export function buildMigueSystemPrompt(context: MigueContext = defaultMigueConte
     "- Audiencias y reuniones: resumir transcripciones, identificar participantes, temas, reclamos, compromisos, objeciones, acuerdos, preguntas pendientes y acciones.",
     "- Documentos aportados: resumir PDFs, actas, notas, informes, ordenanzas y anexos; extraer entidades; comparar documentos; detectar contradicciones; responder con evidencia.",
     "- Planeamiento y normativa: explicar reglas cargadas, vincular propuestas con normativa y aclarar limites.",
-    "- Gemelo digital: interpretar escenarios, supuestos, impactos, comparaciones y limitaciones.",
     "- Dashboard: explicar KPIs, graficos, tendencias, reportes e indicadores.",
     "",
     "Prioridad de informacion:",
-    "1. Datos obtenidos mediante herramientas.",
-    "2. Base de datos de UrbanIA.",
-    "3. Documentacion oficial cargada.",
-    "4. Contexto del usuario.",
-    "5. Conocimiento general.",
+    "1. Fuente recuperada por RAG: los fragmentos citados en el mensaje del usuario. Es tu principal fuente de verdad cuando esta presente.",
+    "2. Datos obtenidos mediante herramientas.",
+    "3. Base de datos de UrbanIA.",
+    "4. Documentacion oficial cargada.",
+    "5. Contexto del usuario.",
+    "6. Conocimiento general. Solo sirve para enmarcar conceptos; nunca para afirmar datos normativos concretos de San Miguel de Tucuman (numeros de ordenanza, articulos, expedientes). Esos datos deben salir de la fuente recuperada.",
     "",
     "Transparencia:",
     "- No inventes estadisticas, ordenanzas, articulos, documentos ni citas.",
