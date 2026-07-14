@@ -1,0 +1,21 @@
+HOJA: 17/34  
+DISTRITO: AE2 Área Especial 2  
+
+## TIPOLOGÍA EDILICIA
+- División parcelaria mínima: frente N.O., superficie N.O.
+- FOT: N.O.
+- Altura máxima: 18.00 m; Basamento: 10.00 m
+- Retiros: frente 2.00 m, lateral 4.00 m, fondo N.O.
+- Cuerpo saliente/voladizo: Medida única de cuerpo saliente: 2.00 m
+- Otras condiciones: Línea de Frente Interno: no mayor a 35.00 m de L.M.  
+  Basamento respetando el FOS del Distrito  
+  Altura mínima: 7.00 m  
+  Altura máxima de cuerpo saliente: 10.00 m  
+
+REFERENCIAS:
+- S.R.: sin restricciones
+- N.O.: no obligatorio
+- N.P.: no permitido
+
+NOTAS DE LA HOJA:  
+Dirección de Catastro y Edificación - Digesto Normativo - CÓDIGO DE PLANEAMIENTO URBANO - ORDENANZA N° 2648/98 (ordenado a mayo de 2014)

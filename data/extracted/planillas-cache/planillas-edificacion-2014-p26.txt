@@ -1,0 +1,29 @@
+HOJA: 31/34
+
+DISTRITO: I1 Industrial 1 (delimitación según Plano de Zonificación en Distritos)
+
+## VIVIENDA
+- División parcelaria mínima: frente 20,00 m, superficie 900 m2
+- FOT: usos permitidos s/ Planillas de Usos del Suelo 60
+- Altura máxima: 12,00 m; Basamento: S.R.
+- Retiros: frente 7,00 m, lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: no rigen las disposiciones para centro libre de manzana
+- Otras condiciones: solo como complemento de la actividad principal y como máximo 1 (una) unidad por parcela
+
+DISTRITO: I2 Industrial 2 (delimitación según Plano de Zonificación en Distritos)
+
+## VIVIENDA
+- División parcelaria mínima: frente 50,00 m, superficie 2.500 m2
+- FOT: usos permitidos s/ Planillas de Usos del Suelo 40
+- Altura máxima: (x); Basamento: S.R.
+- Retiros: frente 15,00 m, lateral 15,00 m, fondo 15,00 m
+- Cuerpo saliente/voladizo: no rigen las disposiciones para centro libre de manzana
+- Otras condiciones: solo como complemento de la actividad principal y como máximo 1 (una) unidad por parcela
+
+REFERENCIAS:
+S.R. sin restricciones
+N.O. no obligatorio
+
+NOTAS DE LA HOJA:
+(1) Deberá cumplir con lo establecido en el Art. 28º de la presente Ordenanza
+(x) Altura máxima sin límites.

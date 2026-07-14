@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, ChevronDown, ChevronLeft, FileText, FolderKanban, Map, Menu, MoreHorizontal, Moon, Plus, Search, Sun, Users, X } from "lucide-react";
+import { Bell, ChevronDown, ChevronLeft, FolderKanban, Map, Menu, MessagesSquare, MoreHorizontal, Moon, Plus, Search, Sun, Users, X } from "lucide-react";
 import { MigueFloatingChat } from "@/components/assistant/migue-floating-chat";
 import { Brand } from "@/components/brand";
 import { sidebarSections } from "@/lib/data";
@@ -116,6 +116,11 @@ type SidebarSection = (typeof sidebarSections)[number];
 
 function SidebarGroup({ section, pathname, open, collapsed = false, onToggle }: { section: SidebarSection; pathname: string; open: boolean; collapsed?: boolean; onToggle: () => void }) {
   const Icon = section.icon;
+  // Sección con href = link directo, sin desplegable.
+  if (section.href) {
+    const active = isActive(pathname, section.href);
+    return <Link href={section.href} title={collapsed ? section.title : undefined} className={`nav-link group relative ${active ? "nav-link-active" : ""} ${collapsed ? "justify-center px-0" : ""}`}><Icon className="h-[18px] w-[18px] shrink-0" />{!collapsed && <span className="flex-1 truncate text-left">{section.title}</span>}{active && <motion.span layoutId="active-nav" className="absolute left-0 h-5 w-0.5 rounded-r bg-[#1f89f6]" />}</Link>;
+  }
   const active = section.items.some((item) => isActive(pathname, item.href));
   return <div><button onClick={onToggle} title={collapsed ? section.title : undefined} className={`nav-link group w-full ${active ? "text-sky-700 dark:text-sky-200" : ""} ${collapsed ? "justify-center px-0" : ""}`}><Icon className="h-[18px] w-[18px] shrink-0" />{!collapsed && <><span className="flex-1 text-left">{section.title}</span><ChevronDown className={`h-4 w-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`} /></>}</button><AnimatePresence initial={false}>{open && !collapsed ? <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }} className="overflow-hidden"><div className="ml-4 space-y-1 border-l border-slate-200 py-1 pl-2 dark:border-white/10">{section.items.map((item) => <SidebarLink key={item.label} {...item} active={isActive(pathname, item.href)} />)}</div></motion.div> : null}</AnimatePresence></div>;
 }
@@ -125,7 +130,7 @@ function MobileBottomNavigation({ pathname, onMore }: { pathname: string; onMore
     { label: "Mapa", href: "/admin", icon: Map },
     { label: "Expedientes", href: "/propuestas", icon: FolderKanban },
     { label: "Participacion", href: "/audiencias", icon: Users },
-    { label: "Normativa", href: "/normativa", icon: FileText }
+    { label: "Consulta CPU", href: "/consulta-cpu", icon: MessagesSquare }
   ];
   return <nav aria-label="Navegacion movil" className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-5 rounded-2xl border border-slate-200 bg-white/95 p-1.5 shadow-[0_14px_40px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-[#091725]/95 lg:hidden">{items.map((item) => { const Icon = item.icon; const active = isActive(pathname, item.href); return <Link key={item.label} href={item.href} className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-bold ${active ? "bg-sky-50 text-sky-700 dark:bg-sky-400/10 dark:text-sky-200" : "text-slate-500"}`}><Icon className="h-4 w-4" /><span className="truncate">{item.label}</span></Link>; })}<button onClick={onMore} className="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-bold text-slate-500"><MoreHorizontal className="h-4 w-4" /><span>Mas</span></button></nav>;
 }
@@ -146,5 +151,10 @@ function isActive(pathname: string, href: string) {
 }
 
 function findActiveGroup(pathname: string) {
-  return sidebarSections.find((section) => section.items.some((item) => isActive(pathname, item.href)))?.title ?? "Mapa";
+  const section = sidebarSections.find(
+    (candidate) => (candidate.href && isActive(pathname, candidate.href)) || candidate.items.some((item) => isActive(pathname, item.href))
+  );
+  if (!section) return "Mapa";
+  // Las secciones de link directo no tienen desplegable que abrir.
+  return section.href ? "" : section.title;
 }

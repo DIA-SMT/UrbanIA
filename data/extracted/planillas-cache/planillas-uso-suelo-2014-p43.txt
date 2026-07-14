@@ -1,0 +1,38 @@
+HOJA: 43/63
+
+## Productos básicos de hierro y acero; materiales no ferrosos, piezas de fundición de hierro o acero, piezas de forja de hierro o acero.
+- Permitido sin restricciones en: I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6, #
+
+## Productos de laminación y estampado
+- Permitido sin restricciones en: I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6, #
+
+## Alambres de hierro y acero. Incluso alambre galvanizado
+- Permitido sin restricciones en: I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6, #
+
+## Tubos y cañerías de hierro o acero
+- Permitido sin restricciones en: I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6, #
+
+## Productos básicos de la fusión de minerales de plomo, estaño, zinc y demás no ferrosos
+- Permitido sin restricciones en: I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6, #
+
+NOTAS DE LA HOJA:
+- (*) permitido sin restricciones.
+- [ ] no permitido.
+- 1 a 7 en el interior de la parcela según Art.21º de las Reglamentaciones Particulares.
+- # en el interior de la parcela según Art.21º de las Reglamentaciones Particulares.
+- (+) Los usos permitidos en el Distrito de Servicios 3 serán los que se permitan en las áreas que atraviesa dicho corredor. También se admiten los usos particulares indicados en estas Planillas.
+- (+++) Sólo se permiten comercios minoristas en la manzana comprendida entre av Sarmiento y calles 25 de Mayo, Muñecas y España. Estos serán los mismos que los admitidos en el Distrito R1 y deberán ser complementarios a la vivienda.
+- Todos los usos consignados en esta planilla incluyen el fraccionamiento y el envasado de los productos (Ord. N° 3.403/03).
+
+MODIFICADA POR:
+- Ordenanza N° 2648/98 (ordenado a mayo de 2014)

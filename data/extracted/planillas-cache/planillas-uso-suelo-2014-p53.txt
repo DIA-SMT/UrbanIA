@@ -1,0 +1,60 @@
+HOJA: 53/63
+
+## Fabricación de art. de nácar, carey, hueso y asta
+- Permitido sin restricciones en: C1b, C2, C3, C4b, I1, I2
+- Permitido con límite en: C1a: hasta 50 m2, AE1: hasta 100 m2, AE2: hasta 50 m2, AE3: hasta 100 m2, R3a: hasta 50 m2, R3b: hasta 300 m2, R4a: hasta 300 m2, R4b: hasta 300 m2
+- No permitido en: AE4, AE5, R1, R2a, R2b, S1, S2, S3
+- Estacionamiento/carga: 6
+- Notas: #
+
+## Fabricación de paraguas y bastones
+- Permitido sin restricciones en: C1b, C2, C3, C4b, I1, I2
+- Permitido con límite en: C1a: hasta 50 m2, AE1: hasta 100 m2, AE3: hasta 100 m2, R3a: hasta 50 m2, R3b: hasta 300 m2, R4a: hasta 300 m2, R4b: hasta 300 m2
+- No permitido en: AE2, AE4, AE5, R1, R2a, R2b, S1, S2, S3
+- Estacionamiento/carga: 6
+- Notas: #
+
+## Fabricación de juguetes que no incluyan material plástico
+- Permitido sin restricciones en: C1b, C2, C3, C4b, I1, I2
+- Permitido con límite en: R3b: hasta 300 m2, R4a: hasta 300 m2, R4b: hasta 300 m2
+- No permitido en: C1a, AE1, AE2, AE3, AE4, AE5, R1, R3a, R2a, R2b, S1, S2, S3
+- Estacionamiento/carga: 6
+- Notas: #
+
+## Fab. de adornos de fantasía y art. afines
+- Permitido sin restricciones en: C1b, C2, C3, C4b, I1, I2
+- Permitido con límite en: C1a: hasta 50 m2, AE1: hasta 100 m2, AE3: hasta 100 m2, R3a: hasta 50 m2, R3b: hasta 300 m2, R4a: hasta 300 m2, R4b: hasta 300 m2
+- No permitido en: AE2, AE4, AE5, R1, R2a, R2b, S1, S2, S3
+- Estacionamiento/carga: 6
+- Notas: #
+
+## Fabricación de sellos de goma, pipas, boquillas, encendedores, placas de identificación
+- Permitido sin restricciones en: C1b, C2, C3, C4b, I1, I2
+- Permitido con límite en: C1a: hasta 50 m2, AE1: hasta 100 m2, AE3: hasta 100 m2, R3a: hasta 50 m2, R3b: hasta 300 m2, R4a: hasta 300 m2, R4b: hasta 300 m2
+- No permitido en: AE2, AE4, AE5, R1, R2a, R2b, S1, S2, S3
+- Estacionamiento/carga: 6
+- Notas: #
+
+## Fabricación de toldos de lona y plástico
+- Permitido sin restricciones en: C1b, C2, C3, C4b, I1, I2
+- Permitido con límite en: AE1: hasta 100 m2, AE3: hasta 100 m2, R3a: hasta 50 m2, R3b: hasta 300 m2, R4a: hasta 300 m2, R4b: hasta 300 m2
+- No permitido en: C1a, AE2, AE4, AE5, R1, R2a, R2b, S1, S2, S3
+- Estacionamiento/carga: 6
+- Notas: #
+
+## Fabricación de bolsas de poliestireno
+- Permitido sin restricciones en: R3b, R4a, R4b, I1, I2
+- Permitido con límite en: R3a: hasta 300 m2, R2a: hasta 300 m2, R2b: hasta 500 m2
+- No permitido en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, S1, S2, S3
+- Estacionamiento/carga: 6
+- Notas: #
+
+NOTAS DE LA HOJA:
+- * permitido sin restricciones.
+- ** no permitido.
+- (+) Los usos permitidos en el Distrito de Servicios 3 serán los que se permitan en las áreas que atraviesa dicho corredor.
+- (+++) Sólo se permiten comercios minoristas en la manzana comprendida entre av. Sarmiento y calles 25 de Mayo, Muñecas y España. Estos serán los mismos que los admitidos en el Distrito R1 y deberán ser complementarios a la vivienda.
+- Todos los usos consignados en esta planilla incluyen el fraccionamiento y el envasado de los productos (Ord. N° 3.403/03).
+
+MODIFICADA POR:
+- Ordenanza N° 2648/98 (ordenado a mayo de 2014)

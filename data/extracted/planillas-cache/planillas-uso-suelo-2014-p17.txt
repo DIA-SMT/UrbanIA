@@ -1,0 +1,56 @@
+HOJA: 17/63
+
+## Campus Universitario
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 7
+
+## Escuelas o colegios (Pre-escolar, Primario, Secundario) con o sin internación
+- Permitido sin restricciones en: R1, R3a, R3b, R4a, R4b, R2a, R2b
+- Permitido con límite en: C1b: solo permitido con ingreso y egreso por calles laterales
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+- Notas: Ord. 4346/10
+
+## Escuelas diferenciales (especiales)
+- Permitido sin restricciones en: C1b
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Escuelas técnicas con talleres que produzcan ruidos y/o molestias
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 7
+- Notas: Ord. 4346/10
+
+## Guardería infantil o maternal (guarda de niños hasta 4 años de edad, excluida educación primaria)
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+- Notas: Ord. 4346/10, (++++)
+
+## Instituto de investigación con o sin laboratorio
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 5
+- Notas: Ord. 4346/10
+
+## Instituto y/o academias (computación, danza, música, enfermería, etc.)
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+- Notas: Ord. 4346/10
+
+## Universitaria y superior no universitaria
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2, S3, I1, I2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 7
+
+NOTAS DE LA HOJA:
+- (*) Solo permitido en Distrito C1b
+- (***) Solo permitido con ingreso y egreso por calles laterales
+- (****) No permitido en calle Miguel Lillo entre San Lorenzo y Lamadrid, Las Piedras al 1400 y General Paz al 1400
+- N.O. No obligatorio
+
+MODIFICADA POR:
+- Ordenanzas N° 4.346/10 y 4681/14

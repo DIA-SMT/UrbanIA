@@ -1,0 +1,34 @@
+HOJA: 23/34  
+DISTRITO: R3a Residencial Exclusivo (RE) (delimitación según Plano de Zonificación en Distritos)
+
+## VIVIENDA INDIVIDUAL
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: S.R.
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente * 7,00 m, lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: no especificado
+- Otras condiciones: La zona de retiro obligatorio se podrá ocupar en un 30% con cocheras abiertas en 2 (dos) de sus lados como mínimo.
+
+## VIVIENDA AGRUPADA
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: S.R.
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente * 7,00 m, lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: no especificado
+- Otras condiciones: La zona de retiro obligatorio se podrá ocupar en un 30% con cocheras abiertas en 2 (dos) de sus lados como mínimo.
+
+## OTROS USOS
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: S.R.
+- Altura máxima: 9,00 m; Basamento: S.R.
+- Retiros: frente 7,00 m, lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: no especificado
+- Otras condiciones: no especificado
+
+REFERENCIAS:
+S.R. sin restricciones  
+N.O. no obligatorio
+
+NOTAS DE LA HOJA:
+(1) Deberá cumplir con lo establecido en el Art. 28º de la presente Ordenanza.  
+* En parcelas esquina ese retiro se hará sólo sobre Avenida Mate de Luna.

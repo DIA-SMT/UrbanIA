@@ -373,7 +373,7 @@ model KnowledgeChunk {
   content       String
   tokenEstimate Int                          @default(0)
   metadata      Json                         @default("{}")
-  embedding     Unsupported("vector(1536)")?
+  embedding     Unsupported("vector(384)")?
   createdAt     DateTime                     @default(now())
   source        KnowledgeSource              @relation(fields: [sourceId], references: [id], onDelete: Cascade)
 
@@ -492,6 +492,33 @@ model MeetingActionItem {
   meeting     Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
   @@index([meetingId, status])
+}
+
+model CpuConversation {
+  id        String       @id @default(cuid())
+  title     String       @default("Nueva consulta")
+  ownerKey  String
+  userId    String?
+  archived  Boolean      @default(false)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  messages  CpuMessage[]
+
+  @@index([ownerKey, archived, updatedAt])
+}
+
+model CpuMessage {
+  id             String          @id @default(cuid())
+  conversationId String
+  role           String
+  content        String
+  citations      Json            @default("[]")
+  retrieved      Json            @default("[]")
+  isError        Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  conversation   CpuConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
 }
 
 enum UserRole {

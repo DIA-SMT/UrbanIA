@@ -1,0 +1,58 @@
+HOJA: 30/34  
+DISTRITO: S3a Servicio 3a (delimitación según Plano de Zonificación en Distritos)
+
+## VIVIENDA INDIVIDUAL
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: S.R.
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente 7,00 m, lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: no especificado
+- Otras condiciones: arbolado obligatorio en la parcela
+
+## AGRUPADA
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: 30%
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente 7,00 m, lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: no especificado
+- Otras condiciones: arbolado obligatorio en la parcela
+
+## COUNTRY
+- División parcelaria mínima: frente 50,00 m, superficie 10.000 m²
+- FOT: 30%
+- Altura máxima: S.R.; Basamento: N.P.
+- Retiros: frente 7,00 m, lateral 7,00 m, fondo 7,00 m
+- Cuerpo saliente/voladizo: no especificado
+- Otras condiciones: arbolado obligatorio en la parcela
+
+## COLECTIVA ENTRE MEDIANERAS
+- Tipología no permitida
+
+## PERÍMETRO LIBRE
+- División parcelaria mínima: frente 50,00 m, superficie 2.500 m²
+- FOT: 40%
+- Altura máxima: 40,00 m; Basamento: N.P.
+- Retiros: frente 7,00 m, lateral h/d=4, fondo h/d=4
+- Cuerpo saliente/voladizo: no especificado
+- Otras condiciones: arbolado obligatorio en la parcela
+
+## SEMI PERÍMETRO LIBRE
+- Tipología no permitida
+
+## OTROS USOS
+- División parcelaria mínima: no especificado
+- FOT: 50%
+- Altura máxima: (**); Basamento: N.P.
+- Retiros: frente 7,00 m, lateral 7,00 m, fondo 7,00 m
+- Cuerpo saliente/voladizo: no especificado
+- Otras condiciones: no especificado
+
+REFERENCIAS:
+- S.R.: sin restricciones
+- N.O.: no obligatorio
+- N.P.: no permitido
+
+NOTAS DE LA HOJA:
+- (**) Idem a las establecidas para vivienda según la tipología.
+- (+++) Solo permitido en parcela frentista hacia Oeste.
+- (1) Deberá cumplir con lo establecido en el Art. 28° de la presente Ordenanza.

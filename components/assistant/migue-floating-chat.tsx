@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Bot, Loader2, MessageCircle, Send, X } from "lucide-react";
+import { Bot, Loader2, MessageCircle, Send, Trash2, X } from "lucide-react";
 import { MarkdownText } from "@/components/assistant/markdown-text";
+
+const MIGUE_HISTORY_KEY = "urbania-migue-history";
 
 type LiveAssistantAnswer = {
   answer: string;
@@ -31,6 +33,50 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
   const [draftQuestion, setDraftQuestion] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const hydratedRef = useRef(false);
+
+  // Restauramos la conversación guardada en el navegador (persiste entre recargas y páginas).
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(MIGUE_HISTORY_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setMessages(
+            parsed
+              .filter((item) => item && (item.role === "user" || item.role === "assistant") && typeof item.content === "string")
+              .map((item) => ({ role: item.role, content: item.content }))
+          );
+        }
+      }
+    } catch {
+      // historial corrupto: se ignora
+    } finally {
+      hydratedRef.current = true;
+    }
+  }, []);
+
+  // Guardamos cada cambio (sólo después de hidratar para no pisar lo almacenado).
+  useEffect(() => {
+    if (!hydratedRef.current) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(MIGUE_HISTORY_KEY, JSON.stringify(messages));
+    } catch {
+      // sin espacio o storage bloqueado: se ignora
+    }
+  }, [messages]);
+
+  function clearHistory() {
+    setMessages([]);
+    setStatus("idle");
+    try {
+      window.localStorage.removeItem(MIGUE_HISTORY_KEY);
+    } catch {
+      // se ignora
+    }
+  }
 
   async function askMigue(event?: React.FormEvent<HTMLFormElement>, prompt?: string) {
     event?.preventDefault();
@@ -102,6 +148,16 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
               <p className="text-sm font-black text-white">Migue</p>
               <p className="text-xs font-semibold text-slate-400">Asistente urbano de UrbanIA</p>
             </div>
+            {messages.length ? (
+              <button
+                onClick={clearHistory}
+                className="urban-button rounded-md border border-white/10 bg-white/[0.04] p-2 text-slate-300 hover:text-rose-300"
+                aria-label="Borrar historial de Migue"
+                title="Borrar historial"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            ) : null}
             <button
               onClick={() => setIsOpen(false)}
               className="urban-button rounded-md border border-white/10 bg-white/[0.04] p-2 text-slate-300"
@@ -117,17 +173,19 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
               <p className="mt-1 text-sm leading-6 text-slate-300">Escribime como hablas normalmente y te ayudo a ordenar la consulta.</p>
             </div>
 
-            <div className="grid gap-2">
-              {starterPrompts.map((prompt) => (
-                <button
-                  key={prompt}
-                  onClick={() => askMigue(undefined, prompt)}
-                  className="urban-button rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-xs font-bold leading-5 text-slate-300"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
+            {messages.length === 0 ? (
+              <div className="grid gap-2">
+                {starterPrompts.map((prompt) => (
+                  <button
+                    key={prompt}
+                    onClick={() => askMigue(undefined, prompt)}
+                    className="urban-button rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-xs font-bold leading-5 text-slate-300"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             {messages.length ? (
               <div className="space-y-3">

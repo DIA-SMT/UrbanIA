@@ -1,0 +1,64 @@
+HOJA: 7/34  
+DISTRITO: C4a Comercial 4a (delimitación según Plano de Zonificación en Distritos)
+
+## VIVIENDA INDIVIDUAL
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: 70
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: N.O.
+
+## AGRUPADA
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: 70
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: N.O.
+
+## COUNTRY
+- Tipología no permitida
+
+## COLECTIVA ENTRE MEDIANERAS
+- División parcelaria mínima: frente S.R., superficie S.R.
+- FOT: 70
+- Altura máxima: 12,00 m; Basamento: 6,00 m
+- Retiros: frente N.O., lateral N.O., fondo (++)
+- Cuerpo saliente/voladizo: P4
+- Otras condiciones: 
+
+## PERÍMETRO LIBRE
+- División parcelaria mínima: frente 30,00 m, superficie S.R.
+- FOT: 70
+- Altura máxima: 32,00 m; Basamento: 6,00 m
+- Retiros: frente N.O., lateral (++), fondo (++)
+- Cuerpo saliente/voladizo: 
+- Otras condiciones: 
+
+## SEMI PERÍMETRO LIBRE
+- División parcelaria mínima: frente 15,00 m, superficie S.R.
+- FOT: 70
+- Altura máxima: 12,00 m; Basamento: 6,00 m
+- Retiros: frente N.O., lateral (++), fondo (++)
+- Cuerpo saliente/voladizo: 
+- Otras condiciones: 
+
+## OTROS USOS
+- División parcelaria mínima: frente *, superficie *
+- FOT: 70
+- Altura máxima: *; Basamento: 8,00 m
+- Retiros: frente N.O., lateral *, fondo *
+- Cuerpo saliente/voladizo: 
+- Otras condiciones: 
+
+REFERENCIAS:
+- S.R.: sin restricciones
+- N.O.: no obligatorio
+
+NOTAS DE LA HOJA:
+(1) Deberá cumplir con lo establecido en el Art. 28º de la presente Ordenanza  
+(*) Excluidas las parcelas esquina.  
+* Idem a las establecidas para vivienda colectiva según la tipología.  
+(++) Deberá cumplir con lo establecido en el Art. 25º de la presente Ordenanza  
+NOTA: Hoja modificada por Ordenanza Nº 2.918/00

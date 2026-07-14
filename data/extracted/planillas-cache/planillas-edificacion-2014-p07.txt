@@ -1,0 +1,60 @@
+HOJA: 9/34  
+DISTRITO: AE1 Áreas Especiales 1 (Delimitación según Planos de Zonificación en Distritos y de Áreas Especiales)
+
+## VIVIENDA INDIVIDUAL
+- División parcelaria mínima: frente N.P., superficie N.P.
+- FOT: 80%
+- Altura máxima: 18.00 m; Basamento: 13.00 m
+- Retiros: frente 7.00 m, lateral (**), fondo N.O.
+- Cuerpo saliente/voladizo: N.P.
+- Otras condiciones: No permitido en planta baja
+
+## COLECTIVA ENTRE MEDIANERAS
+- División parcelaria mínima: frente N.P., superficie N.P.
+- FOT: 80%
+- Altura máxima: 18.00 m; Basamento: 13.00 m
+- Retiros: frente 7.00 m, lateral (**), fondo N.O.
+- Cuerpo saliente/voladizo: N.P.
+- Otras condiciones: No permitido en planta baja
+
+## OTROS USOS
+- División parcelaria mínima: frente N.P., superficie N.P.
+- FOT: 80%
+- Altura máxima: 18.00 m; Basamento: 13.00 m
+- Retiros: frente 7.00 m, lateral (**), fondo N.O.
+- Cuerpo saliente/voladizo: N.P.
+- Otras condiciones: No permitido en planta baja
+
+## VIVIENDA INDIVIDUAL (CONGRESO 1a CUADRA ACERA OESTE)
+- División parcelaria mínima: frente N.P., superficie N.P.
+- FOT: 80%
+- Altura máxima: 13.00 m; Basamento: 7.00 m
+- Retiros: frente 7.00 m, lateral (**), fondo N.O.
+- Cuerpo saliente/voladizo: 1.50 m
+- Otras condiciones: No permitido en planta baja
+
+## COLECTIVA ENTRE MEDIANERAS (CONGRESO 1a CUADRA ACERA OESTE)
+- División parcelaria mínima: frente N.P., superficie N.P.
+- FOT: 80%
+- Altura máxima: 13.00 m; Basamento: 7.00 m
+- Retiros: frente 7.00 m, lateral (**), fondo N.O.
+- Cuerpo saliente/voladizo: 1.50 m
+- Otras condiciones: No permitido en planta baja
+
+## OTROS USOS (CONGRESO 1a CUADRA ACERA OESTE)
+- División parcelaria mínima: frente N.P., superficie N.P.
+- FOT: 80%
+- Altura máxima: 13.00 m; Basamento: 7.00 m
+- Retiros: frente 7.00 m, lateral (**), fondo N.O.
+- Cuerpo saliente/voladizo: 1.50 m
+- Otras condiciones: No permitido en planta baja
+
+REFERENCIAS:
+- N.P.: no permitido
+- N.O.: no obligatorio
+
+NOTAS DE LA HOJA:
+(1) Deberá cumplir con lo establecido en el Art. 28º de la presente Ordenanza.
+(*) Se podrá construir cuerpo saliente solo en vereda de 4.00 m de ancho.
+(**) Construcción obligatoria sobre L.E. existente, a excepción de la parcela de S4 M0030 P230 cuya L.E. será a 4.00 m del cordón de acera.
+(++) Deberá cumplir con lo establecido en el Art. 25º de la presente Ordenanza.

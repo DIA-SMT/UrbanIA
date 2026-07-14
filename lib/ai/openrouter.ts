@@ -17,14 +17,17 @@ export function hasOpenRouterConfig() {
   return Boolean(process.env.OPENROUTER_API_KEY);
 }
 
-export async function askUrbanAssistant(messages: UrbanAssistantMessage[]): Promise<UrbanAssistantResponse> {
+export async function askUrbanAssistant(
+  messages: UrbanAssistantMessage[],
+  options?: { model?: string }
+): Promise<UrbanAssistantResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
     throw new Error("OPENROUTER_API_KEY is not configured");
   }
 
-  const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
+  const model = options?.model || process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
   const client = new OpenAI({
     apiKey,
     baseURL: "https://openrouter.ai/api/v1",

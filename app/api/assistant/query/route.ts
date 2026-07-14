@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { askUrbanAssistant, hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { buildMigueSystemPrompt, buildMigueUserPrompt, normalizeMigueContext } from "@/lib/ai/migue";
+import { buildKnowledgeContext, retrieveKnowledge } from "@/lib/ai/rag";
 
 const assistantQuerySchema = z.object({
   question: z.string().trim().min(3).max(2000),
@@ -64,10 +65,24 @@ export async function POST(request: Request) {
 
   try {
     const assistantContext = normalizeMigueContext(parsed.data.assistantContext);
-    const context =
+    let context =
       parsed.data.context ||
       "MVP con mapa urbano, propuestas, Codigo de Planeamiento, audiencias, gabinete, escenarios, documentos y participacion ciudadana.";
     const history = parsed.data.history ?? [];
+
+    // Evidencia documental (RAG): CPU, planillas y digesto. Si la base vectorial
+    // no está disponible, Migue sigue funcionando sin evidencia.
+    try {
+      const knowledge = await retrieveKnowledge(parsed.data.question, 4);
+      if (knowledge.length) {
+        context += [
+          "\n\nEvidencia documental recuperada de la base normativa (usala solo si es pertinente a la consulta; cita la fuente tal como figura y no inventes normas):",
+          buildKnowledgeContext(knowledge)
+        ].join("\n");
+      }
+    } catch (error) {
+      console.warn("Migue RAG unavailable", error instanceof Error ? error.message : error);
+    }
 
     const response = await askUrbanAssistant([
       { role: "system", content: buildMigueSystemPrompt(assistantContext) },

@@ -1,0 +1,60 @@
+HOJA: 26/34  
+DISTRITO: R4a Residencial Exclusivo (RE) (delimitación según Plano de Zonificación en Distritos)
+
+## VIVIENDA INDIVIDUAL
+- División parcelaria mínima: frente 15,00 m, superficie 450 m²
+- FOT: 60%
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente 5,00 m, lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: (**)
+- Otras condiciones: no regirá lo dispuesto sobre centro libre de manzana
+
+## AGRUPADA
+- División parcelaria mínima: frente 15,00 m, superficie 450 m²
+- FOT: 60%
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente 5,00 m, lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: (**)
+- Otras condiciones: no regirá lo dispuesto sobre centro libre de manzana
+
+## COUNTRY
+- División parcelaria mínima: frente 30,00 m, superficie 10.000 m²
+- FOT: 30%
+- Altura máxima: S.R.; Basamento: N.O.
+- Retiros: frente 5,00 m, lateral 6,00 m, fondo 6,00 m
+- Cuerpo saliente/voladizo: (**)
+
+## COLECTIVA ENTRE MEDIANERAS
+- División parcelaria mínima: frente 15,00 m, superficie 450 m²
+- FOT: 60%
+- Altura máxima: 6,00 m; Basamento: 4,50 m
+- Retiros: frente 5,00 m, lateral N.O., fondo (++)
+- Cuerpo saliente/voladizo: (**)
+
+## PERÍMETRO LIBRE
+- División parcelaria mínima: frente 30,00 m, superficie 2.500 m²
+- FOT: 30%
+- Altura máxima: 12,00 m; Basamento: 4,50 m
+- Retiros: frente 5,00 m, lateral (++), fondo (**)
+- Cuerpo saliente/voladizo: (**)
+- Otras condiciones: en parc. esq. el retiro se hará en ambos frentes
+
+## SEMI PERÍMETRO LIBRE
+- Tipología no permitida
+
+## OTROS USOS
+- FOT: 60%
+- Altura máxima: 9,00 m; Basamento: 4,50 m
+- Retiros: frente 5,00 m, lateral (**), fondo (**)
+- Cuerpo saliente/voladizo: (**)
+
+REFERENCIAS:
+S.R.: sin restricciones  
+N.O.: no obligatorio  
+
+NOTAS DE LA HOJA:
+(1) Deberá cumplir con lo establecido en el Art. 28° de la presente Ordenanza  
+(*) Excluidas las parcelas esquina  
+(**) Cupos salientes no permitidos  
+(++) Deberá cumplir con lo establecido en el Art. 25° de la presente Ordenanza  
+** Idem a lo establecido para vivienda colectiva según la tipología.

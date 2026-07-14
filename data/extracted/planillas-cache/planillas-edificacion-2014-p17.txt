@@ -1,0 +1,52 @@
+HOJA: 19/34  
+DISTRITO: AE4 ÁREA ESPECIAL 4 (delimitación según Planos de Zonificación en Distritos y Áreas Especiales)
+
+## VIVIENDA INDIVIDUAL
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: Parcelas Mediales S.R., Parcelas Esquinas S.R.
+- Altura máxima: N.O.; Basamento: N.O.
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: Los retiros de L.M. y línea divisoria de parcela son obligatorios desde la cota de P.B.
+
+## AGRUPADA
+- División parcelaria mínima: frente 20,00 m, superficie 900 m²
+- FOT: Parcelas Mediales S.R., Parcelas Esquinas S.R.
+- Altura máxima: N.O.; Basamento: N.O.
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+
+## COUNTRY
+- Tipología no permitida
+
+## COLECTIVA
+- Edificación entre medianeras, L.E. sobre Línea Municipal
+  - FOT: Parcelas Mediales 7, Parcelas Esquinas 7,5
+  - Altura máxima: N.P.; Basamento: N.O.
+  - Retiros: frente N.O., lateral N.O., fondo (++)
+  
+- Edificación entre medianeras, L.E. retiradas 5 mts. Mínimos de L.M.
+  - FOT: Parcelas Mediales 8, Parcelas Esquinas 8,5
+  - Altura máxima: N.P.; Basamento: 5 mts.
+  - Retiros: frente (++), lateral (++), fondo (++)
+
+- Edificación de Semi Perímetro Libre
+  - FOT: Parcelas Mediales 8,5, Parcelas Esquinas 9
+  - Altura máxima: N.P.; Basamento: (++)
+  - Retiros: frente (++), lateral (++), fondo (++)
+
+- Edificación de Perímetro Libre
+  - FOT: Parcelas Mediales 9, Parcelas Esquinas 9,5
+  - Altura máxima: N.P.; Basamento: (++)
+  - Retiros: frente (++), lateral (++), fondo (++)
+
+## OTROS USOS
+- ** Idem a las establecidas para vivienda colectiva según la tipología.
+
+REFERENCIAS:
+- S.R. sin restricciones
+- N.O. no obligatorio
+- N.P. no permitido
+
+NOTAS DE LA HOJA:
+- (++) Deberá cumplir con lo establecido en el art. 25º de la presente Ordenanza

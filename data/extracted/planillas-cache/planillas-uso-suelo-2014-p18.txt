@@ -1,0 +1,85 @@
+HOJA: 18/63  
+## CULTO, CULTURA Y ESPARCIMIENTO  
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2  
+- No permitido en: resto de los distritos  
+- Estacionamiento/carga: N.O.  
+
+## Bailanta  
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2  
+- No permitido en: resto de los distritos  
+- Estacionamiento/carga: N.O.  
+
+## Biblioteca central y local  
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2  
+- No permitido en: resto de los distritos  
+- Estacionamiento/carga: N.O.  
+
+## Cabaret con espectáculo condicionado  
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2  
+- Permitido con límite en: R3b: hasta 100 m2  
+- No permitido en: resto de los distritos  
+- Estacionamiento/carga: N.O.  
+- Notas: Ord. 3373/03, Ref (3)  
+
+## Café concert, bar o restaurant con espectáculo, peñas y pubs  
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2  
+- No permitido en: resto de los distritos  
+- Estacionamiento/carga: N.O.  
+- Notas: Ord. 3610/05  
+
+## Canchas de paddle, tennis, fútbol 5, squash y otros (cubiertas)  
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2  
+- No permitido en: resto de los distritos  
+- Estacionamiento/carga: 7  
+
+## Idem (descubiertas)  
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2  
+- No permitido en: resto de los distritos  
+- Estacionamiento/carga: 7  
+
+## Cine, teatro y auditorio  
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2  
+- No permitido en: resto de los distritos  
+- Estacionamiento/carga: 7  
+
+## Club deportivo con instalaciones cubiertas  
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2  
+- No permitido en: resto de los distritos  
+- Estacionamiento/carga: 7  
+
+## Discoteca, boliche, salón de baile  
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2  
+- No permitido en: resto de los distritos  
+- Estacionamiento/carga: 7  
+
+## Casa de fiestas  
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2  
+- No permitido en: resto de los distritos  
+- Estacionamiento/carga: N.O.  
+- Notas: Ord. 3610/05  
+
+## Exposiciones al aire libre  
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2  
+- No permitido en: resto de los distritos  
+- Estacionamiento/carga: N.O.  
+
+## Exposiciones y galería de arte  
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2  
+- No permitido en: resto de los distritos  
+- Estacionamiento/carga: N.O.  
+
+## Juegos infantiles o en salón de fiesta para niños  
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2  
+- No permitido en: resto de los distritos  
+- Estacionamiento/carga: N.O.  
+
+---
+
+### NOTAS DE LA HOJA  
+- (+) Los usos permitidos en el Distrito de Servicios 3 serán los que se permiten en las áreas que atraviesan dicho corredor.  
+- (++) Solo se permiten comercios minoristas en la manzana comprendida entre av. Sarmiento y calles 25 de Mayo, Muñecas y España.  
+
+### MODIFICADA POR  
+- Ord. 3373/03  
+- Ord. 3610/05  
+- Ord. 3006/01

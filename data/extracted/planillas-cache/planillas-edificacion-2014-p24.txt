@@ -1,0 +1,51 @@
+**HOJA:** 29/34  
+**DISTRITO:** S DE SERVICIOS (S)  
+
+## TIPOLOGÍA EDILICIA
+- **vivienda individual**
+  - División parcelaria mínima: frente 20,00 m, superficie 900 m²
+  - FOT: S.R.
+  - Altura máxima: S.R.; Basamento: S.R.
+  - Retiros: frente N.O., lateral N.O., fondo N.O.
+  - Cuerpo saliente/voladizo: no aplica
+  - Otras condiciones: solo complementaria a la actividad principal
+
+- **agrupada**
+  - TIPOLOGÍA NO PERMITIDA
+
+- **country**
+  - TIPOLOGÍA NO PERMITIDA
+
+- **colectiva entre medianeras**
+  - TIPOLOGÍA NO PERMITIDA
+
+- **perímetro libre**
+  - División parcelaria mínima: frente 40 m, superficie 2.500 m²
+  - FOT: 50
+  - Altura máxima: 12,00 m; Basamento: 6,00 m
+  - Retiros: frente N.O., lateral 6,00 m, fondo 6,00 m
+  - Cuerpo saliente/voladizo: no aplica
+  - Otras condiciones: no regirá lo dispuesto sobre centro libre de manzana
+
+- **semi perímetro libre**
+  - TIPOLOGÍA NO PERMITIDA
+
+- **otros usos**
+  - División parcelaria mínima: frente 80 m, superficie S.R.
+  - FOT: S.R.
+  - Altura máxima: 12,00 m; Basamento: N.O.
+  - Retiros: frente N.O., lateral N.O., fondo N.O.
+  - Cuerpo saliente/voladizo: no aplica
+  - Otras condiciones: no aplica
+
+---
+
+**REFERENCIAS:**
+- S.R. sin restricciones
+- N.O. no obligatorio
+
+---
+
+**NOTAS DE LA HOJA:**  
+(1) Deberá cumplir con lo establecido en el Art. 28° de la presente Ordenanza.  
+NOTA: Hoja modificada por Ordenanza N° 2.918/00.

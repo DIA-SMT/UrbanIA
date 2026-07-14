@@ -1,0 +1,69 @@
+HOJA: 55/63
+## Comestibles en general
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Estacionamiento/carga: N.O.
+  
+## Embutidos, fiambres y otros preparados a base de carne
+- Permitido sin restricciones en: C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Estacionamiento/carga: N.O.
+
+## Frutas, legumbres y cereales secos y en conserva en diversas formas
+- Permitido sin restricciones en: C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Estacionamiento/carga: N.O.
+
+## Harina y subproductos de la molienda del trigo
+- Permitido sin restricciones en: C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Estacionamiento/carga: N.O.
+
+## PRODUCTOS LACTEOS
+### Manteca, crema, leche y productos similares
+- Permitido sin restricciones en: C1a, C1b, C2, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Permitido con límite en: C1a: hasta 300 m2, C1b: hasta 300 m2
+- Estacionamiento/carga: N.O.
+
+### Quesos
+- Permitido sin restricciones en: C1a, C1b, C2, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Permitido con límite en: C1a: hasta 300 m2, C1b: hasta 300 m2
+- Estacionamiento/carga: N.O.
+
+### Productos de la industria fideera (pasta secas)
+- Permitido con límite en: C1a: hasta 100 m2, C1b: hasta 300 m2
+- Estacionamiento/carga: N.O.
+
+### Productos de la panificación
+- Permitido con límite en: C1b: hasta 300 m2
+- Estacionamiento/carga: N.O.
+
+### Vinos y bebidas alcohólicas
+- Permitido con límite en: C1b: hasta 300 m2
+- Estacionamiento/carga: N.O.
+
+## ARTES GRÁFICAS
+### Editoriales, sin imprenta
+- Permitido sin restricciones en: C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Estacionamiento/carga: N.O.
+
+### Envases de papel y cartón
+- Permitido con límite en: C1b: hasta 100 m2
+- Estacionamiento/carga: N.O.
+
+### Librería, papelería y cartonería
+- Permitido sin restricciones en: C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Estacionamiento/carga: N.O.
+
+### Papeles impresos para decorar
+- Permitido sin restricciones en: C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Estacionamiento/carga: N.O.
+
+### Papeles impresos para empaquetar
+- Permitido sin restricciones en: C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Estacionamiento/carga: N.O.
+
+## NOTAS DE LA HOJA
+- * permitido sin restricciones.
+- (+) Los usos permitidos en el Distrito de Servicios 3 serán los que se permitan en las áreas que atraviesa dicho corredor. 
+- (++) Sólo se permitirán comercios minoristas en la manzana comprendida entre Sarmiento y calles 25 de Mayo, Muñecas y España. Estos serán los mismos que los admitidos en el Distrito R1 y deberán ser complementarios a la vivienda.
+- N.O. No obligatorio.
+
+## MODIFICADA POR
+- Ordenanza N° 2648/98 (ordenado a mayo de 2014)

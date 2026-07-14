@@ -1,0 +1,74 @@
+HOJA: 41/63  
+## FABRICACION DE OTROS PRODUCTOS MINERALES NO METALICOS
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 500 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: (+) 
+
+## FABRICACION DE LADRILLOS COMUNES Y POLVO DE LADRILLO
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: # 
+
+## FABRICACION DE LADRILLO DE MAQUINA, TEJAS, BALDOSAS Y CAÑOS
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: # 
+
+## FABRICACION DE MATERIALES REFRACTARIOS
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: # 
+
+## ELABORACION DE CAL Y DE CEMENTO BLANCO, GRIS O NEGRO
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: # 
+
+## ELABORACION DE YESO
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: # 
+
+## MOLIENDA E HIDRATACION DE CAL
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: # 
+
+## FABRICACION DE ART. DE CEMENTO, FIBROCEMENTO, CHAPAS, CAÑOS, TANQUES, PILETAS Y PRODUCTOS AFINES
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 500 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: # 
+
+## FABRICACION DE MOSAICOS CALCAREOS Y GRANITICOS, LOSETAS Y LADRILLOS DE CEMENTO
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 500 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: # 
+
+## ASERRADERO, CORTE, PULIDO Y LABRADO DE MÁRMOLES, GRANITOS Y OTRAS PIEDRAS
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: # 
+
+---
+
+### NOTAS DE LA HOJA
+(+) Los usos permitidos en el Distrito de Servicios 3 serán los que se permiten en las áreas que atraviesan dicho corredor. También se admiten los usos particulares indicados en estas Planillas.  
+(++) Solo se permite comercios minoristas en la manzana comprendida entre Sarmiento y calles 25 de Mayo, Muñecas y España. Estos serán los mismos que los admitidos en el Distrito R1 y deberán ser complementarios a la vivienda.  
+(*) no permitido.  
+(#) en el interior de la parcela según Art.21° de las Reglamentaciones Particulares.  
+
+### MODIFICADA POR
+Ordenanza N° 2648/98 (ordenado a mayo de 2014)

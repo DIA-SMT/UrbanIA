@@ -1,0 +1,26 @@
+HOJA: 14/34  
+DISTRITO: AREA ESPECIAL 1 (AE1)  
+
+## PERFIL 9a (para edificación sin retiro de Línea de Edificación)
+- División parcelaria mínima: frente <no especificado>, superficie <no especificado>
+- FOT: <no especificado>
+- Altura máxima: 18.00 m; Basamento: respetando el FOS del Distrito
+- Retiros: frente 0.00 m, lateral <no especificado>, fondo <no especificado>
+- Cuerpo saliente/voladizo: <no especificado>
+- Otras condiciones: Línea de Edificación coincidente con Línea Municipal. Línea de frente Interno no mayor a 35.00 m de L.M. Altura mínima sobre línea: 7.00 m. Altura máxima sobre línea: 13.00 m.
+
+## PERFIL 9b (para edificación con retiro de Línea de Edificación)
+- División parcelaria mínima: frente <no especificado>, superficie <no especificado>
+- FOT: <no especificado>
+- Altura máxima: 18.00 m; Basamento: respetando el FOS del Distrito
+- Retiros: frente 4.00 m, lateral <no especificado>, fondo <no especificado>
+- Cuerpo saliente/voladizo: <no especificado>
+- Otras condiciones: Línea de Edificación coincidente con Línea Municipal. Línea de frente Interno no mayor a 35.00 m de L.M. Altura mínima sobre línea: 7.00 m. Altura máxima sobre línea: 13.00 m.
+
+REFERENCIAS:
+- S.R.: sin restricciones
+- N.O.: no obligatorio
+- N.P.: no permitido
+
+NOTAS DE LA HOJA:  
+Línea de Edificación: coincidente con Línea Municipal. Línea de frente Interno: no mayor a 35.00 m de L.M. Planos Limites Horizontales. Altura máxima con retiro a 12.00 m del cordón de la vereda: 18.00 m. Altura máxima de basamento: 7.00 m.

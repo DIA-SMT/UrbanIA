@@ -1,0 +1,73 @@
+# HOJA: 6/63
+
+## Kioscos, venta de golosinas, cigarrillos, lotería, gaseosas
+- Permitido sin restricciones en: C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Librería, Papelería, Cartonería
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Lubricantes, filtros, etc.
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Permitido con límite en: R3a: hasta 100 m2, R3b: hasta 100 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Máquinas de coser/tejer
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Maquinarias y equipos para oficina: máquinas de escribir, calcular, etc.
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Máquinas, herramientas y motores indust. y agrícolas (exp. y venta) y rep. y acces.
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Maderas, venta de casas prefabricadas
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Marroquinería
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Matafuegos (comercialización)
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Materiales de construcción (exposición y ventas)
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Permitido con límite en: R2a: hasta 200 m2, R2b: hasta 200 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Materiales de construcción (con depósito sin materiales a granel)
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Mat. de construcción (sin exclusiones)
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+# NOTAS DE LA HOJA
+- (*) Los usos permitidos en el Distrito de Servicios 3 y b serán los que se permiten en las áreas que atraviesa dicho corredor. También se admiten los usos particulares indicados en estas Planillas.
+- (++) Solo se permite exposición y venta sin depósito complementario.
+- (+++) Solo se permiten comercios minoristas en la manzana comprendida entre Av. Sarmiento y calles 25 de Mayo, Muñecas y España. Estos serán los mismos que los admitidos en el Distrito R1 y deberán ser complementarios a la vivienda.
+- (++++): No permitido en calle Miguel Lillo entre San Lorenzo y Lamadrid, Las Piedras al 1400 y General Paz al 1400.
+- N.O. No obligatorio.
+
+# MODIFICADA POR
+- Ordenanza N° 4681/14

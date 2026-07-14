@@ -1,0 +1,58 @@
+HOJA: 6/34  
+DISTRITO: C3 Comercial 3 (delimitación según Plano de Zonificación en Distritos)
+
+## VIVIENDA INDIVIDUAL
+- División parcelaria mínima: frente 15,00 m, superficie 600 m²
+- FOT: S.R.
+- Altura máxima: S.R.; Basamento: S.R.
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: N.O.
+
+## AGRUPADA
+- División parcelaria mínima: frente 15,00 m, superficie 600 m²
+- FOT: S.R.
+- Altura máxima: S.R.; Basamento: S.R.
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: N.O.
+
+## COUNTRY
+- Tipología no permitida
+
+## COLECTIVA ENTRE MEDIANERAS
+- División parcelaria mínima: frente 15,00 m, superficie 600 m²
+- FOT: S.R.
+- Altura máxima: 12,00 m; Basamento: 4,50 m
+- Retiros: frente N.O., lateral N.O., fondo (++)
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: (++) 
+
+## PERÍMETRO LIBRE
+- División parcelaria mínima: frente 8 m, superficie 8,5 m²
+- FOT: S.R.
+- Altura máxima: S.R.; Basamento: 4,50 m
+- Retiros: frente (++), lateral (++), fondo (++)
+- Cuerpo saliente/voladizo: (++)
+- Otras condiciones: (++) 
+
+## SEMI PERÍMETRO LIBRE
+- División parcelaria mínima: frente 15,00 m, superficie 600 m²
+- FOT: S.R.
+- Altura máxima: 12,00 m; Basamento: 4,50 m
+- Retiros: frente N.O., lateral (++), fondo (++)
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: (++) 
+
+## OTROS USOS
+- FOT: **
+- Altura máxima: **; Basamento: **
+- Retiros: frente **, lateral **, fondo **
+- Cuerpo saliente/voladizo: **
+- Otras condiciones: **
+
+REFERENCIAS:
+- S.R. sin restricciones
+- N.O. no obligatorio
+
+NOTAS DE LA HOJA: Hoja modificada por Ordenanzas Nº 2.918/00 y Nº 3.112/01

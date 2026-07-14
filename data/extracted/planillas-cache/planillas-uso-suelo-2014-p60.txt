@@ -1,0 +1,51 @@
+HOJA: 60/63
+
+## Accesorios para farmacia, hospitales, etc.
+- Permitido sin restricciones en: C1a, C1b
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 300 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+
+## Drogas y especialidades medicinales
+- Permitido sin restricciones en: C1a, C1b
+- Permitido con límite en: R3a: hasta 300 m2, R3b: hasta 300 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6 #
+- Notas: (#) en el interior de la parcela según Art. 21° de las Reglamentaciones Particulares.
+
+## Productos veterinarios (medicamentos y productos farmacéuticos, específicos veterinarios)
+- Permitido sin restricciones en: C1a, C1b
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6 #
+
+## Carga, recarga y trasvasamiento de gas licuado de petróleo a minigarrafas (recipientes menores de 10 Kg.)
+- Permitido con límite en: C3: hasta 300 m2, R3a: hasta 100 m2, R3b: hasta 300 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+- Notas: ord. 537/85
+
+## Gas en garrafas
+- Permitido con límite en: R3a: hasta 300 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+
+## Pinturas y barnices
+- Permitido con límite en: C2: hasta 300 m2, R3a: hasta 100 m2, R3b: hasta 300 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6 #
+
+## Productos químicos diversos no inflamables
+- Permitido con límite en: C2: hasta 300 m2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 6
+
+## Productos químicos diversos inflamables o combustibles
+- No permitido en: todos los distritos
+- Estacionamiento/carga: 6
+
+NOTAS DE LA HOJA:
+- (*) Los usos permitidos en el Distrito de Servicios 3 serán los que se permitan en las áreas que atraviesa dicho corredor. También se admiten los usos particulares indicados en estas Planillas.
+- (+++) Sólo se permiten comercios minoristas en la manzana comprendida entre av Sarmiento y calles 25 de Mayo, Muñecas y España. Estos serán los mismos que los admitidos en el Distrito R1 y deberán ser complementarios a la vivienda.
+
+MODIFICADA POR:
+- ord. 537/85

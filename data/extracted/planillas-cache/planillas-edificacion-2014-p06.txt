@@ -1,0 +1,18 @@
+HOJA: 8/34  
+DISTRITO: C4a Comercial 4a
+
+## TIPOLOGÍA EDILICIA
+- División parcelaria mínima: frente N.O., superficie N.O.
+- FOT: N.O.
+- Altura máxima: 12.00 m; Basamento: 6.00 m
+- Retiros: frente N.O., lateral N.O., fondo N.O.
+- Cuerpo saliente/voladizo: N.O.
+- Otras condiciones: Línea de edificación: Línea Municipal Existente. Línea de Frente Interno: no mayor a 35.00 m de L.M.
+
+REFERENCIAS:
+- S.R.: sin restricciones
+- N.O.: no obligatorio
+- N.P.: no permitido
+
+NOTAS DE LA HOJA:  
+Ordenanza N° 2648/98 (ordenado a mayo de 2014)

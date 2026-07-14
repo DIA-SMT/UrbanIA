@@ -1,15 +1,18 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookOpen, Check, ChevronRight, Clipboard, FileWarning, Link2, Plus, Search, X } from "lucide-react";
 import type { NormativeExplorerArticle, NormativeExplorerData, NormativeExplorerLink } from "@/lib/normative/data";
 import { normalizeForSearch } from "@/lib/normative/parser";
 
 const relationshipLabels: Record<string, string> = { APPLIES: "Aplica", REFERENCES: "Referencia", SUPPORTS: "Sustenta", REQUIRES_REVIEW: "Requiere revisión", POTENTIAL_CONFLICT: "Posible conflicto", MODIFIES: "Modifica" };
 
-export function NormativeExplorer({ data }: { data: NormativeExplorerData }) {
-  const [selectedId, setSelectedId] = useState(data.articles[0]?.id ?? "");
+export type NormativeFocusRequest = { number: string; nonce: number };
+
+export function NormativeExplorer({ data, focusRequest }: { data: NormativeExplorerData; focusRequest?: NormativeFocusRequest | null }) {
+  const initialSelectedId = (focusRequest && data.articles.find((article) => article.number === focusRequest.number)?.id) || data.articles[0]?.id || "";
+  const [selectedId, setSelectedId] = useState(initialSelectedId);
   const [query, setQuery] = useState("");
   const [chapterId, setChapterId] = useState<string>("all");
   const [relationsOpen, setRelationsOpen] = useState(false);
@@ -27,6 +30,21 @@ export function NormativeExplorer({ data }: { data: NormativeExplorerData }) {
     setRelationsOpen(false);
     window.history.replaceState(null, "", `#articulo-${article.number}`);
   }
+
+  useEffect(() => {
+    if (!focusRequest) return;
+    const target = data.articles.find((article) => article.number === focusRequest.number);
+    if (!target) return;
+    setChapterId("all");
+    setQuery("");
+    setSelectedId(target.id);
+    setRelationsOpen(false);
+    window.history.replaceState(null, "", `#articulo-${target.number}`);
+    const timer = window.setTimeout(() => {
+      document.getElementById(`articulo-${target.number}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 420);
+    return () => window.clearTimeout(timer);
+  }, [focusRequest, data.articles]);
 
   return <div>
     <header className="mb-6">

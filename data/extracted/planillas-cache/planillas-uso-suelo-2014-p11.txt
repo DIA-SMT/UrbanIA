@@ -1,0 +1,93 @@
+HOJA: 11/63
+## Apart-Hotel
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Estacionamiento/carga: 2
+
+## Boutique-Hotel
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Estacionamiento/carga: 2
+
+## Hostel-Hostal
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Hoteles
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Estacionamiento/carga: 2
+
+## Inmobiliaria
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Estacionamiento/carga: 5
+
+## Kiosco de sandwich y bebidas
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Laboratorios de análisis clínicos
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Laboratorios de análisis industriales
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Laboratorios de análisis no industriales
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Lavandería y tintorería (receptoria)
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Lavadero automático de ropa
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Lavadero mecánico de automóviles
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Limpieza en seco, planchado y teñido de prendas de vestir, telas domésticas, alfombras
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Modista, sastre, confecciones de ropa
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Motel
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: N.O.
+
+## Posada
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- Estacionamiento/carga: 2
+
+## Oficinas de rubros generales
+- Permitido sin restricciones en: C1a, C1b, C2, C3, C4a, C4b, AE1, AE2, AE3, AE4, AE5, R1, R3a, R3b, R4a, R4b, R2a, R2b, S1, S2
+- No permitido en: resto de los distritos
+- Estacionamiento/carga: 5
+
+### NOTAS DE LA HOJA
+- (*) permitido sin restricciones.
+- (+) no permitido.
+- (++) Los usos permitidos en el Distrito de Servicios 3 serán los que se permiten en las áreas que atraviesa dicho corredor. También se admiten los usos particulares indicados en estas Planillas.
+- (+++) Sólo se permiten comercios minoristas en la manzana comprendida entre av. Sarmiento y calles 25 de Mayo, Muñecas y España. Estos serán los mismos que los admitidos en el Distrito R1 y deberían ser complementarios a la vivienda.
+- (+++++) Permitido sin restricciones, excepto parcelas frentistas a calle Congreso entre calles San Lorenzo y Cristóbal Alvarez.
+- N.O. No obligatorio.
+
+### MODIFICADA POR
+- Ordenanza N° 3.062/01
+- Ordenanza N° 4.265/10
+- Ordenanza N° 4681/14
