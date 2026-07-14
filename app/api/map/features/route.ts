@@ -12,14 +12,12 @@ export async function GET(request: Request) {
   if (!slugs.length || bbox.length !== 4 || bbox.some((value) => !Number.isFinite(value))) return NextResponse.json({ type: "FeatureCollection", features: [] });
   const [west, south, east, north] = bbox;
   const tolerance = zoom < 13 ? 0.00015 : zoom < 15 ? 0.00004 : 0;
-  const limit = zoom < 13 ? 4000 : zoom < 15 ? 8000 : 12000;
   const rows = await prisma.$queryRaw<FeatureRow[]>(Prisma.sql`
     SELECT f."id", f."name", f."properties", l."name" AS "layerName", l."slug" AS "layerSlug",
       ST_AsGeoJSON(${tolerance > 0 ? Prisma.sql`ST_SimplifyPreserveTopology(f."geometry", ${tolerance})` : Prisma.sql`f."geometry"`}) AS "geometry"
     FROM "MapFeature" f JOIN "UrbanLayer" l ON l."id" = f."layerId"
     WHERE l."slug" IN (${Prisma.join(slugs)})
       AND ST_Intersects(f."geometry", ST_MakeEnvelope(${west}, ${south}, ${east}, ${north}, 4326))
-    LIMIT ${limit}
   `);
   return NextResponse.json(
     { type: "FeatureCollection", features: rows.map((row) => ({ type: "Feature", id: row.id, geometry: JSON.parse(row.geometry), properties: { ...withoutImportMetadata(row.properties), _name: row.name, _layer: row.layerName, _layerSlug: row.layerSlug } })) },
