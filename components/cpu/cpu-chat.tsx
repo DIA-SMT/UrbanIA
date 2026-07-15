@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, ArrowUpRight, BookOpen, FileText, Loader2, ScrollText, Send, Sparkles } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, BookOpen, FileText, Loader2, Paperclip, ScrollText, Send, Sparkles, X } from "lucide-react";
 import { MarkdownText } from "@/components/assistant/markdown-text";
+import { ATTACHMENT_ACCEPT, formatFileSize, useAttachment, type ChatAttachment } from "@/components/shared/use-attachment";
 import type { ChatMessage, Citation, DocumentRef } from "@/components/cpu/types";
 
 const SUGGESTIONS = [
@@ -20,10 +21,11 @@ export function CpuChatPanel({
 }: {
   messages: ChatMessage[];
   isLoading: boolean;
-  onSend: (question: string) => void;
+  onSend: (question: string, attachment?: ChatAttachment) => void;
   onOpenArticle: (articleNumber: string) => void;
 }) {
   const [input, setInput] = useState("");
+  const files = useAttachment();
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const hasConversation = messages.length > 0;
 
@@ -38,7 +40,7 @@ export function CpuChatPanel({
     if (question.length < 3 || isLoading) {
       return;
     }
-    onSend(question);
+    onSend(question, files.attachment ?? undefined);
     setInput("");
   }
 
@@ -63,7 +65,51 @@ export function CpuChatPanel({
         }}
         className="border-t border-slate-200/80 bg-slate-50/70 p-3 md:p-4 dark:border-white/10 dark:bg-white/[0.02]"
       >
+        {files.attachment ? (
+          <div className="mx-auto mb-2 flex max-w-3xl items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 dark:border-sky-400/25 dark:bg-sky-400/10">
+            <FileText className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
+            <span className="min-w-0 flex-1 truncate text-xs font-bold text-slate-700 dark:text-slate-200">
+              {files.attachment.name}
+              <span className="ml-1.5 font-semibold text-slate-400 dark:text-slate-500">
+                {formatFileSize(files.attachment.sizeBytes)}
+                {files.attachment.truncated ? " · recortado" : ""}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={files.clear}
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-slate-400 transition hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-slate-300"
+              aria-label="Quitar archivo adjunto"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : null}
+        {files.error ? (
+          <p className="mx-auto mb-2 max-w-3xl rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 dark:border-amber-300/20 dark:bg-amber-300/10 dark:text-amber-200">
+            {files.error}
+          </p>
+        ) : null}
         <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm focus-within:border-[#1f89f6] dark:border-white/10 dark:bg-[#0d1b2a]">
+          <input
+            ref={files.inputRef}
+            type="file"
+            accept={ATTACHMENT_ACCEPT}
+            onChange={files.onFileSelected}
+            className="hidden"
+            aria-hidden="true"
+            tabIndex={-1}
+          />
+          <button
+            type="button"
+            onClick={files.openPicker}
+            disabled={files.uploading}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-400 transition hover:bg-sky-50 hover:text-sky-600 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-sky-400/10 dark:hover:text-sky-300"
+            aria-label="Adjuntar archivo (PDF o TXT, hasta 5 MB)"
+            title="Adjuntar archivo (PDF o TXT, hasta 5 MB)"
+          >
+            {files.uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+          </button>
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}

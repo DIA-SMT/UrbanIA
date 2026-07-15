@@ -6,6 +6,8 @@ import { retrieveRelevantArticles, type RetrievedArticle } from "@/lib/normative
 import { retrieveKnowledge, citeChunk, type RagChunk } from "@/lib/ai/rag";
 import { prisma } from "@/lib/db/prisma";
 import { applyOwnerCookie, resolveCpuOwner } from "@/lib/cpu/owner";
+import { attachmentSchema, buildAttachmentBlock, type QueryAttachment } from "@/lib/ai/attachment";
+import { analyzeMigueQuestion } from "@/lib/ai/migue-intent";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,8 @@ const MAX_HISTORY_MESSAGES = 8;
 
 const cpuQuerySchema = z.object({
   question: z.string().trim().min(3).max(2000),
-  conversationId: z.string().trim().min(1).max(60).nullish()
+  conversationId: z.string().trim().min(1).max(60).nullish(),
+  attachment: attachmentSchema.nullish()
 });
 
 type DocumentRef = { kind: "doc"; label: string; page?: number; source: string };
@@ -56,10 +59,26 @@ function buildSystemPrompt() {
   ].join("\n");
 }
 
-function buildUserPrompt(question: string, articles: RetrievedArticle[], knowledge: RagChunk[]) {
+function buildUserPrompt(
+  question: string,
+  articles: RetrievedArticle[],
+  knowledge: RagChunk[],
+  attachment?: QueryAttachment | null
+) {
   const parts: string[] = ["Consulta del usuario:", question, ""];
 
+  if (attachment) {
+    parts.push(buildAttachmentBlock(attachment), "");
+  }
+
   if (!articles.length && !knowledge.length) {
+    if (attachment) {
+      parts.push(
+        "Fuentes normativas recuperadas para esta consulta: NINGUNA.",
+        "Responde la consulta con base en el documento adjunto. Si la consulta requiere normativa que no esta en el documento, acláralo."
+      );
+      return parts.join("\n");
+    }
     parts.push(
       "Fuentes recuperadas para esta consulta: NINGUNA.",
       "No se encontraron fuentes relevantes en la base normativa cargada. Informa que no hay base normativa para responder y sugeri reformular la consulta."
@@ -165,15 +184,38 @@ export async function POST(request: Request) {
 
   try {
     const data = await getNormativeExplorerData();
-    const articles = retrieveRelevantArticles(data.articles, parsed.data.question, 5);
+
+    // Con adjunto, la pregunta suele no nombrar lo que el documento sí dice ("mi
+    // predio" en vez de "distrito R2a"). El reescritor de intención (el mismo de
+    // Migue) arma una consulta de búsqueda enfocada leyendo el inicio del documento.
+    let focusedQuery: string | null = null;
+    if (parsed.data.attachment) {
+      const analysis = await analyzeMigueQuestion(parsed.data.question, history, {
+        attachmentExcerpt: parsed.data.attachment.text.slice(0, 600)
+      });
+      if (analysis.consulta.trim() && analysis.consulta.trim() !== parsed.data.question) {
+        focusedQuery = analysis.consulta.trim();
+      }
+    }
+
+    const articles = retrieveRelevantArticles(data.articles, focusedQuery ?? parsed.data.question, 5);
 
     // RAG documental (digesto, planillas, anexo). Si la base vectorial no está lista, seguimos solo con artículos.
     let knowledge: RagChunk[] = [];
     try {
       const articleNumbers = new Set(articles.map((article) => article.number));
-      knowledge = (await retrieveKnowledge(parsed.data.question, 8)).filter(
-        (chunk) => !chunk.metadata.articleNumber || !articleNumbers.has(String(chunk.metadata.articleNumber))
-      ).slice(0, 6);
+      const [primary, focused] = await Promise.all([
+        retrieveKnowledge(parsed.data.question, 8),
+        focusedQuery ? retrieveKnowledge(focusedQuery, 6) : Promise.resolve([] as RagChunk[])
+      ]);
+      const seen = new Set<string>();
+      knowledge = [...focused, ...primary]
+        .filter((chunk) => {
+          if (seen.has(chunk.chunkId)) return false;
+          seen.add(chunk.chunkId);
+          return !chunk.metadata.articleNumber || !articleNumbers.has(String(chunk.metadata.articleNumber));
+        })
+        .slice(0, focusedQuery ? 8 : 6);
     } catch (error) {
       console.warn("RAG retrieval unavailable, falling back to keyword articles.", error instanceof Error ? error.message : error);
     }
@@ -184,7 +226,7 @@ export async function POST(request: Request) {
       [
         { role: "system", content: buildSystemPrompt() },
         ...history,
-        { role: "user", content: buildUserPrompt(parsed.data.question, articles, knowledge) }
+        { role: "user", content: buildUserPrompt(parsed.data.question, articles, knowledge, parsed.data.attachment) }
       ],
       { model: process.env.OPENROUTER_CPU_MODEL || "openai/gpt-4o" }
     );
@@ -209,8 +251,11 @@ export async function POST(request: Request) {
         title = bumped.title;
       }
 
+      const userContent = parsed.data.attachment
+        ? `${parsed.data.question}\n\n[Archivo adjuntado: ${parsed.data.attachment.name}]`
+        : parsed.data.question;
       await tx.cpuMessage.create({
-        data: { conversationId, role: "user", content: parsed.data.question }
+        data: { conversationId, role: "user", content: userContent }
       });
       await tx.cpuMessage.create({
         data: {
