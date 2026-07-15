@@ -21,7 +21,14 @@ const cpuQuerySchema = z.object({
   attachment: attachmentSchema.nullish()
 });
 
-type DocumentRef = { kind: "doc"; label: string; page?: number; source: string };
+type DocumentRef = {
+  kind: "doc";
+  label: string;
+  page?: number;
+  source: string;
+  content?: string | null;
+  quote?: string | null;
+};
 
 function truncate(text: string) {
   if (text.length <= MAX_ARTICLE_CHARS) {
@@ -55,7 +62,13 @@ function buildSystemPrompt() {
     "- Si corresponde, agrega puntos clave en lista.",
     "- Cerra con una linea 'Fuentes:' listando las fuentes citadas.",
     "- Tono profesional, claro y objetivo. La IA orienta; la validacion legal la hace el equipo municipal.",
-    "- Recorda que los textos son los ordenados a mayo de 2014 y su vigencia posterior no esta verificada."
+    "- Recorda que los textos son los ordenados a mayo de 2014 y su vigencia posterior no esta verificada.",
+    "",
+    "Citas textuales (para resaltar en la interfaz de donde salio tu respuesta):",
+    "- Despues de la linea 'Fuentes:', agrega UNA ultima linea con este formato exacto:",
+    'CITAS_TEXTUALES: {"citas": [{"ref": "<numero de articulo (ej. 45) o etiqueta de la norma tal cual la citaste (ej. Ordenanza 1681/91, Decreto 471/SPP/94, hoja 12/63)>", "frase": "<frase copiada palabra por palabra de esa fuente en la que te apoyaste>"}]}',
+    "- Una entrada por cada fuente que citaste (articulos del CPU y tambien ordenanzas, decretos, leyes o planillas). La frase debe ser copia textual de la fuente (no la parafrasees).",
+    "- Si no usaste fuentes, pone una lista vacia. Esa linea se quita antes de mostrar la respuesta: no la menciones en el texto."
   ].join("\n");
 }
 
@@ -110,17 +123,81 @@ function buildUserPrompt(
   return parts.join("\n");
 }
 
-function extractCitations(answer: string, articles: RetrievedArticle[]) {
+/**
+ * Separa la línea CITAS_TEXTUALES del final de la respuesta. Devuelve la
+ * respuesta limpia y las citas: por número de artículo (solo dígitos) y por
+ * etiqueta cruda de norma (ordenanzas, decretos, planillas). Si el modelo no
+ * cumplió el formato, la respuesta queda igual y no hay citas.
+ */
+function extractQuotesLine(rawAnswer: string): {
+  answer: string;
+  articleQuotes: Map<string, string>;
+  labelQuotes: Array<{ ref: string; frase: string }>;
+} {
+  const articleQuotes = new Map<string, string>();
+  const labelQuotes: Array<{ ref: string; frase: string }> = [];
+  const match = rawAnswer.match(/\n?\s*CITAS_TEXTUALES:\s*(\{[\s\S]*\})\s*$/);
+  if (!match) {
+    return { answer: rawAnswer.trim(), articleQuotes, labelQuotes };
+  }
+
+  try {
+    const parsed = JSON.parse(match[1]) as { citas?: Array<{ ref?: unknown; frase?: unknown }> };
+    for (const cita of parsed.citas ?? []) {
+      if (typeof cita.ref !== "string" || typeof cita.frase !== "string" || !cita.frase.trim()) continue;
+      const ref = cita.ref.trim();
+      // "Articulo 45", "Art. 45" o "45" → cita de artículo. El resto es una norma.
+      if (/^(art[íi]culo|art\.?)?\s*n?[°º.]?\s*\d+$/iu.test(ref)) {
+        articleQuotes.set(ref.replace(/\D/g, ""), cita.frase.trim());
+      } else {
+        labelQuotes.push({ ref, frase: cita.frase.trim() });
+      }
+    }
+  } catch {
+    // JSON malformado: seguimos sin citas, la respuesta se muestra igual.
+  }
+
+  return { answer: rawAnswer.slice(0, match.index).trim(), articleQuotes, labelQuotes };
+}
+
+/** Normaliza una etiqueta de norma para comparar ("Ordenanza N° 1.681/91" ≈ "ordenanza 1681/91"). */
+function normalizeLabel(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[.,º°]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Busca la frase citada para una norma comparando etiquetas de forma laxa. */
+function quoteForLabel(label: string, labelQuotes: Array<{ ref: string; frase: string }>): string | null {
+  const normalized = normalizeLabel(label);
+  for (const { ref, frase } of labelQuotes) {
+    const normalizedRef = normalizeLabel(ref);
+    if (normalized.includes(normalizedRef) || normalizedRef.includes(normalized)) {
+      return frase;
+    }
+  }
+  return null;
+}
+
+function extractCitations(answer: string, articles: RetrievedArticle[], quotes: Map<string, string>) {
   const referenced = new Set<string>();
   for (const match of answer.matchAll(/art[íi]culo[s]?\s+n?[°º.]?\s*(\d+)/giu)) {
     referenced.add(match[1]);
   }
   return articles
     .filter((article) => referenced.has(article.number))
-    .map((article) => ({ number: article.number, title: article.title }));
+    .map((article) => ({ number: article.number, title: article.title, quote: quotes.get(article.number) ?? null }));
 }
 
-function extractDocumentCitations(answer: string, knowledge: RagChunk[]): DocumentRef[] {
+function extractDocumentCitations(
+  answer: string,
+  knowledge: RagChunk[],
+  labelQuotes: Array<{ ref: string; frase: string }>
+): DocumentRef[] {
   const normalizedAnswer = answer.toLowerCase();
   const seen = new Set<string>();
   const references: DocumentRef[] = [];
@@ -134,7 +211,11 @@ function extractDocumentCitations(answer: string, knowledge: RagChunk[]): Docume
         kind: "doc",
         label: (chunk.metadata.normLabel as string) || `Planilla hoja ${chunk.metadata.hoja}`,
         page: chunk.metadata.page as number | undefined,
-        source: chunk.sourceTitle
+        source: chunk.sourceTitle,
+        // El fragmento recuperado viaja con la cita para poder abrirlo inline
+        // (con la frase de respaldo resaltada) sin otra consulta a la base.
+        content: chunk.content,
+        quote: quoteForLabel(label, labelQuotes)
       });
     }
   }
@@ -185,17 +266,15 @@ export async function POST(request: Request) {
   try {
     const data = await getNormativeExplorerData();
 
-    // Con adjunto, la pregunta suele no nombrar lo que el documento sí dice ("mi
-    // predio" en vez de "distrito R2a"). El reescritor de intención (el mismo de
-    // Migue) arma una consulta de búsqueda enfocada leyendo el inicio del documento.
+    // Mismo cerebro que Migue: el reescritor de intención convierte la pregunta
+    // (informal, con referencias al historial o a un documento adjunto) en una
+    // consulta de búsqueda con términos urbanísticos concretos.
     let focusedQuery: string | null = null;
-    if (parsed.data.attachment) {
-      const analysis = await analyzeMigueQuestion(parsed.data.question, history, {
-        attachmentExcerpt: parsed.data.attachment.text.slice(0, 600)
-      });
-      if (analysis.consulta.trim() && analysis.consulta.trim() !== parsed.data.question) {
-        focusedQuery = analysis.consulta.trim();
-      }
+    const analysis = await analyzeMigueQuestion(parsed.data.question, history, {
+      attachmentExcerpt: parsed.data.attachment?.text.slice(0, 600)
+    });
+    if (analysis.consulta.trim() && analysis.consulta.trim() !== parsed.data.question) {
+      focusedQuery = analysis.consulta.trim();
     }
 
     const articles = retrieveRelevantArticles(data.articles, focusedQuery ?? parsed.data.question, 5);
@@ -231,8 +310,9 @@ export async function POST(request: Request) {
       { model: process.env.OPENROUTER_CPU_MODEL || "openai/gpt-4o" }
     );
 
-    const citations = extractCitations(response.answer, articles);
-    const documents = extractDocumentCitations(response.answer, knowledge);
+    const { answer, articleQuotes, labelQuotes } = extractQuotesLine(response.answer);
+    const citations = extractCitations(answer, articles, articleQuotes);
+    const documents = extractDocumentCitations(answer, knowledge, labelQuotes);
     const retrievedSummary = articles.map((article) => ({ number: article.number, title: article.title }));
     const retrievedForStorage = [...retrievedSummary, ...documents];
 
@@ -261,7 +341,7 @@ export async function POST(request: Request) {
         data: {
           conversationId,
           role: "assistant",
-          content: response.answer,
+          content: answer,
           citations,
           retrieved: retrievedForStorage
         }
@@ -273,7 +353,7 @@ export async function POST(request: Request) {
     const jsonResponse = NextResponse.json({
       conversationId: persisted.conversationId,
       title: persisted.title,
-      answer: response.answer,
+      answer,
       model: response.model,
       provider: response.provider,
       citations,

@@ -43,7 +43,10 @@ export function CpuConsultation({ data }: { data: NormativeExplorerData }) {
       </header>
 
       <div className={tab === "consulta" ? "" : "hidden"}>
-        <CpuChatWorkspace onOpenArticle={openArticle} />
+        <CpuChatWorkspace
+          onOpenArticle={openArticle}
+          articles={data.articles.map((article) => ({ number: article.number, title: article.title, content: article.content }))}
+        />
       </div>
       {tab === "articulos" ? <NormativeExplorer data={data} focusRequest={focusRequest} /> : null}
     </div>

@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/db/prisma";
 import { embedQuery, toVectorLiteral } from "@/lib/ai/embeddings";
+import { locateQuote } from "@/lib/text/locate-quote";
 import type { MigueMode } from "@/lib/ai/migue";
 
 /**
@@ -411,44 +412,6 @@ export function buildAnswerSource(retrieval: RagRetrieval, quote: string): Answe
     match: located.match,
     after: located.after
   };
-}
-
-/**
- * Ubica una cita dentro del texto del documento y lo parte en before/match/after.
- * Primero intenta coincidencia exacta; si falla, tolera diferencias de espacios en
- * blanco. Si no encuentra nada, devuelve todo el texto en `before` sin resaltar.
- */
-function locateQuote(content: string, quote: string): { before: string; match: string; after: string } {
-  const cleanQuote = quote.trim();
-
-  if (!cleanQuote) {
-    return { before: content, match: "", after: "" };
-  }
-
-  const exactIndex = content.indexOf(cleanQuote);
-  if (exactIndex >= 0) {
-    return {
-      before: content.slice(0, exactIndex),
-      match: content.slice(exactIndex, exactIndex + cleanQuote.length),
-      after: content.slice(exactIndex + cleanQuote.length)
-    };
-  }
-
-  const flexiblePattern = cleanQuote.split(/\s+/).map(escapeRegExp).join("\\s+");
-  const flexible = new RegExp(flexiblePattern, "i").exec(content);
-  if (flexible) {
-    return {
-      before: content.slice(0, flexible.index),
-      match: flexible[0],
-      after: content.slice(flexible.index + flexible[0].length)
-    };
-  }
-
-  return { before: content, match: "", after: "" };
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function truncateText(value: string, max: number) {
