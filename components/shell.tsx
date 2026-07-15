@@ -3,8 +3,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Bell, ChevronDown, ChevronLeft, FolderKanban, Home, Map, Menu, MessagesSquare, MoreHorizontal, Moon, Plus, Search, Sun, Users, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, ChevronDown, ChevronLeft, FolderKanban, Home, LogIn, LogOut, Map, Menu, MessagesSquare, MoreHorizontal, Moon, Sun, Users, X } from "lucide-react";
 import { MigueFloatingChat } from "@/components/assistant/migue-floating-chat";
 import { Brand } from "@/components/brand";
 import { sidebarSections } from "@/lib/data";
@@ -80,9 +80,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <nav className="urban-scrollbar mt-3 flex-1 space-y-1 overflow-y-auto pb-4" aria-label="Navegacion principal">
             {sidebarSections.map((section) => <SidebarGroup key={section.title} section={section} pathname={pathname} open={openGroup === section.title} collapsed={collapsed} onToggle={() => { if (collapsed) toggleSidebar(); setOpenGroup((current) => current === section.title && !collapsed ? "" : section.title); }} />)}
           </nav>
-          <button onClick={toggleSidebar} className={`nav-link mt-auto ${collapsed ? "justify-center" : ""}`} title={collapsed ? "Expandir navegacion" : undefined}>
-            <Menu className="h-4 w-4 shrink-0" />{!collapsed && <span>Contraer menú</span>}
-          </button>
         </motion.aside>
 
         <AnimatePresence>
@@ -106,14 +103,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <button onClick={goBack} className="icon-button" aria-label="Volver" title="Volver"><ArrowLeft className="h-4 w-4" /></button>
                 <Link href="/" className="icon-button" aria-label="Ir al inicio" title="Inicio"><Home className="h-4 w-4" /></Link>
               </div>
-              <button className="hidden min-w-0 max-w-md flex-1 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-left text-sm text-slate-400 transition hover:border-sky-300 hover:bg-white md:flex dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-500">
-                <Search className="h-4 w-4" /><span className="truncate">Buscar proyectos, normativa, audiencias...</span><kbd className="ml-auto rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] dark:border-white/10 dark:bg-white/5">⌘ K</kbd>
-              </button>
               <div className="ml-auto flex items-center gap-2">
-                <Link href="/propuestas" className="primary-button hidden sm:inline-flex"><Plus className="h-4 w-4" />Nueva propuesta</Link>
                 <button onClick={toggleTheme} className="icon-button" aria-label={theme === "light" ? "Activar modo oscuro" : "Activar modo claro"}>{theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}</button>
-                <button className="icon-button relative" aria-label="Actividad"><Bell className="h-4 w-4" /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-amber-400 ring-2 ring-white dark:ring-[#07111d]" /></button>
-                <button className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-sm font-semibold md:flex dark:border-white/10 dark:bg-white/[0.04]"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[#1f89f6] text-xs text-white">A</span><span>Agustín</span><ChevronDown className="h-3.5 w-3.5 text-slate-400" /></button>
+                <UserMenu />
               </div>
             </div>
           </header>
@@ -127,6 +119,98 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 type SidebarSection = (typeof sidebarSections)[number];
+
+type SessionUser = { name: string; role: string };
+
+const roleLabels: Record<string, string> = {
+  ADMIN: "Administración",
+  OFFICIAL: "Funcionario/a",
+  TECHNICIAN: "Equipo técnico",
+  CITIZEN: "Ciudadano/a"
+};
+
+function UserMenu() {
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/auth/me")
+      .then((response) => response.json())
+      .then((payload) => {
+        if (mounted) setUser(payload.user ?? null);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (mounted) setLoaded(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function onClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [open]);
+
+  async function logout() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      window.location.href = "/";
+    }
+  }
+
+  if (!loaded) {
+    return null;
+  }
+
+  if (!user) {
+    return (
+      <Link href="/ingresar" className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-sky-300 hover:text-sky-700 md:flex dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+        <LogIn className="h-4 w-4" />
+        Ingresar
+      </Link>
+    );
+  }
+
+  return (
+    <div ref={menuRef} className="relative hidden md:block">
+      <button
+        onClick={() => setOpen((current) => !current)}
+        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-sm font-semibold dark:border-white/10 dark:bg-white/[0.04]"
+        aria-expanded={open}
+        aria-haspopup="menu"
+      >
+        <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#1f89f6] text-xs text-white">{user.name.charAt(0).toUpperCase()}</span>
+        <span className="max-w-32 truncate">{user.name}</span>
+        <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-white/10 dark:bg-[#0d1b2a]">
+          <div className="border-b border-slate-200 px-4 py-3 dark:border-white/10">
+            <p className="truncate text-sm font-black text-slate-900 dark:text-white">{user.name}</p>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{roleLabels[user.role] ?? user.role}</p>
+          </div>
+          <button
+            onClick={logout}
+            className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-bold text-slate-600 transition hover:bg-slate-50 hover:text-rose-600 dark:text-slate-300 dark:hover:bg-white/[0.05]"
+          >
+            <LogOut className="h-4 w-4" />
+            Cerrar sesión
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function SidebarGroup({ section, pathname, open, collapsed = false, onToggle }: { section: SidebarSection; pathname: string; open: boolean; collapsed?: boolean; onToggle: () => void }) {
   const Icon = section.icon;
@@ -142,7 +226,7 @@ function SidebarGroup({ section, pathname, open, collapsed = false, onToggle }: 
 function MobileBottomNavigation({ pathname, onMore }: { pathname: string; onMore: () => void }) {
   const items = [
     { label: "Mapa", href: "/admin", icon: Map },
-    { label: "Propuestas", href: "/propuestas", icon: FolderKanban },
+    { label: "Proyectos", href: "/proyectos", icon: FolderKanban },
     { label: "Participacion", href: "/audiencias", icon: Users },
     { label: "Consulta CPU", href: "/consulta-cpu", icon: MessagesSquare }
   ];

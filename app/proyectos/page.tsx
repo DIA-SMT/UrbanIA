@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ProposalStatus } from "@prisma/client";
-import { ArrowRight, CalendarDays, ClipboardList, FolderKanban, MapPin, MessageSquare, Plus, ThumbsUp } from "lucide-react";
+import { ArrowRight, CalendarDays, ClipboardList, FolderKanban, MapPin, MessageSquare, ThumbsUp, Users } from "lucide-react";
 import { AppShell } from "@/components/shell";
 import { listProjectProposals } from "@/lib/proposals/data";
 import { proposalSourceLabels, proposalStatusLabels, type ProposalListItem } from "@/lib/proposals/shared";
@@ -51,11 +51,11 @@ export default async function ProyectosPage() {
               <Metric label="Finalizados" value={completed.toString()} />
             </div>
             <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
-              <Link href="/propuestas" className="urban-button inline-flex w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white sm:w-auto">
-                <Plus className="h-4 w-4" />
-                Nueva propuesta
+              <Link href="/participacion" className="urban-button inline-flex w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white sm:w-auto">
+                <Users className="h-4 w-4" />
+                Ver aportes ciudadanos
               </Link>
-              <Link href="/mapa" className="urban-button inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-slate-200 sm:w-auto">
+              <Link href="/admin" className="urban-button inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-slate-200 sm:w-auto">
                 <MapPin className="h-4 w-4" />
                 Ver mapa
               </Link>
@@ -76,11 +76,11 @@ export default async function ProyectosPage() {
               <h2 className="mt-4 text-lg font-black text-white">Todavia no hay proyectos</h2>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">
                 {isLive
-                  ? "Un proyecto aparece aca cuando una propuesta es aprobada por el equipo municipal. Registra propuestas y avanza su revision para verlas en esta cartera."
+                  ? "Un proyecto aparece aca cuando un aporte ciudadano es aprobado por el equipo municipal desde Participacion."
                   : "No pudimos conectar con la base de datos para listar los proyectos."}
               </p>
-              <Link href="/propuestas" className="urban-button mt-6 inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white">
-                Ir a propuestas
+              <Link href="/participacion" className="urban-button mt-6 inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white">
+                Ir a aportes ciudadanos
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
