@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { MessageSquarePlus, PanelLeftOpen } from "lucide-react";
 import { CpuChatPanel } from "@/components/cpu/cpu-chat";
 import { CpuConversationList } from "@/components/cpu/cpu-conversation-list";
+import type { ChatAttachment } from "@/components/shared/use-attachment";
 import type { ChatMessage, Citation, ConversationSummary, DocumentRef } from "@/components/cpu/types";
 
 type View = "active" | "archived";
@@ -95,15 +96,22 @@ export function CpuChatWorkspace({ onOpenArticle }: { onOpenArticle: (articleNum
     }
   }
 
-  async function send(question: string) {
-    setMessages((current) => [...current, { id: localId(), role: "user", content: question }]);
+  async function send(question: string, attachment?: ChatAttachment) {
+    // El mismo marcador que guarda el servidor, para que la conversación se vea
+    // igual ahora y al reabrirla desde el historial.
+    const displayContent = attachment ? `${question}\n\n[Archivo adjuntado: ${attachment.name}]` : question;
+    setMessages((current) => [...current, { id: localId(), role: "user", content: displayContent }]);
     setIsSending(true);
 
     try {
       const response = await fetch("/api/cpu/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(currentId ? { question, conversationId: currentId } : { question })
+        body: JSON.stringify({
+          question,
+          ...(currentId ? { conversationId: currentId } : {}),
+          ...(attachment ? { attachment: { name: attachment.name, text: attachment.text, truncated: attachment.truncated } } : {})
+        })
       });
       const payload = await response.json();
 

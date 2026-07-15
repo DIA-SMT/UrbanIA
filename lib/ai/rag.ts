@@ -316,6 +316,34 @@ export async function retrieveRelevantFragments(
 }
 
 /**
+ * Bloque para consultas conversacionales (no normativas) sin evidencia documental:
+ * mantiene el contrato JSON pero sin la orden de "decí que no encontraste
+ * información", que solo corresponde cuando la consulta pedía normativa.
+ *
+ * `aboutConversation`: la consulta es sobre la charla previa (qué hablamos, resumen).
+ * La instrucción va acá, pegada a la consulta, porque las reglas generales del
+ * system prompt no alcanzan: el modelo liviano tiende a negar que tiene memoria.
+ */
+export function buildConversationalContextBlock(options: { aboutConversation?: boolean } = {}): string {
+  const lines = [
+    "FUENTE RECUPERADA (RAG): no aplica para esta consulta (no es una consulta normativa).",
+    "Respondé con tu rol general de asistente. No cites artículos ni normas que no tengas a la vista."
+  ];
+
+  if (options.aboutConversation) {
+    lines.push(
+      "",
+      "ATENCIÓN: el usuario está preguntando por la conversación previa.",
+      "Los mensajes anteriores de este intercambio SON la conversación previa con este mismo usuario (pueden incluir visitas anteriores; el chat visible arranca de cero en cada recarga, pero la conversación se conserva).",
+      "Respondé resumiendo con naturalidad los temas de esos mensajes (por ejemplo: 'Sí, estuvimos viendo los retiros del distrito R1...').",
+      "NUNCA digas que no tenés acceso a conversaciones anteriores: las tenés arriba. Si no hay mensajes anteriores, decí simplemente que esta es la primera consulta que ves."
+    );
+  }
+
+  return [...lines, ...OUTPUT_CONTRACT].join("\n");
+}
+
+/**
  * Arma el bloque de contexto RAG que se inyecta en el prompt del usuario. Incluye
  * los fragmentos recuperados y las reglas para citarlos sin inventar.
  */
@@ -358,7 +386,9 @@ export function buildRagContextBlock(retrieval: RagRetrieval): string {
 /**
  * Construye la fuente única a mostrar: el documento en el que se apoyó la respuesta,
  * con su texto partido para resaltar la cita. Prioriza el fragmento que contiene la
- * cita textual; si no se localiza en ninguno, cae al fragmento más relevante (top-1).
+ * cita textual; si la cita no se localiza en ninguno, cae al fragmento más relevante
+ * (top-1) sin resaltar. Sin cita (`quote` vacío) no hay fuente: el modelo declaró que
+ * no se apoyó en ningún fragmento y mostrar un documento igual sería engañoso.
  */
 export function buildAnswerSource(retrieval: RagRetrieval, quote: string): AnswerSource | null {
   if (!retrieval.hasEvidence) {
@@ -366,9 +396,11 @@ export function buildAnswerSource(retrieval: RagRetrieval, quote: string): Answe
   }
 
   const cleanQuote = quote.trim();
-  const matchingFragment = cleanQuote
-    ? retrieval.fragments.find((fragment) => locateQuote(fragment.content, cleanQuote).match)
-    : undefined;
+  if (!cleanQuote) {
+    return null;
+  }
+
+  const matchingFragment = retrieval.fragments.find((fragment) => locateQuote(fragment.content, cleanQuote).match);
   const fragment = matchingFragment ?? retrieval.fragments[0];
   const located = locateQuote(fragment.content, cleanQuote);
 
