@@ -3,8 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, ArrowUpRight, BookOpen, FileText, Loader2, Paperclip, ScrollText, Send, Sparkles, X } from "lucide-react";
 import { MarkdownText } from "@/components/assistant/markdown-text";
+import { SourceModal } from "@/components/cpu/source-modal";
 import { ATTACHMENT_ACCEPT, formatFileSize, useAttachment, type ChatAttachment } from "@/components/shared/use-attachment";
-import type { ChatMessage, Citation, DocumentRef } from "@/components/cpu/types";
+import type { ArticleContent, ChatMessage, Citation, DocumentRef } from "@/components/cpu/types";
+
+/** Fuente abierta en el modal: artículo del CPU o fragmento de una norma citada. */
+type OpenSource =
+  | { kind: "article"; article: ArticleContent; quote?: string | null }
+  | { kind: "document"; doc: DocumentRef };
 
 const SUGGESTIONS = [
   "¿Qué altura máxima permite el distrito residencial?",
@@ -16,18 +22,38 @@ const SUGGESTIONS = [
 export function CpuChatPanel({
   messages,
   isLoading,
+  articles,
   onSend,
   onOpenArticle
 }: {
   messages: ChatMessage[];
   isLoading: boolean;
+  articles: ArticleContent[];
   onSend: (question: string, attachment?: ChatAttachment) => void;
   onOpenArticle: (articleNumber: string) => void;
 }) {
   const [input, setInput] = useState("");
+  const [openSource, setOpenSource] = useState<OpenSource | null>(null);
   const files = useAttachment();
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const hasConversation = messages.length > 0;
+
+  // La fuente citada se abre acá mismo, sin navegar al explorador. Solo si el
+  // texto no está disponible localmente caemos a la pestaña del Código.
+  function showCitation(citation: Citation) {
+    const article = articles.find((item) => item.number === citation.number);
+    if (article) {
+      setOpenSource({ kind: "article", article, quote: citation.quote });
+      return;
+    }
+    onOpenArticle(citation.number);
+  }
+
+  function showDocument(doc: DocumentRef) {
+    if (doc.content) {
+      setOpenSource({ kind: "document", doc });
+    }
+  }
 
   useEffect(() => {
     if (hasConversation) {
@@ -49,7 +75,7 @@ export function CpuChatPanel({
       {hasConversation ? (
         <div className="urban-scrollbar flex-1 space-y-5 overflow-y-auto p-4 md:p-6">
           {messages.map((message) => (
-            <MessageBubble key={message.id} message={message} onOpenArticle={onOpenArticle} />
+            <MessageBubble key={message.id} message={message} onCitationClick={showCitation} onDocumentClick={showDocument} />
           ))}
           {isLoading ? <ThinkingBubble /> : null}
           <div ref={bottomRef} />
@@ -57,6 +83,34 @@ export function CpuChatPanel({
       ) : (
         <EmptyState onPick={(question) => submit(question)} disabled={isLoading} />
       )}
+
+      {openSource?.kind === "article" ? (
+        <SourceModal
+          heading={`Artículo ${openSource.article.number}`}
+          subheading={openSource.article.title}
+          content={openSource.article.content}
+          quote={openSource.quote}
+          onClose={() => setOpenSource(null)}
+          explorerAction={{
+            label: "Ver en el Código",
+            onClick: () => {
+              const articleNumber = openSource.article.number;
+              setOpenSource(null);
+              onOpenArticle(articleNumber);
+            }
+          }}
+        />
+      ) : null}
+      {openSource?.kind === "document" ? (
+        <SourceModal
+          heading={openSource.doc.label}
+          subheading={`${openSource.doc.source}${openSource.doc.page ? ` · pág. ${openSource.doc.page}` : ""}`}
+          content={openSource.doc.content ?? ""}
+          quote={openSource.doc.quote}
+          footnote="Fragmento recuperado del documento; puede haber más contenido en la norma completa."
+          onClose={() => setOpenSource(null)}
+        />
+      ) : null}
 
       <form
         onSubmit={(event) => {
@@ -172,7 +226,15 @@ function EmptyState({ onPick, disabled }: { onPick: (question: string) => void; 
   );
 }
 
-function MessageBubble({ message, onOpenArticle }: { message: ChatMessage; onOpenArticle: (articleNumber: string) => void }) {
+function MessageBubble({
+  message,
+  onCitationClick,
+  onDocumentClick
+}: {
+  message: ChatMessage;
+  onCitationClick: (citation: Citation) => void;
+  onDocumentClick: (doc: DocumentRef) => void;
+}) {
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
@@ -209,7 +271,7 @@ function MessageBubble({ message, onOpenArticle }: { message: ChatMessage; onOpe
             <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Fuentes citadas</p>
             <div className="flex flex-wrap gap-2">
               {citations.map((citation) => (
-                <CitationChip key={citation.number} citation={citation} highlighted onOpenArticle={onOpenArticle} />
+                <CitationChip key={citation.number} citation={citation} highlighted onCitationClick={onCitationClick} />
               ))}
             </div>
           </div>
@@ -220,7 +282,7 @@ function MessageBubble({ message, onOpenArticle }: { message: ChatMessage; onOpe
             <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Fuentes documentales</p>
             <div className="flex flex-wrap gap-2">
               {documents.map((doc) => (
-                <DocumentChip key={`${doc.label}-${doc.page ?? ""}`} doc={doc} />
+                <DocumentChip key={`${doc.label}-${doc.page ?? ""}`} doc={doc} onDocumentClick={onDocumentClick} />
               ))}
             </div>
           </div>
@@ -233,7 +295,7 @@ function MessageBubble({ message, onOpenArticle }: { message: ChatMessage; onOpe
             </p>
             <div className="flex flex-wrap gap-2">
               {uncitedRetrieved.map((citation) => (
-                <CitationChip key={citation.number} citation={citation} onOpenArticle={onOpenArticle} />
+                <CitationChip key={citation.number} citation={citation} onCitationClick={onCitationClick} />
               ))}
             </div>
           </div>
@@ -246,16 +308,16 @@ function MessageBubble({ message, onOpenArticle }: { message: ChatMessage; onOpe
 function CitationChip({
   citation,
   highlighted = false,
-  onOpenArticle
+  onCitationClick
 }: {
   citation: Citation;
   highlighted?: boolean;
-  onOpenArticle: (articleNumber: string) => void;
+  onCitationClick: (citation: Citation) => void;
 }) {
   return (
     <button
       type="button"
-      onClick={() => onOpenArticle(citation.number)}
+      onClick={() => onCitationClick(citation)}
       title={`Ver Artículo ${citation.number} — ${citation.title}`}
       className={`inline-flex max-w-[240px] items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition ${
         highlighted
@@ -269,15 +331,31 @@ function CitationChip({
   );
 }
 
-function DocumentChip({ doc }: { doc: DocumentRef }) {
+function DocumentChip({ doc, onDocumentClick }: { doc: DocumentRef; onDocumentClick: (doc: DocumentRef) => void }) {
+  // Sin fragmento disponible (mensajes guardados antes de esta función) el chip
+  // queda informativo, sin click.
+  if (!doc.content) {
+    return (
+      <span
+        title={`${doc.source}${doc.page ? ` · pág. ${doc.page}` : ""}`}
+        className="inline-flex max-w-[260px] items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300"
+      >
+        <FileText className="h-3.5 w-3.5 shrink-0 text-[#1f89f6]" />
+        <span className="truncate">{doc.label}</span>
+      </span>
+    );
+  }
+
   return (
-    <span
-      title={`${doc.source}${doc.page ? ` · pág. ${doc.page}` : ""}`}
-      className="inline-flex max-w-[260px] items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300"
+    <button
+      type="button"
+      onClick={() => onDocumentClick(doc)}
+      title={`Ver fragmento — ${doc.source}${doc.page ? ` · pág. ${doc.page}` : ""}`}
+      className="inline-flex max-w-[260px] items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-600 transition hover:border-sky-300 hover:text-sky-700 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:border-sky-400/40 dark:hover:text-sky-200"
     >
       <FileText className="h-3.5 w-3.5 shrink-0 text-[#1f89f6]" />
       <span className="truncate">{doc.label}</span>
-    </span>
+    </button>
   );
 }
 
