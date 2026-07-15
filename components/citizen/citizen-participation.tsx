@@ -1,28 +1,32 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
+  ArrowUpRight,
   CheckCircle2,
   FileText,
+  Loader2,
   MessageSquare,
   Paperclip,
-  Plus,
   Search,
   ShieldCheck,
   ThumbsUp,
-  Users,
-  Vote
+  Users
 } from "lucide-react";
 import { AppShell } from "@/components/shell";
 
-type ProposalStatus = "Recientes" | "Populares" | "En evaluacion";
+// Estado derivado del flujo municipal: recibido → en evaluación → aprobado como proyecto.
+type AporteState = "Recibido" | "En evaluación" | "Proyecto aprobado";
+
+const PROJECT_STATUSES = ["APPROVED", "IN_PROGRESS", "COMPLETED"];
 
 type CitizenProposal = {
   id: string;
   title: string;
   neighborhood: string;
   author: string;
-  status: ProposalStatus;
+  status: AporteState;
   votes: number;
   comments: number;
   summary: string;
@@ -50,7 +54,17 @@ type CitizenContribution = {
   } | null;
 };
 
-const statuses: Array<"Todas" | ProposalStatus> = ["Todas", "Recientes", "Populares", "En evaluacion"];
+const statuses: Array<"Todos" | AporteState> = ["Todos", "Recibido", "En evaluación", "Proyecto aprobado"];
+
+function deriveState(contribution: CitizenContribution): AporteState {
+  if (contribution.proposal && PROJECT_STATUSES.includes(contribution.proposal.status)) {
+    return "Proyecto aprobado";
+  }
+  if (contribution.status === "UNDER_REVIEW") {
+    return "En evaluación";
+  }
+  return "Recibido";
+}
 
 function mapContributionToProposal(contribution: CitizenContribution): CitizenProposal {
   return {
@@ -58,7 +72,7 @@ function mapContributionToProposal(contribution: CitizenContribution): CitizenPr
     title: contribution.proposal?.title ?? `${contribution.kind}: ${contribution.zone}`,
     neighborhood: contribution.zone,
     author: contribution.name,
-    status: contribution.status === "LINKED_TO_PROPOSAL" ? "En evaluacion" : "Recientes",
+    status: deriveState(contribution),
     votes: 0,
     comments: 1,
     area: contribution.axis,
@@ -76,16 +90,18 @@ function formatContributionDate(value: string) {
 
 function formatContributionStatus(value: string) {
   const labels: Record<string, string> = {
-    RECEIVED: "Recibido",
+    NEW: "Recibido",
     LINKED_TO_PROPOSAL: "Vinculado a propuesta",
-    DISMISSED: "Archivado"
+    UNDER_REVIEW: "En evaluación",
+    RESOLVED: "Resuelto",
+    ARCHIVED: "Archivado"
   };
 
   return labels[value] ?? value;
 }
 
 export function CitizenParticipation() {
-  const [status, setStatus] = useState<(typeof statuses)[number]>("Todas");
+  const [status, setStatus] = useState<(typeof statuses)[number]>("Todos");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [citizenContributions, setCitizenContributions] = useState<CitizenContribution[]>([]);
@@ -139,7 +155,7 @@ export function CitizenParticipation() {
     const normalizedQuery = query.trim().toLowerCase();
 
     return contributionProposals.filter((proposal) => {
-      const matchesStatus = status === "Todas" || proposal.status === status;
+      const matchesStatus = status === "Todos" || proposal.status === status;
       const matchesQuery =
         normalizedQuery.length === 0 ||
         proposal.title.toLowerCase().includes(normalizedQuery) ||
@@ -151,6 +167,71 @@ export function CitizenParticipation() {
   }, [contributionProposals, query, status]);
 
   const selectedProposal = visibleProposals.find((proposal) => proposal.id === selectedId) ?? visibleProposals[0] ?? null;
+  const selectedContribution = selectedProposal
+    ? citizenContributions.find((contribution) => `citizen-${contribution.id}` === selectedProposal.id) ?? null
+    : null;
+  const selectedState = selectedContribution ? deriveState(selectedContribution) : null;
+  const [workingAction, setWorkingAction] = useState<"review" | "approve" | null>(null);
+  const [workflowError, setWorkflowError] = useState("");
+
+  async function sendToReview() {
+    if (!selectedContribution || selectedState !== "Recibido" || workingAction) {
+      return;
+    }
+    setWorkingAction("review");
+    setWorkflowError("");
+    try {
+      const response = await fetch(`/api/citizen-contributions/${selectedContribution.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "UNDER_REVIEW" })
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "No pudimos enviar el aporte a evaluación.");
+      }
+      setCitizenContributions((current) =>
+        current.map((contribution) =>
+          contribution.id === selectedContribution.id ? { ...contribution, status: "UNDER_REVIEW" } : contribution
+        )
+      );
+    } catch (error) {
+      setWorkflowError(error instanceof Error ? error.message : "No pudimos enviar el aporte a evaluación.");
+    } finally {
+      setWorkingAction(null);
+    }
+  }
+
+  async function approveAsProject() {
+    const proposal = selectedContribution?.proposal;
+    if (!selectedContribution || !proposal || selectedState === "Proyecto aprobado" || workingAction) {
+      return;
+    }
+    setWorkingAction("approve");
+    setWorkflowError("");
+    try {
+      const response = await fetch(`/api/proposals/${proposal.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "APPROVED" })
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "No pudimos aprobar el proyecto.");
+      }
+      setCitizenContributions((current) =>
+        current.map((contribution) =>
+          contribution.id === selectedContribution.id && contribution.proposal
+            ? { ...contribution, proposal: { ...contribution.proposal, status: "APPROVED" } }
+            : contribution
+        )
+      );
+    } catch (error) {
+      setWorkflowError(error instanceof Error ? error.message : "No pudimos aprobar el proyecto.");
+    } finally {
+      setWorkingAction(null);
+    }
+  }
 
   return (
     <AppShell>
@@ -165,23 +246,22 @@ export function CitizenParticipation() {
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
               Espacio para registrar propuestas, priorizar ideas, reunir comentarios y alimentar decisiones urbanas con trazabilidad publica.
             </p>
-            <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
-              <button className="urban-button inline-flex w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-bold text-white sm:w-auto">
-                <Plus className="h-4 w-4" />
-                Nueva propuesta
-              </button>
-              <button className="urban-button inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 sm:w-auto">
-                <Vote className="h-4 w-4" />
-                Abrir votacion
-              </button>
+            <div className="mt-6">
+              <Link
+                href="/#participacion"
+                className="urban-button inline-flex items-center gap-2 rounded-md border border-sky-300/25 bg-sky-300/10 px-4 py-3 text-sm font-bold text-sky-100"
+              >
+                Los vecinos participan desde el portal público
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
             </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
             {[
-              ["Participantes", citizenContributions.length.toString()],
-              ["Comentarios", "0"],
-              ["Aportes ciudadanos", citizenContributions.length.toString()]
+              ["Aportes recibidos", citizenContributions.length.toString()],
+              ["En evaluación", citizenContributions.filter((contribution) => deriveState(contribution) === "En evaluación").length.toString()],
+              ["Aprobados como proyecto", citizenContributions.filter((contribution) => deriveState(contribution) === "Proyecto aprobado").length.toString()]
             ].map(([label, value]) => (
               <div key={label} className="urban-lift rounded-md border border-white/10 bg-slate-950/50 p-4">
                 <p className="text-2xl font-black text-civic-sky">{value}</p>
@@ -337,10 +417,10 @@ export function CitizenParticipation() {
             <p className="mt-3 text-sm leading-6 text-slate-300">{selectedProposal?.summary ?? "Selecciona un aporte ciudadano real para revisar su trazabilidad inicial."}</p>
             <div className="mt-4 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
               {[
-                ["Apoyos", selectedProposal?.votes.toString() ?? "0"],
-                ["Comentarios", selectedProposal?.comments.toString() ?? "0"],
                 ["Barrio", selectedProposal?.neighborhood ?? "-"],
-                ["Estado", selectedProposal?.status ?? "-"]
+                ["Eje", selectedProposal?.area ?? "-"],
+                ["Recibido el", selectedContribution ? formatContributionDate(selectedContribution.createdAt) : "-"],
+                ["Estado", selectedState ?? "-"]
               ].map(([label, value]) => (
                 <div key={label} className="rounded-md border border-white/8 bg-white/[0.03] p-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
@@ -348,10 +428,37 @@ export function CitizenParticipation() {
                 </div>
               ))}
             </div>
-            <button className="urban-button mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white">
-              <CheckCircle2 className="h-4 w-4" />
-              Enviar a evaluacion
-            </button>
+
+            {selectedState === "Proyecto aprobado" && selectedContribution?.proposal ? (
+              <Link
+                href={`/proyectos/${selectedContribution.proposal.id}`}
+                className="urban-button mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm font-black text-emerald-100"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Ver proyecto aprobado
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            ) : (
+              <div className="mt-5 grid gap-2">
+                <button
+                  onClick={sendToReview}
+                  disabled={!selectedContribution || selectedState !== "Recibido" || workingAction !== null}
+                  className="urban-button inline-flex w-full items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {workingAction === "review" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  {selectedState === "En evaluación" ? "En evaluación" : "Enviar a evaluación"}
+                </button>
+                <button
+                  onClick={approveAsProject}
+                  disabled={!selectedContribution?.proposal || workingAction !== null}
+                  className="urban-button inline-flex w-full items-center justify-center gap-2 rounded-md border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm font-black text-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {workingAction === "approve" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsUp className="h-4 w-4" />}
+                  Aprobar como proyecto
+                </button>
+              </div>
+            )}
+            {workflowError ? <p className="mt-3 text-xs font-bold leading-5 text-amber-200">{workflowError}</p> : null}
           </div>
         </aside>
       </section>
