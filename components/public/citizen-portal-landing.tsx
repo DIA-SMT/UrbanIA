@@ -5,7 +5,6 @@ import Link from "next/link";
 import type { FormEvent, InputHTMLAttributes } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowRight,
   BadgeCheck,
   BookOpenCheck,
   Building2,
@@ -296,7 +295,7 @@ export function CitizenPortalLanding() {
           </div>
 
           <nav className="hidden items-center gap-2 md:flex">
-            <a href="#" className={navLinkClass(isLight)}>Inicio</a>
+            <a href="#top" className={navLinkClass(isLight)}>Inicio</a>
             <a href="#consulta" className={navLinkClass(isLight)}>Codigo</a>
             <a href="#participacion" className={navLinkClass(isLight)}>Participacion</a>
           </nav>
@@ -422,10 +421,6 @@ export function CitizenPortalLanding() {
                           <span key={topic} className={topicPillClass(isLight)}>{topic}</span>
                         ))}
                       </div>
-                      <button type="button" className={cardActionClass(isLight)}>
-                        Ver seccion
-                        <ArrowRight className="h-4 w-4" />
-                      </button>
                     </article>
                   );
                 })}
@@ -802,12 +797,6 @@ function statusPillClass(isLight: boolean) {
 function availablePillClass(isLight: boolean) {
   return `rounded-md px-2.5 py-1 text-xs font-bold ${
     isLight ? "bg-white text-slate-600 ring-1 ring-slate-200" : "bg-slate-900/70 text-slate-300 ring-1 ring-white/10"
-  }`;
-}
-
-function cardActionClass(isLight: boolean) {
-  return `mt-4 inline-flex items-center gap-2 text-sm font-black transition ${
-    isLight ? "text-sky-800 group-hover:text-sky-700" : "text-sky-100 group-hover:text-sky-50"
   }`;
 }
 
