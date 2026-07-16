@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { MessageSquarePlus, PanelLeftOpen } from "lucide-react";
 import { CpuChatPanel } from "@/components/cpu/cpu-chat";
 import { CpuConversationList } from "@/components/cpu/cpu-conversation-list";
-import type { ChatMessage, Citation, ConversationSummary, DocumentRef } from "@/components/cpu/types";
+import type { ChatAttachment } from "@/components/shared/use-attachment";
+import type { ArticleContent, ChatMessage, Citation, ConversationSummary, DocumentRef } from "@/components/cpu/types";
 
 type View = "active" | "archived";
 
@@ -19,8 +20,15 @@ function asCitations(value: unknown): Citation[] {
     return [];
   }
   return value
-    .filter((item): item is { number: string; title: string } => Boolean(item) && typeof item === "object" && "number" in item)
-    .map((item) => ({ number: String(item.number), title: String(item.title ?? "") }));
+    .filter(
+      (item): item is { number: string; title: string; quote?: string | null } =>
+        Boolean(item) && typeof item === "object" && "number" in item
+    )
+    .map((item) => ({
+      number: String(item.number),
+      title: String(item.title ?? ""),
+      quote: typeof item.quote === "string" && item.quote ? item.quote : null
+    }));
 }
 
 function asDocuments(value: unknown): DocumentRef[] {
@@ -28,11 +36,26 @@ function asDocuments(value: unknown): DocumentRef[] {
     return [];
   }
   return value
-    .filter((item): item is { label: string; page?: number; source?: string } => Boolean(item) && typeof item === "object" && "label" in item)
-    .map((item) => ({ label: String(item.label), page: typeof item.page === "number" ? item.page : undefined, source: String(item.source ?? "") }));
+    .filter(
+      (item): item is { label: string; page?: number; source?: string; content?: string | null; quote?: string | null } =>
+        Boolean(item) && typeof item === "object" && "label" in item
+    )
+    .map((item) => ({
+      label: String(item.label),
+      page: typeof item.page === "number" ? item.page : undefined,
+      source: String(item.source ?? ""),
+      content: typeof item.content === "string" && item.content ? item.content : null,
+      quote: typeof item.quote === "string" && item.quote ? item.quote : null
+    }));
 }
 
-export function CpuChatWorkspace({ onOpenArticle }: { onOpenArticle: (articleNumber: string) => void }) {
+export function CpuChatWorkspace({
+  onOpenArticle,
+  articles
+}: {
+  onOpenArticle: (articleNumber: string) => void;
+  articles: ArticleContent[];
+}) {
   const [view, setView] = useState<View>("active");
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [listLoading, setListLoading] = useState(true);
@@ -95,15 +118,22 @@ export function CpuChatWorkspace({ onOpenArticle }: { onOpenArticle: (articleNum
     }
   }
 
-  async function send(question: string) {
-    setMessages((current) => [...current, { id: localId(), role: "user", content: question }]);
+  async function send(question: string, attachment?: ChatAttachment) {
+    // El mismo marcador que guarda el servidor, para que la conversación se vea
+    // igual ahora y al reabrirla desde el historial.
+    const displayContent = attachment ? `${question}\n\n[Archivo adjuntado: ${attachment.name}]` : question;
+    setMessages((current) => [...current, { id: localId(), role: "user", content: displayContent }]);
     setIsSending(true);
 
     try {
       const response = await fetch("/api/cpu/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(currentId ? { question, conversationId: currentId } : { question })
+        body: JSON.stringify({
+          question,
+          ...(currentId ? { conversationId: currentId } : {}),
+          ...(attachment ? { attachment: { name: attachment.name, text: attachment.text, truncated: attachment.truncated } } : {})
+        })
       });
       const payload = await response.json();
 
@@ -241,7 +271,7 @@ export function CpuChatWorkspace({ onOpenArticle }: { onOpenArticle: (articleNum
           />
         </div>
 
-        <CpuChatPanel messages={messages} isLoading={isSending} onSend={send} onOpenArticle={onOpenArticle} />
+        <CpuChatPanel messages={messages} isLoading={isSending} articles={articles} onSend={send} onOpenArticle={onOpenArticle} />
       </div>
     </div>
   );

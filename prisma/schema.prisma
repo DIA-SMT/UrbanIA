@@ -661,6 +661,23 @@ enum BudgetCostType {
   OTRO
 }
 
+// Feedback ciudadano sobre las respuestas de Migue. Guarda la pregunta, la
+// respuesta, la fuente citada y el modelo para poder medir calidad por tipo de
+// consulta cuando cambian el chunkeo, el retrieval o el modelo.
+model MigueFeedback {
+  id              String   @id @default(cuid())
+  rating          String // "up" | "down"
+  reason          String? // motivo elegido en el chip (solo votos negativos)
+  comment         String?
+  question        String
+  answer          String
+  sourceReference String?
+  model           String?
+  createdAt       DateTime @default(now())
+
+  @@index([rating, createdAt])
+}
+
 enum UserRole {
   ADMIN
   OFFICIAL
