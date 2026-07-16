@@ -13,6 +13,10 @@ type LoginPageProps = {
 };
 
 const errorMessages: Record<string, string> = {
+  minor: "Para presentar propuestas o reclamos tenes que ser mayor de 18 anios.",
+  birthdate: "Revisa la fecha de nacimiento: no parece una fecha valida.",
+  dni: "El DNI tiene que tener entre 7 y 9 numeros.",
+  dni_taken: "Ese DNI ya esta registrado en otra cuenta.",
   missing: "Completa todos los campos. La contrasena debe tener al menos 6 caracteres.",
   credentials: "El correo o la contrasena no son correctos. Si tu cuenta todavia no tiene contrasena, elegi Registrarte para activarla.",
   exists: "Esta cuenta ya tiene una contrasena. Ingresa con tus credenciales.",
@@ -90,10 +94,32 @@ export function LoginPage({ initialError, initialMode = "login" }: LoginPageProp
               </p>
               {errorMessage ? <AuthErrorMessage message={errorMessage} /> : null}
 
+              {/* Orden: primero quien sos (identidad), despues a que te dedicas y por
+                  ultimo como entras. Los datos de identidad se piden una sola vez aca,
+                  asi el formulario de propuestas no vuelve a pedirlos. */}
               <form action="/api/auth/register" method="post" className="mt-6 space-y-4">
-                <TextField label="Nombre y apellido" name="name" type="text" placeholder="Tu nombre completo" />
-                <TextField label="Correo electronico" name="email" type="email" placeholder="nombre@correo.com" />
-                <TextField label="Contrasena" name="password" type="password" placeholder="Crear contrasena" />
+                <FieldGroup title="Tus datos">
+                  <TextField label="Nombre y apellido" name="name" type="text" placeholder="Tu nombre completo" />
+                  <TextField label="DNI" name="dni" type="text" placeholder="Ej: 30123456" inputMode="numeric" />
+                  <TextField
+                    label="Fecha de nacimiento"
+                    name="birthDate"
+                    type="date"
+                    placeholder=""
+                    hint="Para presentar propuestas o reclamos tenes que ser mayor de 18 anios."
+                  />
+                  <TextField
+                    label="Profesion u ocupacion"
+                    name="occupation"
+                    type="text"
+                    placeholder="Ej: docente, comerciante, jubilada, estudiante"
+                  />
+                </FieldGroup>
+
+                <FieldGroup title="Datos de acceso">
+                  <TextField label="Correo electronico" name="email" type="email" placeholder="nombre@correo.com" />
+                  <TextField label="Contrasena" name="password" type="password" placeholder="Minimo 6 caracteres" />
+                </FieldGroup>
 
                 <button
                   type="submit"
@@ -126,16 +152,41 @@ function AuthErrorMessage({ message }: { message: string }) {
   );
 }
 
-function TextField({ label, name, type, placeholder }: { label: string; name: string; type: string; placeholder: string }) {
+function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="space-y-4">
+      <legend className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">{title}</legend>
+      {children}
+    </fieldset>
+  );
+}
+
+function TextField({
+  label,
+  name,
+  type,
+  placeholder,
+  inputMode,
+  hint
+}: {
+  label: string;
+  name: string;
+  type: string;
+  placeholder: string;
+  inputMode?: "numeric";
+  hint?: string;
+}) {
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-bold text-slate-800">{label}</span>
       <input
         name={name}
         type={type}
+        inputMode={inputMode}
         placeholder={placeholder}
         className="h-12 w-full rounded-md border border-slate-200 bg-white px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-600"
       />
+      {hint ? <span className="mt-1.5 block text-xs leading-5 text-slate-500">{hint}</span> : null}
     </label>
   );
 }
