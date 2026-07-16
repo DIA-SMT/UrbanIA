@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { AppShell } from "@/components/shell";
+import type { UrbanLeafletMapProps } from "@/components/map/urban-leaflet-map";
 
 const UrbanLeafletMap = dynamic(
   () => import("@/components/map/urban-leaflet-map").then((mod) => mod.UrbanLeafletMap),
@@ -15,7 +16,7 @@ const UrbanLeafletMap = dynamic(
   }
 );
 
-export function UrbanMapShell() {
+export function UrbanMapShell(props: UrbanLeafletMapProps = {}) {
   return (
     <AppShell>
       <div className="mb-5">
@@ -23,7 +24,7 @@ export function UrbanMapShell() {
         <h1 className="mt-2 text-3xl font-black tracking-[-0.035em] text-slate-950 dark:text-white">Mapa territorial</h1>
         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Herramienta operativa para explorar capas, proyectos y contexto urbano.</p>
       </div>
-      <UrbanLeafletMap />
+      <UrbanLeafletMap {...props} />
     </AppShell>
   );
 }
