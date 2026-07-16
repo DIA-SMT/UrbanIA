@@ -10,6 +10,8 @@ import { ATTACHMENT_ACCEPT, formatFileSize, useAttachment } from "@/components/s
 import type { AnswerSource } from "@/lib/ai/rag";
 
 const MIGUE_HISTORY_KEY = "urbania-migue-history";
+/** Alto maximo del campo de consulta, en px: aprox. 6 lineas. */
+const DRAFT_MAX_HEIGHT = 132;
 
 type LiveAssistantAnswer = {
   answer: string;
@@ -32,7 +34,16 @@ type ChatMessage = {
 
 type MigueFloatingChatProps = {
   appearance?: "dark" | "light";
+  /**
+   * Muestra el atajo para que Migue redacte la propuesta con lo hablado. Es solo
+   * un afordance de UI para el portal ciudadano: el alcance real de Migue lo
+   * decide el servidor segun la sesion, no esta prop.
+   */
+  canDraftContribution?: boolean;
 };
+
+const DRAFT_CONTRIBUTION_PROMPT =
+  "Redactame la propuesta o reclamo formal para presentar en el municipio, a partir de lo que hablamos y fundamentada en el Codigo de Planeamiento Urbano.";
 
 const starterPrompts = [
   "Tengo una idea para mi barrio, ayudame a ordenarla",
@@ -40,7 +51,7 @@ const starterPrompts = [
   "Que datos necesito para analizar documentos aportados?"
 ];
 
-export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProps) {
+export function MigueFloatingChat({ appearance = "dark", canDraftContribution = false }: MigueFloatingChatProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [draftQuestion, setDraftQuestion] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -53,6 +64,7 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
   // usuario hace referencia a lo que hablaron antes.
   const memoryRef = useRef<ChatMessage[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const draftRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     try {
@@ -106,6 +118,28 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
     }
   }, [messages, status, isOpen]);
 
+  // El campo arranca en una linea y crece con el texto hasta DRAFT_MAX_HEIGHT;
+  // a partir de ahi hace scroll interno en vez de comerse el panel del chat.
+  useEffect(() => {
+    const field = draftRef.current;
+    if (!field) {
+      return;
+    }
+
+    field.style.height = "auto";
+    field.style.height = `${Math.min(field.scrollHeight, DRAFT_MAX_HEIGHT)}px`;
+  }, [draftQuestion, isOpen]);
+
+  function handleDraftKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    // isComposing evita enviar a medio acento o tilde muerta.
+    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) {
+      return;
+    }
+
+    event.preventDefault();
+    void askMigue();
+  }
+
   function registerFeedback(messageIndex: number, rating: FeedbackRating) {
     setMessages((current) =>
       current.map((message, index) => (index === messageIndex ? { ...message, feedback: rating } : message))
@@ -151,10 +185,10 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
           attachment: files.attachment
             ? { name: files.attachment.name, text: files.attachment.text, truncated: files.attachment.truncated }
             : undefined,
+          // mode y role los resuelve el servidor desde la sesion: mandarlos desde
+          // aca no tendria efecto (ver resolveAssistantAccess).
           assistantContext: {
-            mode: "public",
             module: "asistente",
-            role: "citizen",
             page: "Widget global de Migue",
             intent: "consulta en lenguaje natural"
           },
@@ -302,6 +336,16 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
           </div>
 
           <div className="shrink-0 border-t border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#0a1826]">
+            {canDraftContribution && messages.length > 0 && status !== "loading" ? (
+              <button
+                type="button"
+                onClick={() => askMigue(undefined, DRAFT_CONTRIBUTION_PROMPT)}
+                className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-bold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100 dark:border-sky-400/25 dark:bg-sky-400/10 dark:text-sky-100 dark:hover:bg-sky-400/20"
+              >
+                <FileText className="h-3.5 w-3.5 shrink-0" />
+                Redactar mi propuesta con lo que hablamos
+              </button>
+            ) : null}
             {files.attachment ? (
               <div className="mb-2 flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-2.5 py-1.5 dark:border-sky-400/25 dark:bg-sky-400/10">
                 <FileText className="h-3.5 w-3.5 shrink-0 text-sky-600 dark:text-sky-300" />
@@ -327,7 +371,7 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
                 {files.error}
               </p>
             ) : null}
-            <form onSubmit={askMigue} className="flex items-center gap-2">
+            <form onSubmit={askMigue} className="flex items-end gap-2">
               <input
                 ref={files.inputRef}
                 type="file"
@@ -347,11 +391,14 @@ export function MigueFloatingChat({ appearance = "dark" }: MigueFloatingChatProp
               >
                 {files.uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
               </button>
-              <input
+              <textarea
+                ref={draftRef}
                 value={draftQuestion}
                 onChange={(event) => setDraftQuestion(event.target.value)}
+                onKeyDown={handleDraftKeyDown}
+                rows={1}
                 placeholder="Preguntale a Migue..."
-                className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-200 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-sky-400/50 dark:focus:ring-sky-400/20"
+                className="min-w-0 flex-1 resize-none overflow-y-auto rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-200 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-sky-400/50 dark:focus:ring-sky-400/20"
               />
               <button
                 type="submit"

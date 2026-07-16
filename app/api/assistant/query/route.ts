@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { askUrbanAssistant, hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { buildMigueSystemPrompt, buildMigueUserPrompt, normalizeMigueContext } from "@/lib/ai/migue";
+import { resolveAssistantAccess } from "@/lib/ai/assistant-access";
+import { CHAT_BLOCK_MESSAGE, moderateChatMessage } from "@/lib/moderation";
+import { analyzeAggression } from "@/lib/ai/moderation-intent";
 import { analyzeMigueQuestion } from "@/lib/ai/migue-intent";
 import {
   buildAnswerSource,
@@ -32,9 +35,10 @@ const assistantQuerySchema = z.object({
     )
     .max(10)
     .optional(),
+  // mode y role NO se aceptan del cliente: los resuelve el servidor desde la sesion
+  // (resolveAssistantAccess). Si llegan en el body, zod los descarta.
   assistantContext: z
     .object({
-      mode: z.enum(["public", "internal"]).optional(),
       module: z
         .enum([
           "landing",
@@ -48,7 +52,6 @@ const assistantQuerySchema = z.object({
           "asistente"
         ])
         .optional(),
-      role: z.enum(["citizen", "employee", "admin"]).optional(),
       page: z.string().trim().max(120).optional(),
       intent: z.string().trim().max(160).optional()
     })
@@ -152,6 +155,23 @@ export async function POST(request: Request) {
     );
   }
 
+  // Dos capas: el filtro lexico corta gratis el insulto obvio, y si pasa, el
+  // analisis de intencion mira si el texto agravia a alguien aunque no use ninguna
+  // mala palabra ("la Dra. es una infeliz").
+  const verdict = moderateChatMessage(parsed.data.question);
+
+  if (verdict.blocked) {
+    console.info("Consulta a Migue bloqueada por moderacion lexica.", { matched: verdict.matched });
+    return NextResponse.json({ error: "Mensaje bloqueado", detail: verdict.message }, { status: 422 });
+  }
+
+  const aggression = await analyzeAggression(parsed.data.question);
+
+  if (aggression.agresivo) {
+    console.info("Consulta a Migue bloqueada por intencion.", { tipo: aggression.tipo });
+    return NextResponse.json({ error: "Mensaje bloqueado", detail: CHAT_BLOCK_MESSAGE }, { status: 422 });
+  }
+
   if (!hasOpenRouterConfig()) {
     return NextResponse.json(
       {
@@ -163,7 +183,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const assistantContext = normalizeMigueContext(parsed.data.assistantContext);
+    // El alcance sale de la sesion: con sesion municipal, modo interno (ve actas,
+    // reportes y archivos); sin sesion o como vecino, modo publico (solo normativa
+    // y paginas publicas). El cliente solo aporta module/page/intent.
+    const access = await resolveAssistantAccess();
+    const assistantContext = normalizeMigueContext({
+      ...parsed.data.assistantContext,
+      mode: access.mode,
+      role: access.role
+    });
     const context =
       parsed.data.context ||
       "MVP con mapa urbano, propuestas, Codigo de Planeamiento, audiencias, documentos y participacion ciudadana.";
