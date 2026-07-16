@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { EmptyState as SharedEmptyState } from "@/components/ui/empty-state";
 import {
   AlertTriangle,
   Brain,
@@ -1555,8 +1556,8 @@ function DetailBlock({ label, value }: { label: string; value: string }) {
   return <div className="min-w-0"><p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</p><p className="mt-1 break-words text-sm leading-6 text-slate-300">{value}</p></div>;
 }
 
-function EmptyState({ icon: Icon, text }: { icon: typeof Users; text: string }) {
-  return <div className="grid min-h-52 place-items-center rounded-md border border-dashed border-white/15 p-8 text-center"><div><Icon className="mx-auto h-8 w-8 text-slate-600" /><p className="mt-3 text-sm text-slate-400">{text}</p></div></div>;
+function EmptyState({ icon, text }: { icon: typeof Users; text: string }) {
+  return <SharedEmptyState icon={icon} title={text} />;
 }
 
 function FormSection({ title, children }: { title: string; children: React.ReactNode }) {

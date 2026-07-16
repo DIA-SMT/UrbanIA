@@ -12,6 +12,36 @@ import type { AnswerSource } from "@/lib/ai/rag";
 const MIGUE_HISTORY_KEY = "urbania-migue-history";
 /** Alto maximo del campo de consulta, en px: aprox. 6 lineas. */
 const DRAFT_MAX_HEIGHT = 132;
+const MIGUE_POSITION_KEY = "urbania-migue-position";
+// Ancho/alto aproximado del launcher (mobile 4.5rem, desktop 5rem) para encuadrarlo.
+const LAUNCHER_SIZE = 84;
+const EDGE_MARGIN = 8;
+
+/** Mantiene el launcher siempre dentro de la pantalla. */
+function clampToViewport(x: number, y: number): { x: number; y: number } {
+  const maxX = Math.max(EDGE_MARGIN, window.innerWidth - LAUNCHER_SIZE - EDGE_MARGIN);
+  const maxY = Math.max(EDGE_MARGIN, window.innerHeight - LAUNCHER_SIZE - EDGE_MARGIN);
+  return { x: Math.min(Math.max(x, EDGE_MARGIN), maxX), y: Math.min(Math.max(y, EDGE_MARGIN), maxY) };
+}
+
+/** Direccion de apertura del panel segun el cuadrante donde quedo el launcher. */
+function quadrantClass(position: { x: number; y: number }): string {
+  const onLeft = position.x + LAUNCHER_SIZE / 2 < window.innerWidth / 2;
+  const onTop = position.y + LAUNCHER_SIZE / 2 < window.innerHeight / 2;
+  return `${onTop ? "flex-col-reverse" : "flex-col"} ${onLeft ? "items-start" : "items-end"}`;
+}
+
+/** Ancla por el borde mas cercano para que el panel crezca hacia el centro sin salirse. */
+function quadrantStyle(position: { x: number; y: number }): React.CSSProperties {
+  const onLeft = position.x + LAUNCHER_SIZE / 2 < window.innerWidth / 2;
+  const onTop = position.y + LAUNCHER_SIZE / 2 < window.innerHeight / 2;
+  const style: React.CSSProperties = {};
+  if (onLeft) style.left = position.x;
+  else style.right = Math.max(EDGE_MARGIN, window.innerWidth - position.x - LAUNCHER_SIZE);
+  if (onTop) style.top = position.y;
+  else style.bottom = Math.max(EDGE_MARGIN, window.innerHeight - position.y - LAUNCHER_SIZE);
+  return style;
+}
 
 type LiveAssistantAnswer = {
   answer: string;
@@ -65,6 +95,86 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
   const memoryRef = useRef<ChatMessage[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const draftRef = useRef<HTMLTextAreaElement>(null);
+  const launcherRef = useRef<HTMLButtonElement>(null);
+  const dragRef = useRef<{ pointerId: number; grabX: number; grabY: number; startX: number; startY: number; moved: boolean } | null>(null);
+  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+  // Posicion del launcher (top-left en px del viewport). null = ancla por defecto (abajo-derecha).
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  // Restaura la posicion guardada y la vuelve a encuadrar si cambia el tamano de ventana.
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(MIGUE_POSITION_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed.x === "number" && typeof parsed.y === "number") setPosition(clampToViewport(parsed.x, parsed.y));
+      }
+    } catch {
+      // posicion corrupta: se ignora
+    }
+    function onResize() {
+      setPosition((current) => (current ? clampToViewport(current.x, current.y) : current));
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  function onLauncherPointerDown(event: React.PointerEvent<HTMLButtonElement>) {
+    if (event.button !== 0) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    dragRef.current = {
+      pointerId: event.pointerId,
+      grabX: event.clientX - rect.left,
+      grabY: event.clientY - rect.top,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false
+    };
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // El navegador puede rechazar la captura; el drag sigue funcionando igual.
+    }
+  }
+
+  function onLauncherPointerMove(event: React.PointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    // Umbral de 5px para distinguir un click de un arrastre.
+    if (!drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 5) {
+      drag.moved = true;
+      setDragging(true);
+    }
+    if (drag.moved) {
+      const next = clampToViewport(event.clientX - drag.grabX, event.clientY - drag.grabY);
+      lastPosRef.current = next;
+      setPosition(next);
+    }
+  }
+
+  function onLauncherPointerUp(event: React.PointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // sin captura activa
+    }
+    dragRef.current = null;
+    if (drag.moved) {
+      setDragging(false);
+      if (lastPosRef.current) {
+        try {
+          window.localStorage.setItem(MIGUE_POSITION_KEY, JSON.stringify(lastPosRef.current));
+        } catch {
+          // storage bloqueado
+        }
+      }
+    } else {
+      setIsOpen((value) => !value);
+    }
+  }
 
   useEffect(() => {
     try {
@@ -224,8 +334,12 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
     }
   }
 
+  // Ancla el contenedor segun el cuadrante del launcher para que el panel abra hacia el centro.
+  const dockClass = position === null ? "bottom-24 right-4 md:right-6 lg:bottom-6 flex-col items-end" : quadrantClass(position);
+  const dockStyle: React.CSSProperties = position === null ? {} : quadrantStyle(position);
+
   return (
-    <div className={`migue-theme-${appearance} fixed bottom-24 right-4 z-[80] flex flex-col items-end gap-3 md:right-6 lg:bottom-6`}>
+    <div className={`migue-theme-${appearance} fixed z-[80] flex gap-3 ${dockClass}`} style={dockStyle}>
       {isOpen ? (
         <section className="flex max-h-[calc(100dvh-10rem)] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(2,6,23,0.35)] dark:border-white/10 dark:bg-[#0d1b2a]">
           <div className="flex shrink-0 items-center gap-3 bg-gradient-to-br from-[#35aeea] via-[#1f89f6] to-[#0d6fe0] p-4">
@@ -414,10 +528,14 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
       ) : null}
 
       <button
-        onClick={() => setIsOpen((current) => !current)}
-        className="urban-button migue-launcher group"
-        aria-label={isOpen ? "Cerrar chat de Migue" : "Abrir chat de Migue"}
-        title="Migue"
+        ref={launcherRef}
+        onPointerDown={onLauncherPointerDown}
+        onPointerMove={onLauncherPointerMove}
+        onPointerUp={onLauncherPointerUp}
+        style={{ touchAction: "none", cursor: dragging ? "grabbing" : "grab" }}
+        className={`urban-button migue-launcher group ${dragging ? "select-none" : ""}`}
+        aria-label={isOpen ? "Cerrar chat de Migue" : "Abrir chat de Migue. Manten presionado para moverlo."}
+        title="Migue · arrastralo para moverlo"
       >
         <span className="migue-launcher-avatar">
           <Image
