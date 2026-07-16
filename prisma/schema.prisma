@@ -17,6 +17,7 @@ model User {
   proposals    Proposal[]
   comments     Comment[]
   votes        Vote[]
+  projects     Project[]
 }
 
 model Regulation {
@@ -46,7 +47,7 @@ model DocumentChunk {
 }
 
 model NormativeDocument {
-  id              String              @id
+  id              String             @id
   title           String
   documentType    String
   ordinanceNumber String?
@@ -54,12 +55,12 @@ model NormativeDocument {
   jurisdiction    String
   sourceName      String
   sourcePath      String?
-  status          NormativeStatus     @default(HISTORICAL_REFERENCE)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  status          NormativeStatus    @default(HISTORICAL_REFERENCE)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
   chapters        NormativeChapter[]
   articles        NormativeArticle[]
-  ordinances      Ordinance[]         @relation("SourceNormativeDocument")
+  ordinances      Ordinance[]        @relation("SourceNormativeDocument")
 
   @@index([ordinanceNumber])
   @@index([versionDate])
@@ -80,20 +81,20 @@ model NormativeChapter {
 }
 
 model NormativeArticle {
-  id                String             @id
+  id                String                @id
   documentId        String
   chapterId         String?
   articleNumber     String
   title             String?
   content           String
   normalizedContent String
-  metadata          Json               @default("{}")
-  status            NormativeStatus    @default(HISTORICAL_REFERENCE)
+  metadata          Json                  @default("{}")
+  status            NormativeStatus       @default(HISTORICAL_REFERENCE)
   displayOrder      Int
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  document          NormativeDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  chapter           NormativeChapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  document          NormativeDocument     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  chapter           NormativeChapter?     @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   versions          ArticleVersion[]
   sourceDistricts   District[]
   landUseRules      DistrictLandUseRule[]
@@ -118,7 +119,7 @@ model Ordinance {
 }
 
 model ArticleVersion {
-  id            String           @id @default(cuid())
+  id            String              @id @default(cuid())
   articleId     String
   ordinanceId   String?
   content       String
@@ -126,30 +127,31 @@ model ArticleVersion {
   effectiveTo   DateTime?
   changeType    NormativeChangeType
   notes         String?
-  article       NormativeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  ordinance     Ordinance?       @relation(fields: [ordinanceId], references: [id], onDelete: SetNull)
+  article       NormativeArticle    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  ordinance     Ordinance?          @relation(fields: [ordinanceId], references: [id], onDelete: SetNull)
 
   @@index([articleId, effectiveFrom])
   @@index([ordinanceId])
 }
 
 model District {
-  id                   String                  @id
-  code                 String                  @unique
+  id                   String                   @id
+  code                 String                   @unique
   name                 String?
   category             String?
   description          String?
   characterDescription String?
   geometry             Unsupported("geometry")?
   sourceArticleId      String?
-  sourceArticle        NormativeArticle?       @relation(fields: [sourceArticleId], references: [id], onDelete: SetNull)
+  sourceArticle        NormativeArticle?        @relation(fields: [sourceArticleId], references: [id], onDelete: SetNull)
   landUseRules         DistrictLandUseRule[]
+  projects             Project[]
 
   @@index([sourceArticleId])
 }
 
 model LandUse {
-  id          String                  @id @default(cuid())
+  id          String                @id @default(cuid())
   name        String
   category    String?
   description String?
@@ -159,18 +161,18 @@ model LandUse {
 }
 
 model DistrictLandUseRule {
-  id                  String             @id @default(cuid())
+  id                  String            @id @default(cuid())
   districtId          String
   landUseId           String
-  status              LandUseRuleStatus  @default(UNKNOWN)
+  status              LandUseRuleStatus @default(UNKNOWN)
   conditions          String?
   parkingRequirements String?
   loadingRequirements String?
   sourceArticleId     String?
   sourceReference     String?
-  district            District           @relation(fields: [districtId], references: [id], onDelete: Cascade)
-  landUse             LandUse            @relation(fields: [landUseId], references: [id], onDelete: Cascade)
-  sourceArticle       NormativeArticle?   @relation(fields: [sourceArticleId], references: [id], onDelete: SetNull)
+  district            District          @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  landUse             LandUse           @relation(fields: [landUseId], references: [id], onDelete: Cascade)
+  sourceArticle       NormativeArticle? @relation(fields: [sourceArticleId], references: [id], onDelete: SetNull)
 
   @@unique([districtId, landUseId, sourceReference])
   @@index([sourceArticleId])
@@ -255,37 +257,38 @@ model MapFeature {
 }
 
 model Proposal {
-  id          String         @id @default(cuid())
-  title       String
-  description String
-  status      ProposalStatus @default(DRAFT)
-  source      ProposalSource @default(CITIZEN)
-  latitude    Float?
-  longitude   Float?
-  createdById String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  createdBy   User?          @relation(fields: [createdById], references: [id])
-  comments    Comment[]
+  id                   String                @id @default(cuid())
+  title                String
+  description          String
+  status               ProposalStatus        @default(DRAFT)
+  source               ProposalSource        @default(CITIZEN)
+  latitude             Float?
+  longitude            Float?
+  createdById          String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  createdBy            User?                 @relation(fields: [createdById], references: [id])
+  comments             Comment[]
   citizenContributions CitizenContribution[]
-  votes       Vote[]
+  votes                Vote[]
+  projects             Project[]
 }
 
 model CitizenContribution {
-  id          String                    @id @default(cuid())
-  kind        CitizenContributionKind
-  name        String
-  dni         String
-  zone        String
-  text        String
-  fileName    String?
-  axis        String
-  confidence  String
-  status      CitizenContributionStatus @default(NEW)
-  proposalId  String?
-  createdAt   DateTime                  @default(now())
-  updatedAt   DateTime                  @updatedAt
-  proposal    Proposal?                 @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  id         String                    @id @default(cuid())
+  kind       CitizenContributionKind
+  name       String
+  dni        String
+  zone       String
+  text       String
+  fileName   String?
+  axis       String
+  confidence String
+  status     CitizenContributionStatus @default(NEW)
+  proposalId String?
+  createdAt  DateTime                  @default(now())
+  updatedAt  DateTime                  @updatedAt
+  proposal   Proposal?                 @relation(fields: [proposalId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
   @@index([kind])
@@ -333,8 +336,12 @@ model CabinetIdea {
   description String
   status      IdeaStatus     @default(NEW)
   proposalId  String?
+  projectId   String?
   createdAt   DateTime       @default(now())
   meeting     CabinetMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  project     Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
 }
 
 model AiQuery {
@@ -369,15 +376,15 @@ model KnowledgeSource {
 }
 
 model KnowledgeChunk {
-  id            String                       @id @default(cuid())
+  id            String                      @id @default(cuid())
   sourceId      String
   chunkIndex    Int
   content       String
-  tokenEstimate Int                          @default(0)
-  metadata      Json                         @default("{}")
+  tokenEstimate Int                         @default(0)
+  metadata      Json                        @default("{}")
   embedding     Unsupported("vector(384)")?
-  createdAt     DateTime                     @default(now())
-  source        KnowledgeSource              @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  createdAt     DateTime                    @default(now())
+  source        KnowledgeSource             @relation(fields: [sourceId], references: [id], onDelete: Cascade)
 
   @@unique([sourceId, chunkIndex])
   @@index([sourceId, chunkIndex])
@@ -401,6 +408,7 @@ model Meeting {
   analyses           MeetingAnalysis[]
   insights           MeetingInsight[]
   actionItems        MeetingActionItem[]
+  projectAttachments ProjectAttachment[]
 }
 
 model MeetingMedia {
@@ -521,6 +529,136 @@ model CpuMessage {
   conversation   CpuConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt])
+}
+
+model Project {
+  id            String              @id @default(cuid())
+  code          String              @unique
+  title         String
+  summary       String
+  status        ProjectStatus       @default(DRAFT)
+  stage         ProjectStage        @default(FORMULATION)
+  source        ProposalSource      @default(TECHNICAL_TEAM)
+  areas         MunicipalArea[]
+  requiresEIA   Boolean             @default(false)
+  eiaNotes      String?
+  proposalId    String?
+  proposal      Proposal?           @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  latitude      Float?
+  longitude     Float?
+  addressLabel  String?
+  districtId    String?
+  district      District?           @relation(fields: [districtId], references: [id], onDelete: SetNull)
+  officialNotes String?
+  createdById   String?
+  createdBy     User?               @relation(fields: [createdById], references: [id])
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  diagnoses     ProjectDiagnosis[]
+  budgetItems   ProjectBudgetItem[]
+  attachments   ProjectAttachment[]
+  cabinetIdeas  CabinetIdea[]
+
+  @@index([status])
+  @@index([stage])
+  @@index([createdAt])
+  @@index([proposalId])
+}
+
+model ProjectDiagnosis {
+  id            String           @id @default(cuid())
+  projectId     String
+  version       Int              @default(1)
+  feasibility   FeasibilityLevel
+  scope         String
+  objective     String
+  analysis      String
+  actions       Json             @default("[]")
+  risks         Json             @default("[]")
+  citedArticles Json             @default("[]")
+  model         String?
+  editedByHuman Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, version])
+  @@index([projectId, createdAt])
+}
+
+model ProjectBudgetItem {
+  id            String         @id @default(cuid())
+  projectId     String
+  concept       String
+  costType      BudgetCostType
+  baseAmount    Decimal        @db.Decimal(14, 2)
+  multiplier    Float          @default(1)
+  fundingSource String?
+  amount        Decimal        @db.Decimal(14, 2)
+  createdAt     DateTime       @default(now())
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ProjectAttachment {
+  id        String   @id @default(cuid())
+  projectId String
+  kind      String
+  name      String
+  excerpt   String?
+  meetingId String?
+  meeting   Meeting? @relation(fields: [meetingId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+enum ProjectStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  IN_PROGRESS
+  SUSPENDED
+  COMPLETED
+  ARCHIVED
+}
+
+enum ProjectStage {
+  FORMULATION
+  TECHNICAL_REVIEW
+  CABINET_REVIEW
+  TENDER
+  EXECUTION
+  CLOSED
+}
+
+enum MunicipalArea {
+  PLANEAMIENTO
+  OBRAS_PUBLICAS
+  AMBIENTE
+  MOVILIDAD
+  ESPACIO_PUBLICO
+  DESARROLLO_SOCIAL
+  HACIENDA
+  LEGAL
+  OTRA
+}
+
+enum FeasibilityLevel {
+  HIGH
+  MEDIUM
+  LOW
+  BLOCKED
+}
+
+enum BudgetCostType {
+  OBRA
+  ESTUDIO_PROYECTO
+  EQUIPAMIENTO
+  MANTENIMIENTO
+  EXPROPIACION
+  OTRO
 }
 
 // Feedback ciudadano sobre las respuestas de Migue. Guarda la pregunta, la
