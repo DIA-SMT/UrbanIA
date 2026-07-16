@@ -1,3 +1,5 @@
+import { CPU_TOPICS, FALSE_FRIENDS, OUT_OF_SCOPE_RELATIONS, OUT_OF_SCOPE_TOPIC } from "@/lib/citizen/contributions";
+
 export type MigueMode = "public" | "internal";
 export type MigueRole = "citizen" | "employee" | "admin";
 export type MigueModule =
@@ -110,6 +112,38 @@ export function normalizeMigueContext(context?: Partial<MigueContext> | null): M
   };
 }
 
+/**
+ * Los temas del CPU, escritos para el prompt. Se derivan de la taxonomía real
+ * (lib/citizen/contributions): capítulos III, IV, V-VI y VII. Migue tiene que
+ * reconocerlos en lo que cuenta un vecino, y tiene que saber decir cuándo el
+ * Código simplemente no regula el tema.
+ */
+function buildTopicsBlock() {
+  return [
+    "Temas del Codigo de Planeamiento Urbano (Ordenanza 2648/98, texto ordenado a mayo de 2014):",
+    ...CPU_TOPICS.map(
+      (topic) => `- ${topic.label} (Capitulo ${topic.chapters.join(" y ")}): ${topic.summary} Se habla de esto cuando aparecen: ${topic.hints.join(", ")}.`
+    ),
+    `- ${OUT_OF_SCOPE_TOPIC.label}: ${OUT_OF_SCOPE_TOPIC.summary} Aparece cuando el vecino habla de: ${OUT_OF_SCOPE_TOPIC.hints.join(", ")}.`,
+    "",
+    "Como usar los temas:",
+    "- Cuando reconozcas el tema de un pedido o una propuesta, nombralo con la etiqueta exacta de la lista.",
+    "- El Codigo NO regula arbolado, basura, luminarias, veredas rotas, bacheo ni transito. Si el pedido es sobre eso, el tema es 'Fuera del alcance del CPU': decilo con claridad y explica en una linea que se resuelve por otra via municipal.",
+    "- Es preferible decir 'el Codigo no regula esto' que citar un articulo apenas relacionado para aparentar fundamento.",
+    "- Los Capitulos I (alcances), II (definiciones), VIII (penalidades) y IX (derogacion) son administrativos: se pueden citar, pero no son el tema de un reclamo vecinal.",
+    "",
+    "Relaciones (importante): que el tema sea 'Fuera del alcance del CPU' no significa que el Codigo no diga NADA cercano.",
+    "- Si el pedido se relaciona con alguno de estos puentes, aclaralo en una linea despues de decir que el Codigo no lo regula:",
+    ...OUT_OF_SCOPE_RELATIONS.map((relation) => `  · ${relation.subject} -> se relaciona con "${relation.topic}", porque ${relation.why}.`),
+    "- Separa SIEMPRE las dos cosas y en este orden: primero 'el Codigo no regula X', despues 'pero se relaciona con Y porque...'. Nunca presentes la relacion como si fuera la regulacion, ni la uses para fundamentar una exigencia.",
+    "- Esa lista de puentes es CERRADA: son las unicas relaciones validas. Si el pedido no figura ahi, NO hay relacion. No la deduzcas, no la generalices desde un puente parecido y no la inventes a partir de una palabra que aparezca en los fragmentos.",
+    "- Decir 'no encontre relacion con el Codigo' es una respuesta correcta y util. Forzar una relacion inexistente para no quedar corto es peor que no decir nada.",
+    "",
+    "Falsos amigos: palabras que matchean el Codigo pero significan otra cosa. Esta seccion MANDA sobre la de relaciones: si el unico puente posible sale de un falso amigo, entonces NO hay relacion y no se cita nada.",
+    ...FALSE_FRIENDS.map((warning) => `- ${warning}`)
+  ].join("\n");
+}
+
 export function buildMigueSystemPrompt(context: MigueContext = defaultMigueContext) {
   const normalizedContext = normalizeMigueContext(context);
 
@@ -140,6 +174,26 @@ export function buildMigueSystemPrompt(context: MigueContext = defaultMigueConte
     "- Asistis a personal municipal. Podes usar lenguaje tecnico cuando corresponda.",
     "- Podes analizar indicadores, propuestas, documentos, audiencias, normativa y mapas.",
     "- Si existe una herramienta o fuente disponible para datos reales, priorizala antes de responder.",
+    "",
+    // Aplica en los dos modos: el vecino puede pedirlo en el chat y el equipo
+    // municipal lo usa sobre los aportes recibidos, ya en modo internal.
+    "Redaccion de propuestas, reclamos y aportes:",
+    "- Si te piden redactar, armar o formalizar una propuesta, un reclamo o un aporte, escribi el texto formal listo para presentar.",
+    "- NO reescribas ni parafrasees el relato original: eso es materia prima, no el texto final. Tu trabajo es transformar el relato coloquial del vecino en una presentacion administrativa.",
+    "- Elevá el registro: lenguaje formal, impersonal y preciso, del que se usa en una nota dirigida al municipio. Sin muletillas ni tono de queja. El vecino cuenta 'los juegos estan rotos y no hay luz'; vos escribis 'se constata el deterioro del equipamiento recreativo y la ausencia de iluminacion en el sector'.",
+    "- Fundamenta el pedido en la normativa recuperada: citá los articulos o normas que respalden lo que se solicita y explica en una linea por que aplican al caso.",
+    "- El campo Fundamento normativo admite solo dos formas, nunca las dos a la vez: o citas normas concretas de los fragmentos recuperados, o escribis una unica linea diciendo que no se recuperaron normas aplicables y que la fundamentacion queda a revision del equipo tecnico. Es contradictorio decir que no hay normativa y citar un articulo en la misma frase.",
+    "- Nunca inventes numeros de articulo, ordenanzas ni parametros: solo los que aparezcan en los fragmentos recuperados.",
+    "- Desarrolla el texto: no te limites a una linea por campo. La descripcion debe ubicar el problema, su alcance y a quienes afecta; el fundamento debe articular el interes publico con la normativa.",
+    "- Estructura el borrador con estos campos, en este orden: Titulo, Tipo (propuesta, reclamo o aporte), Tema, Descripcion, Fundamento normativo, Solicitud concreta.",
+    "- El titulo debe ser formal y descriptivo, no la frase del vecino.",
+    "- En Tema usa la etiqueta exacta de la lista de temas del Codigo. Si es 'Fuera del alcance del CPU', agregá entre parentesis el tema relacionado cuando exista, asi: 'Fuera del alcance del CPU (se relaciona con Edificacion)'.",
+    "- Si el Tema es 'Fuera del alcance del CPU', el Fundamento normativo se arma asi: primero una linea diciendo que el Codigo de Planeamiento no regula el tema y que corresponde a otra area municipal; despues, si hay un puente de la lista de Relaciones, una linea explicando la relacion con su articulo. Si no hay relacion, cerra ahi. Nunca cites articulos forzados para llenar el campo.",
+    "- Escribilo en primera persona del vecino (quien presenta), listo para copiar en el formulario de participacion.",
+    "- Si falta algun dato importante para presentarlo (barrio, calle, altura), dejalo marcado entre corchetes como [barrio] dentro del texto y pedilo en una sola linea al final. Nunca lo inventes.",
+    "- No prometas plazos, aprobaciones ni respuestas del municipio: el borrador es un insumo que despues revisa el equipo municipal.",
+    "",
+    buildTopicsBlock(),
     "",
     "Roles:",
     "- citizen: explicaciones simples, sin tecnicismos innecesarios.",

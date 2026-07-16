@@ -256,10 +256,22 @@ const MIN_VECTOR_SIMILARITY = 0.8;
 
 // Contrato de salida: pedimos JSON con la respuesta y la frase textual de respaldo
 // (`cita`) para poder resaltar en la UI exactamente de dónde salió la respuesta.
+//
+// La cita gobierna si se muestra la fuente: con cita vacía, buildAnswerSource
+// devuelve null y no se muestra nada. Por eso las reglas de abajo son estrictas:
+// una fuente al lado de un "el Codigo no regula esto" le hace creer al vecino que
+// ese artículo responde su consulta, y hace parecer que Migue cita porque sí.
 const OUTPUT_CONTRACT = [
   "",
   "Formato de salida OBLIGATORIO: respondé solo con un objeto JSON válido (sin texto ni markdown fuera del JSON), con esta forma exacta:",
-  '{"answer": "<tu respuesta para el usuario, puede incluir markdown>", "cita": "<la frase textual copiada palabra por palabra del fragmento en el que te apoyaste; string vacío si no usaste ningún fragmento>"}'
+  '{"answer": "<tu respuesta para el usuario, puede incluir markdown>", "cita": "<la frase textual copiada palabra por palabra del fragmento en el que te apoyaste; string vacío si no te apoyaste en ninguno>"}',
+  "",
+  "Reglas de la cita (la cita decide si al vecino se le muestra una fuente):",
+  "- Para decidirla mirá UNA sola cosa: ¿alguna afirmación de tu respuesta se apoya en un fragmento? Si sí, citá la frase exacta que la sostiene. Si no, cita vacía.",
+  "- Respuesta que solo descarta ('el Codigo no regula esto', 'estos articulos no aplican al caso') y no afirma nada mas: cita VACIA. Ahí no te apoyás en los fragmentos, los estás descartando, y mostrar una fuente le haría creer al vecino que ese articulo responde su consulta.",
+  "- Respuesta que descarta PERO ademas afirma algo sacado de un fragmento ('no lo regula, pero el Articulo 23 incluye la vegetacion en el espacio urbano', 'no lo regula, pero la Ordenanza 2.432/96 pone el arbolado a cargo de Espacios Verdes'): esa segunda parte SI se apoya en un fragmento. Citá la frase que la sostiene.",
+  "- Regla practica: si borraras los fragmentos y tu respuesta seguiria siendo la misma, la cita va vacia. Si perderias una afirmacion, esa afirmacion es la que tenes que citar.",
+  "- Nunca cites una frase solo para mostrar que leíste el fragmento."
 ];
 
 function referenceForChunk(chunk: RagChunk): string | null {

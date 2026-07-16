@@ -13,10 +13,17 @@ model User {
   email        String     @unique
   passwordHash String?
   role         UserRole   @default(CITIZEN)
+  /// Documento del vecino. Se pide una sola vez, al registrarse.
+  dni          String?    @unique
+  /// Fecha de nacimiento: el registro exige 18 años cumplidos.
+  birthDate    DateTime?
+  /// Profesión u ocupación declarada por el vecino.
+  occupation   String?
   createdAt    DateTime   @default(now())
   proposals    Proposal[]
   comments     Comment[]
   votes        Vote[]
+  contributions CitizenContribution[]
 }
 
 model Regulation {
@@ -280,17 +287,26 @@ model CitizenContribution {
   text        String
   fileName    String?
   axis        String
+  /// Por qué Migue sugirió ese eje, con el artículo en el que se apoyó.
+  axisReason  String?
+  /// false = eje sugerido por Migue, todavía sin revisar. true = lo confirmó una persona.
+  axisConfirmed Boolean                 @default(false)
   confidence  String
   status      CitizenContributionStatus @default(NEW)
+  /// Autor del aporte. Nullable: los aportes anteriores al login obligatorio no lo tienen.
+  /// SetNull y no Cascade: si se borra la cuenta, el aporte queda para el municipio.
+  userId      String?
   proposalId  String?
   createdAt   DateTime                  @default(now())
   updatedAt   DateTime                  @updatedAt
+  user        User?                     @relation(fields: [userId], references: [id], onDelete: SetNull)
   proposal    Proposal?                 @relation(fields: [proposalId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
   @@index([kind])
   @@index([status])
   @@index([proposalId])
+  @@index([userId])
 }
 
 model Comment {
