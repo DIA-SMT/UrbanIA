@@ -425,6 +425,8 @@ model Meeting {
   insights           MeetingInsight[]
   actionItems        MeetingActionItem[]
   projectAttachments ProjectAttachment[]
+  /// Presente solo si kind=PUBLIC_HEARING.
+  hearingRecord      HearingRecord?
 }
 
 model MeetingMedia {
@@ -446,13 +448,19 @@ model MeetingMedia {
 }
 
 model MeetingParticipant {
-  id          String  @id @default(cuid())
-  meetingId   String
-  displayName String
-  role        String?
-  email       String?
-  metadata    Json    @default("{}")
-  meeting     Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  id           String  @id @default(cuid())
+  meetingId    String
+  displayName  String
+  role         String?
+  email        String?
+  institution  String?
+  /// Vecino, Colegio profesional, Concejal... Quien habla en nombre de quien.
+  actorType    String?
+  attended     Boolean @default(false)
+  /// Sintesis de lo que dijo. La cita textual vive en TranscriptSegment.
+  intervention String?
+  metadata     Json    @default("{}")
+  meeting      Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
   @@index([meetingId])
 }
@@ -520,6 +528,110 @@ model MeetingActionItem {
   @@index([meetingId, status])
 }
 
+/// Capa de expediente municipal sobre una reunion. 1:1 con un Meeting de
+/// kind=PUBLIC_HEARING. Vive aparte y no dentro de Meeting porque este
+/// vocabulario (expediente, ordenanza, area impulsora) solo aplica a las
+/// audiencias: Gabinete y las comisiones tecnicas usan el mismo Meeting sin nada
+/// de esto.
+model HearingRecord {
+  id                       String                 @id @default(cuid())
+  meetingId                String                 @unique
+  /// Ciclo de vida de la audiencia como acto publico. NO confundir con
+  /// Meeting.status, que es ProcessingStatus y describe el procesamiento del
+  /// audio. Una audiencia FINALIZADA puede tener el audio en ERROR: son dos ejes
+  /// distintos y colapsarlos deja estados sin sentido.
+  lifecycle                HearingLifecycle       @default(PROGRAMADA)
+  modality                 HearingModality        @default(PRESENCIAL)
+  mainTopic                String
+  secondaryTopics          String[]
+  recordNumber             String
+  recordTitle              String
+  relatedProposal          String?
+  proposalOrigin           HearingProposalOrigin  @default(CONCEJO)
+  promotingArea            String?
+  recordStatus             String?
+  recordDocument           String?
+  relatedArticles          String[]
+  projectId                String?
+  /// Conclusiones del acta. Son campos propios y no MeetingAnalysis porque las
+  /// firma una persona: si vivieran en el analisis, volver a correr el modelo
+  /// pisaria lo que un funcionario ya valido.
+  conclusionsSummary       String?
+  agreements               String?
+  disagreements            String?
+  nextSteps                String?
+  technicalRecommendations String?
+  decisions                String?
+  proposalStatusAfter      String?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  meeting                  Meeting                @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  project                  Project?               @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  observedTopics           HearingObservedTopic[]
+  documents                HearingDocument[]
+  debateMessages           HearingDebateMessage[]
+  contributions            HearingContribution[]
+
+  @@index([lifecycle])
+  @@index([projectId])
+}
+
+model HearingObservedTopic {
+  id                   String          @id @default(cuid())
+  hearingRecordId      String
+  topic                String
+  description          String
+  importance           TopicImportance @default(MEDIO)
+  relatedArticle       String?
+  relatedProposal      String?
+  technicalObservation String?
+  citizenObservation   String?
+  createdAt            DateTime        @default(now())
+  hearingRecord        HearingRecord   @relation(fields: [hearingRecordId], references: [id], onDelete: Cascade)
+
+  @@index([hearingRecordId])
+}
+
+/// Documentacion del expediente (ordenanzas, informes, planos). El audio y el
+/// video no van aca: esos son MeetingMedia, que ademas tiene estado de
+/// procesamiento.
+model HearingDocument {
+  id              String        @id @default(cuid())
+  hearingRecordId String
+  name            String
+  type            String
+  url             String?
+  description     String?
+  uploadedBy      String?
+  uploadedAt      DateTime      @default(now())
+  hearingRecord   HearingRecord @relation(fields: [hearingRecordId], references: [id], onDelete: Cascade)
+
+  @@index([hearingRecordId])
+}
+
+model HearingDebateMessage {
+  id              String        @id @default(cuid())
+  hearingRecordId String
+  authorName      String
+  content         String
+  createdAt       DateTime      @default(now())
+  hearingRecord   HearingRecord @relation(fields: [hearingRecordId], references: [id], onDelete: Cascade)
+
+  @@index([hearingRecordId, createdAt])
+}
+
+model HearingContribution {
+  id              String        @id @default(cuid())
+  hearingRecordId String
+  participantName String
+  content         String
+  fileNames       String[]
+  createdAt       DateTime      @default(now())
+  hearingRecord   HearingRecord @relation(fields: [hearingRecordId], references: [id], onDelete: Cascade)
+
+  @@index([hearingRecordId, createdAt])
+}
+
 model CpuConversation {
   id        String       @id @default(cuid())
   title     String       @default("Nueva consulta")
@@ -574,6 +686,7 @@ model Project {
   budgetItems   ProjectBudgetItem[]
   attachments   ProjectAttachment[]
   cabinetIdeas  CabinetIdea[]
+  hearingRecords HearingRecord[]
 
   @@index([status])
   @@index([stage])
@@ -817,6 +930,33 @@ enum MeetingKind {
 enum MediaKind {
   AUDIO
   VIDEO
+}
+
+enum HearingLifecycle {
+  PROGRAMADA
+  EN_CURSO
+  FINALIZADA
+  REPROGRAMADA
+  SUSPENDIDA
+}
+
+enum HearingModality {
+  PRESENCIAL
+  VIRTUAL
+  MIXTA
+}
+
+enum HearingProposalOrigin {
+  CONCEJO
+  CIUDADANIA
+  CODIGO_URBANO
+}
+
+enum TopicImportance {
+  BAJO
+  MEDIO
+  ALTO
+  CRITICO
 }
 
 enum MeetingInsightKind {
