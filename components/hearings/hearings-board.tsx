@@ -1315,7 +1315,56 @@ function HearingFormPanel({ form, onClose, onSubmit, onUpdate }: {
   const [isAnalyzingTranscript, setIsAnalyzingTranscript] = useState(false);
   const [formDraft, setFormDraft] = useState<HearingAiDraft | null>(null);
   const [formDraftNotice, setFormDraftNotice] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcribeNotice, setTranscribeNotice] = useState("");
   const transcriptReady = transcript.trim().length > 20;
+
+  /**
+   * Deja el texto en el mismo estado que llena Pinpoint: de ahi en adelante el
+   * flujo (revisar y completar con Migue) ya existe y no cambia.
+   */
+  async function transcribeFromYoutube() {
+    if (!youtubeUrl.trim() || isTranscribing) return;
+
+    setIsTranscribing(true);
+    setTranscribeNotice("Descargando el audio y transcribiendo. Una audiencia de una hora tarda unos 2 minutos.");
+
+    try {
+      const res = await fetch("/api/hearings/transcribe-youtube", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: youtubeUrl.trim() })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setTranscribeNotice(data.error ?? "No se pudo transcribir el video.");
+        return;
+      }
+
+      setTranscript(data.transcript);
+      setTranscriptFileName(`Transcripto de YouTube (${Math.round((data.durationSec ?? 0) / 60)} min)`);
+      setFormDraft(null);
+
+      // Cuantos quedaron sin identificar y cuanto costo: las dos cosas que quien
+      // firma el acta necesita saber y que no se ven mirando el texto.
+      setTranscribeNotice(
+        [
+          `${data.identifiedCount} participantes identificados`,
+          data.unidentifiedCount ? `${data.unidentifiedCount} sin identificar: completalos a mano` : "",
+          `costo US$${data.costUsd}`,
+          data.truncated ? "ATENCION: se corto en 60.000 caracteres, el maximo que acepta el analisis." : ""
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      );
+    } catch {
+      setTranscribeNotice("No se pudo contactar al servidor para transcribir.");
+    } finally {
+      setIsTranscribing(false);
+    }
+  }
 
   function importFormTranscriptFile(file?: File) {
     if (!file) return;
@@ -1422,6 +1471,36 @@ function HearingFormPanel({ form, onClose, onSubmit, onUpdate }: {
             </div>
 
             {formDraftNotice ? <p className="mt-2 text-xs font-semibold text-sky-200">{formDraftNotice}</p> : null}
+
+            <div className="mt-4 rounded-md border border-white/10 bg-slate-950/40 p-3">
+              <p className="mb-2 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
+                O transcribir desde el video de la audiencia
+              </p>
+              <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto]">
+                <input
+                  type="url"
+                  value={youtubeUrl}
+                  onChange={(event) => setYoutubeUrl(event.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  disabled={isTranscribing}
+                  className="h-11 w-full rounded-md border border-white/10 bg-slate-950/70 px-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-300/50 disabled:opacity-50"
+                />
+                <button
+                  type="button"
+                  onClick={transcribeFromYoutube}
+                  disabled={!youtubeUrl.trim() || isTranscribing}
+                  className="urban-button inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-sky-300/30 bg-sky-300/10 px-4 text-sm font-black text-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {isTranscribing ? "Transcribiendo..." : "Transcribir video"}
+                </button>
+              </div>
+              <p className="mt-2 text-[11px] leading-4 text-slate-500">
+                Migue separa a los oradores, pero solo les pone nombre cuando alguien lo dice en la sala. El resto queda
+                como &quot;Hablante N&quot; para que lo completes vos. Cada transcripcion cuesta cerca de US$0,25.
+              </p>
+              {transcribeNotice ? <p className="mt-2 text-xs font-semibold text-sky-200">{transcribeNotice}</p> : null}
+            </div>
 
             <label className="mt-4 grid gap-2">
               <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Transcripcion editable</span>
