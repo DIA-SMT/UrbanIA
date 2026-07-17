@@ -51,7 +51,8 @@ export async function GET(request: Request) {
         articleNumber: link.article.articleNumber,
         articleTitle: link.article.title ?? `Artículo ${link.article.articleNumber}`,
         relationshipType: link.relationshipType,
-        notes: link.notes
+        notes: link.notes,
+        createdBy: link.createdBy
       })),
       isLive: true
     });

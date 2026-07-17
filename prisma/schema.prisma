@@ -25,6 +25,7 @@ model User {
   votes        Vote[]
   projects     Project[]
   contributions CitizenContribution[]
+  reforms      NormativeReform[]
 }
 
 model Regulation {
@@ -680,6 +681,14 @@ model Project {
   officialNotes String?
   createdById   String?
   createdBy     User?               @relation(fields: [createdById], references: [id])
+  /// Fabrica de Normas: un Project con reformId es una NORMA (articulo) de un
+  /// codigo nuevo en construccion. title = titulo de la norma, summary = objeto.
+  reformId      String?
+  reform        NormativeReform?    @relation(fields: [reformId], references: [id], onDelete: SetNull)
+  /// Numero tentativo de la norma dentro del codigo nuevo (ej. "12").
+  articleNumber String?
+  /// Texto del articulado redactado: la norma en si.
+  articleText   String?
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
   diagnoses     ProjectDiagnosis[]
@@ -692,6 +701,7 @@ model Project {
   @@index([stage])
   @@index([createdAt])
   @@index([proposalId])
+  @@index([reformId])
 }
 
 model ProjectDiagnosis {
@@ -705,6 +715,9 @@ model ProjectDiagnosis {
   actions       Json             @default("[]")
   risks         Json             @default("[]")
   citedArticles Json             @default("[]")
+  /// Texto de articulo sugerido por la IA, apoyado en el codigo viejo. Es una
+  /// sugerencia editable, nunca la palabra final.
+  proposedText  String?
   model         String?
   editedByHuman Boolean          @default(false)
   createdAt     DateTime         @default(now())
@@ -741,6 +754,31 @@ model ProjectAttachment {
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
+}
+
+// Un "codigo nuevo" en construccion: la fabrica que agrupa normas (articulos)
+// que se redactan consultando el CPU 2014.
+model NormativeReform {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  title       String
+  description String?
+  status      ReformStatus @default(DRAFT)
+  createdById String?
+  createdBy   User?        @relation(fields: [createdById], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  norms       Project[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum ReformStatus {
+  DRAFT
+  IN_REVIEW
+  CONSOLIDATED
+  ARCHIVED
 }
 
 enum ProjectStatus {
@@ -850,6 +888,8 @@ enum LandUseRuleStatus {
 enum NormativeRelationshipType {
   APPLIES
   MODIFIES
+  REPEALS
+  REPLACES
   REFERENCES
   POTENTIAL_CONFLICT
   SUPPORTS
