@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ChevronDown, ChevronLeft, FolderKanban, Home, LogIn, LogOut, Map, Menu, MessagesSquare, MoreHorizontal, Moon, Sun, Users, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronLeft, Home, LogIn, LogOut, Map, Menu, MessagesSquare, MoreHorizontal, Moon, Scale, Sun, Users, X } from "lucide-react";
 import { MigueFloatingChat } from "@/components/assistant/migue-floating-chat";
 import { Brand } from "@/components/brand";
 import { sidebarSections } from "@/lib/data";
@@ -226,7 +226,7 @@ function SidebarGroup({ section, pathname, open, collapsed = false, onToggle }: 
 function MobileBottomNavigation({ pathname, onMore }: { pathname: string; onMore: () => void }) {
   const items = [
     { label: "Mapa", href: "/admin", icon: Map },
-    { label: "Proyectos", href: "/proyectos", icon: FolderKanban },
+    { label: "Normas", href: "/normas", icon: Scale },
     { label: "Participacion", href: "/audiencias", icon: Users },
     { label: "Consulta CPU", href: "/consulta-cpu", icon: MessagesSquare }
   ];

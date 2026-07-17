@@ -1,9 +1,9 @@
-import { MunicipalArea, ProjectStatus } from "@prisma/client";
+import { ReformStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
-import { getNorm, updateNorm } from "@/lib/projects/data";
+import { getReform, updateReform } from "@/lib/projects/data";
 
 export const dynamic = "force-dynamic";
 
@@ -12,22 +12,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
   const { id } = await params;
-  const norm = await getNorm(id);
-  if (!norm) {
-    return NextResponse.json({ error: "Norma no encontrada" }, { status: 404 });
+  const reform = await getReform(id).catch(() => null);
+  if (!reform) {
+    return NextResponse.json({ error: "Código nuevo no encontrado" }, { status: 404 });
   }
-  return NextResponse.json({ norm });
+  return NextResponse.json({ reform });
 }
 
 const patchSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
-  summary: z.string().trim().min(1).max(8000).optional(),
-  status: z.nativeEnum(ProjectStatus).optional(),
-  areas: z.array(z.nativeEnum(MunicipalArea)).max(9).optional(),
-  articleNumber: z.string().trim().max(20).nullish(),
-  articleText: z.string().trim().max(40000).nullish(),
-  officialNotes: z.string().trim().max(8000).nullish(),
-  reformId: z.string().trim().min(1).max(60).nullish()
+  description: z.string().trim().max(4000).nullish(),
+  status: z.nativeEnum(ReformStatus).optional()
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -45,12 +40,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   try {
-    const norm = await updateNorm(id, parsed.data);
-    if (!norm) return NextResponse.json({ error: "Norma no encontrada" }, { status: 404 });
-    return NextResponse.json({ norm });
+    const reform = await updateReform(id, parsed.data);
+    if (!reform) return NextResponse.json({ error: "Código nuevo no encontrado" }, { status: 404 });
+    return NextResponse.json({ reform });
   } catch (error) {
-    console.error("No se pudo actualizar la norma", error);
-    return NextResponse.json({ error: "No se pudo actualizar la norma" }, { status: 500 });
+    console.error("No se pudo actualizar el codigo nuevo", error);
+    return NextResponse.json({ error: "No se pudo actualizar el código nuevo" }, { status: 500 });
   }
 }
 
@@ -61,17 +56,16 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (session.role !== "ADMIN") {
-    return NextResponse.json({ error: "Sin permisos", detail: "Solo un administrador puede eliminar normas." }, { status: 403 });
+    return NextResponse.json({ error: "Sin permisos", detail: "Solo un administrador puede eliminar un código nuevo." }, { status: 403 });
   }
 
   const { id } = await params;
   try {
-    await prisma.project.delete({ where: { id } });
-    // Los anclajes normativos usan sourceType/sourceId (no FK): se limpian aparte.
-    await prisma.normativeLink.deleteMany({ where: { sourceType: "project", sourceId: id } });
+    // Las normas quedan con reformId en null (SetNull); no se pierden.
+    await prisma.normativeReform.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("No se pudo eliminar la norma", error);
-    return NextResponse.json({ error: "No se pudo eliminar la norma" }, { status: 500 });
+    console.error("No se pudo eliminar el codigo nuevo", error);
+    return NextResponse.json({ error: "No se pudo eliminar el código nuevo" }, { status: 500 });
   }
 }

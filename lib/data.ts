@@ -1,8 +1,8 @@
 import {
-  Building2,
   CalendarDays,
   Map,
   MessagesSquare,
+  Scale,
   Users
 } from "lucide-react";
 
@@ -18,9 +18,9 @@ type SidebarSection = {
 
 export const sidebarSections: SidebarSection[] = [
   {
-    title: "Proyectos",
-    icon: Building2,
-    href: "/proyectos",
+    title: "Fábrica de Normas",
+    icon: Scale,
+    href: "/normas",
     items: []
   },
   {

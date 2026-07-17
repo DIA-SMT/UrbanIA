@@ -5,7 +5,8 @@ import type {
   NormativeRelationshipType,
   ProjectStage,
   ProjectStatus,
-  ProposalSource
+  ProposalSource,
+  ReformStatus
 } from "@prisma/client";
 
 /**
@@ -64,6 +65,8 @@ export const proposalSourceLabels: Record<ProposalSource, string> = {
 export const relationshipTypeLabels: Record<NormativeRelationshipType, string> = {
   APPLIES: "Aplica",
   MODIFIES: "Modifica",
+  REPEALS: "Deroga",
+  REPLACES: "Reemplaza",
   REFERENCES: "Refiere",
   POTENTIAL_CONFLICT: "Posible conflicto",
   SUPPORTS: "Respalda",
@@ -72,7 +75,9 @@ export const relationshipTypeLabels: Record<NormativeRelationshipType, string> =
 
 export const relationshipTypeStyles: Record<NormativeRelationshipType, string> = {
   APPLIES: "border-sky-300/30 bg-sky-300/10 text-sky-100",
-  MODIFIES: "border-violet-300/30 bg-violet-300/10 text-violet-100",
+  MODIFIES: "border-sky-300/30 bg-sky-300/10 text-sky-100",
+  REPEALS: "border-rose-300/30 bg-rose-300/10 text-rose-100",
+  REPLACES: "border-sky-300/30 bg-sky-300/10 text-sky-100",
   REFERENCES: "border-slate-300/25 bg-slate-400/10 text-slate-200",
   POTENTIAL_CONFLICT: "border-rose-300/30 bg-rose-300/10 text-rose-100",
   SUPPORTS: "border-emerald-300/30 bg-emerald-300/10 text-emerald-100",
@@ -121,6 +126,79 @@ export function formatCurrency(value: number): string {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
 }
 
+/**
+ * Vocabulario de la Fabrica de Normas. El modelo Project se reinterpreta como
+ * NORMA (articulo de un codigo nuevo) y ProjectDiagnosis como analisis de
+ * impacto normativo. Mismos enums, otra semantica.
+ */
+
+/** Estados de Project visibles en la Fabrica. Los de obra siguen validos pero no se muestran. */
+export const normVisibleStatuses: ProjectStatus[] = ["DRAFT", "IN_REVIEW", "APPROVED", "ARCHIVED"];
+
+export const normStatusLabels: Record<ProjectStatus, string> = {
+  DRAFT: "Borrador",
+  IN_REVIEW: "En revisión",
+  APPROVED: "Consolidada",
+  IN_PROGRESS: "En ejecución",
+  SUSPENDED: "Suspendida",
+  COMPLETED: "Finalizada",
+  ARCHIVED: "Archivada"
+};
+
+export const normStatusStyles: Record<ProjectStatus, string> = {
+  DRAFT: "border-slate-300/30 bg-slate-400/10 text-slate-200",
+  IN_REVIEW: "border-sky-300/30 bg-sky-300/10 text-sky-100",
+  APPROVED: "border-emerald-300/30 bg-emerald-300/10 text-emerald-100",
+  IN_PROGRESS: "border-[#1f89f6]/40 bg-[#1f89f6]/15 text-sky-100",
+  SUSPENDED: "border-amber-300/30 bg-amber-300/10 text-amber-100",
+  COMPLETED: "border-emerald-400/30 bg-emerald-400/10 text-emerald-100",
+  ARCHIVED: "border-slate-300/20 bg-slate-400/[0.06] text-slate-400"
+};
+
+export const reformStatusLabels: Record<ReformStatus, string> = {
+  DRAFT: "En armado",
+  IN_REVIEW: "En revisión",
+  CONSOLIDATED: "Consolidado",
+  ARCHIVED: "Archivado"
+};
+
+export const reformStatusStyles: Record<ReformStatus, string> = {
+  DRAFT: "border-slate-300/30 bg-slate-400/10 text-slate-200",
+  IN_REVIEW: "border-sky-300/30 bg-sky-300/10 text-sky-100",
+  CONSOLIDATED: "border-emerald-300/30 bg-emerald-300/10 text-emerald-100",
+  ARCHIVED: "border-slate-300/20 bg-slate-400/[0.06] text-slate-400"
+};
+
+/** Las areas municipales presentadas como "materia" de la norma. */
+export const materiaLabels = municipalAreaLabels;
+
+/**
+ * FeasibilityLevel reinterpretado como nivel de conflicto normativo con el
+ * codigo vigente. HIGH = sin conflictos, BLOCKED = choca de fondo.
+ */
+export const conflictLevelLabels: Record<FeasibilityLevel, string> = {
+  HIGH: "Sin conflictos",
+  MEDIUM: "Ajustes menores",
+  LOW: "Conflictos relevantes",
+  BLOCKED: "Choca con el código vigente"
+};
+
+export const conflictLevelStyles: Record<FeasibilityLevel, string> = {
+  HIGH: "border-emerald-300/30 bg-emerald-300/10 text-emerald-100",
+  MEDIUM: "border-amber-300/30 bg-amber-300/10 text-amber-100",
+  LOW: "border-orange-300/30 bg-orange-300/10 text-orange-100",
+  BLOCKED: "border-rose-300/30 bg-rose-300/10 text-rose-100"
+};
+
+/** Relaciones que ofrece el editor de norma al anclar un articulo del CPU 2014. */
+export const normAnchorRelationships: NormativeRelationshipType[] = [
+  "MODIFIES",
+  "REPEALS",
+  "REPLACES",
+  "REFERENCES",
+  "POTENTIAL_CONFLICT"
+];
+
 export type ProjectCitedArticle = { articleId: string; articleNumber: string; quote: string };
 
 export type ProjectDiagnosisView = {
@@ -133,6 +211,8 @@ export type ProjectDiagnosisView = {
   actions: string[];
   risks: string[];
   citedArticles: ProjectCitedArticle[];
+  /** Redaccion de articulo sugerida por la IA. Editable, nunca la palabra final. */
+  proposedText: string | null;
   model: string | null;
   editedByHuman: boolean;
   createdAt: string;
@@ -165,6 +245,8 @@ export type ProjectAnchorView = {
   articleTitle: string;
   relationshipType: NormativeRelationshipType;
   notes: string | null;
+  /** Origen del anclaje: "ia" (detectado en la comparacion) o "manual"/"seed" (humano). */
+  createdBy: string | null;
 };
 
 export type ProjectListItem = {
@@ -180,6 +262,9 @@ export type ProjectListItem = {
   addressLabel: string | null;
   latitude: number | null;
   longitude: number | null;
+  reformId: string | null;
+  articleNumber: string | null;
+  hasArticleText: boolean;
   createdAt: string;
   budgetTotal: number;
   anchorCount: number;
@@ -192,9 +277,36 @@ export type ProjectDetail = ProjectListItem & {
   districtId: string | null;
   proposalId: string | null;
   proposalTitle: string | null;
+  articleText: string | null;
+  reformCode: string | null;
+  reformTitle: string | null;
   updatedAt: string;
   diagnoses: ProjectDiagnosisView[];
   budgetItems: ProjectBudgetItemView[];
   attachments: ProjectAttachmentView[];
   anchors: ProjectAnchorView[];
+};
+
+/** En la Fabrica de Normas, una norma ES un Project reinterpretado. */
+export type NormListItem = ProjectListItem;
+export type NormDetail = ProjectDetail;
+
+export type ReformListItem = {
+  id: string;
+  code: string;
+  title: string;
+  description: string | null;
+  status: ReformStatus;
+  createdAt: string;
+  normCount: number;
+  draftCount: number;
+  inReviewCount: number;
+  consolidatedCount: number;
+  /** Normas cuyo ultimo analisis detecto conflictos relevantes o de fondo. */
+  conflictCount: number;
+};
+
+export type ReformDetail = ReformListItem & {
+  updatedAt: string;
+  norms: NormListItem[];
 };
