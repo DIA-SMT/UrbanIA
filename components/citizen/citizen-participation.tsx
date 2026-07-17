@@ -718,44 +718,60 @@ export function CitizenParticipation() {
   );
 }
 
-/** Plantillas de arranque. El texto se edita a mano: son un punto de partida, no un envío automático. */
+/**
+ * Plantillas de arranque. El texto se edita a mano: son un punto de partida, no un envío automático.
+ *
+ * Las dos le escriben al autor del aporte (el destinatario es contribution.email),
+ * así que ninguna puede tratarlo como infractor: quien reporta un problema no es
+ * quien lo causó. La Citación lo cita a ampliar y ratificar lo que él mismo
+ * presentó, que es lo único coherente con ese destinatario. Para intimar a un
+ * infractor haría falta su correo, que el sistema no tiene.
+ *
+ * Registro: el cuerpo le habla al vecino y los corchetes le hablan a quien redacta.
+ * Por eso la Devolución vosea al vecino, la Citación lo trata de usted (es un acto
+ * formal) y los corchetes vosean en las dos: cambia el destinatario, no el criterio.
+ */
 const CONTACT_TEMPLATES = [
   {
     id: "devolucion",
-    label: "Devolucion",
-    subject: (c: CitizenContribution) => `Tu ${c.kind.toLowerCase()} sobre ${c.zone} - Municipalidad de San Miguel de Tucuman`,
+    label: "Devolución",
+    subject: (c: CitizenContribution) => `Tu ${c.kind.toLowerCase()} sobre ${c.zone} - Municipalidad de San Miguel de Tucumán`,
     body: (c: CitizenContribution) =>
       [
         `Estimado/a ${c.name}:`,
         "",
-        `Nos comunicamos desde la Municipalidad de San Miguel de Tucuman en relacion al ${c.kind.toLowerCase()} que presentaste sobre ${c.zone}.`,
+        // "tu ${kind}" y no "el/la ${kind}": kind es Propuesta (femenino), Reclamo o
+        // Aporte, y cualquier artículo fijo rompe con alguno de los tres.
+        `Nos comunicamos desde la Municipalidad de San Miguel de Tucumán en relación a tu ${c.kind.toLowerCase()} sobre ${c.zone}.`,
         "",
-        "[Escribi aca la devolucion: en que estado esta, que se reviso y cuales son los proximos pasos.]",
+        "[Escribí acá la devolución: en qué estado está, qué se revisó y cuáles son los próximos pasos.]",
         "",
-        "Gracias por participar en la construccion de la ciudad.",
+        "Gracias por participar en la construcción de la ciudad.",
         "",
         "Atentamente,",
-        "[Tu nombre y area]",
-        "Municipalidad de San Miguel de Tucuman"
+        "[Tu nombre y área]",
+        "Municipalidad de San Miguel de Tucumán"
       ].join("\n")
   },
   {
     id: "citacion",
-    label: "Citacion",
-    subject: (c: CitizenContribution) => `Citacion - Expediente vinculado a ${c.zone}`,
+    label: "Citación",
+    subject: (c: CitizenContribution) => `Citación - Ampliación de su ${c.kind.toLowerCase()} sobre ${c.zone}`,
     body: (c: CitizenContribution) =>
       [
         `Estimado/a ${c.name}:`,
         "",
-        `Por medio de la presente se lo/a cita a comparecer ante la Municipalidad de San Miguel de Tucuman en relacion a la situacion detectada en ${c.zone}.`,
+        `Por medio de la presente se lo/a cita a comparecer ante la Municipalidad de San Miguel de Tucumán a fin de ampliar y ratificar su ${c.kind.toLowerCase()} sobre ${c.zone}.`,
         "",
-        "[Detalla aca: normativa presuntamente infringida, articulo, fecha y hora de la citacion, dependencia y documentacion a presentar.]",
+        "[Detallá acá: fecha y hora de la citación, dependencia y oficina, y qué documentación o registro conviene que traiga.]",
         "",
-        "La presente citacion se enmarca en las facultades de contralor del municipio. Ante cualquier duda podes responder a este correo.",
+        "Su presentación ya fue recibida y está en análisis. Esta citación es para completar la información que usted aportó y no implica ninguna imputación en su contra.",
+        "",
+        "Ante cualquier duda puede responder a este correo.",
         "",
         "Atentamente,",
-        "[Tu nombre y area]",
-        "Municipalidad de San Miguel de Tucuman"
+        "[Tu nombre y área]",
+        "Municipalidad de San Miguel de Tucumán"
       ].join("\n")
   }
 ];
