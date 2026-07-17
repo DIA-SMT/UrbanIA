@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { resolveAssistantAccess } from "@/lib/ai/assistant-access";
 import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
+import { saveHearingTranscript } from "@/lib/hearings/persist-transcript";
 import { canonicalYoutubeUrl, transcribeYoutubeHearing } from "@/lib/hearings/youtube-transcript";
 
 /** Una audiencia de una hora tarda ~2 min: descarga, 14 tramos y la pasada de nombres. */
@@ -44,6 +45,25 @@ export async function POST(request: Request) {
 
     const identificados = result.speakers.filter((s) => s.name).length;
 
+    // La transcripcion cuesta plata: se guarda en el servidor apenas existe, para
+    // que no viva solo en el navegador de quien la pidio. Si la base falla, el
+    // texto igual vuelve al usuario: perder el artefacto pagado por un error de
+    // persistencia seria peor que devolverlo sin guardar.
+    let meetingId: string | null = null;
+    try {
+      meetingId = await saveHearingTranscript({
+        sourceUrl: result.sourceUrl,
+        title: result.videoTitle,
+        durationSec: result.durationSec,
+        costUsd: result.costUsd,
+        truncated: result.truncated,
+        transcript: result.transcript,
+        speakers: result.speakers
+      });
+    } catch (persistError) {
+      console.error("No se pudo guardar la transcripcion en la base:", persistError);
+    }
+
     return NextResponse.json({
       transcript: result.transcript,
       speakers: result.speakers,
@@ -51,7 +71,9 @@ export async function POST(request: Request) {
       costUsd: Number(result.costUsd.toFixed(4)),
       truncated: result.truncated,
       identifiedCount: identificados,
-      unidentifiedCount: result.speakers.length - identificados
+      unidentifiedCount: result.speakers.length - identificados,
+      meetingId,
+      saved: Boolean(meetingId)
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error desconocido";

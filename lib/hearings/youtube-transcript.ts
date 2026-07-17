@@ -26,6 +26,10 @@ export type TranscriptResult = {
   durationSec: number;
   costUsd: number;
   truncated: boolean;
+  /** URL canonica reconstruida, la unica que toco el binario. */
+  sourceUrl: string;
+  /** Titulo del video en YouTube, para nombrar la reunion guardada. */
+  videoTitle: string;
 };
 
 export type SpeakerBinding = {
@@ -69,6 +73,16 @@ async function downloadAudio(url: string, dir: string): Promise<string> {
   const out = join(dir, "audio.m4a");
   await run("yt-dlp", ["-f", "140", "--no-playlist", "-o", out, url], 300_000);
   return out;
+}
+
+async function fetchVideoTitle(url: string): Promise<string> {
+  try {
+    const out = await run("yt-dlp", ["--skip-download", "--no-playlist", "--print", "%(title)s", url], 60_000);
+    return out.trim().slice(0, 200) || "Audiencia transcripta de YouTube";
+  } catch {
+    // El titulo es cosmetico: si no sale, la transcripcion sigue igual.
+    return "Audiencia transcripta de YouTube";
+  }
 }
 
 async function toChunks(input: string, dir: string): Promise<string[]> {
@@ -210,7 +224,7 @@ export async function transcribeYoutubeHearing(rawUrl: string): Promise<Transcri
   const dir = await mkdtemp(join(tmpdir(), "urbania-audiencia-"));
 
   try {
-    const audio = await downloadAudio(url, dir);
+    const [audio, videoTitle] = await Promise.all([downloadAudio(url, dir), fetchVideoTitle(url)]);
     const durationSec = await probeDuration(audio);
     const files = await toChunks(audio, dir);
 
@@ -242,7 +256,9 @@ export async function transcribeYoutubeHearing(rawUrl: string): Promise<Transcri
       speakers,
       durationSec,
       costUsd,
-      truncated: full.length > TRANSCRIPT_CHAR_LIMIT
+      truncated: full.length > TRANSCRIPT_CHAR_LIMIT,
+      sourceUrl: url,
+      videoTitle
     };
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {});

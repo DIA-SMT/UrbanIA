@@ -1347,13 +1347,16 @@ function HearingFormPanel({ form, onClose, onSubmit, onUpdate }: {
       setTranscriptFileName(`Transcripto de YouTube (${Math.round((data.durationSec ?? 0) / 60)} min)`);
       setFormDraft(null);
 
-      // Cuantos quedaron sin identificar y cuanto costo: las dos cosas que quien
-      // firma el acta necesita saber y que no se ven mirando el texto.
+      // Cuantos quedaron sin identificar, cuanto costo y si quedo guardada: lo que
+      // quien firma el acta necesita saber y no se ve mirando el texto.
       setTranscribeNotice(
         [
           `${data.identifiedCount} participantes identificados`,
           data.unidentifiedCount ? `${data.unidentifiedCount} sin identificar: completalos a mano` : "",
           `costo US$${data.costUsd}`,
+          data.saved
+            ? "guardada en el servidor"
+            : "NO se pudo guardar en el servidor: el texto de abajo es la unica copia",
           data.truncated ? "ATENCION: se corto en 60.000 caracteres, el maximo que acepta el analisis." : ""
         ]
           .filter(Boolean)
