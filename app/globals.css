@@ -42,6 +42,34 @@ body {
   .eyebrow {
     @apply text-[10px] font-black uppercase tracking-[0.18em] text-[#1f89f6];
   }
+
+  /* El calendario nativo hereda el color-scheme del <html>, que sigue al theme
+     toggle. El formulario de acceso es claro siempre, asi que sin esto el picker
+     abre en oscuro sobre una tarjeta blanca. */
+  .urban-date-field {
+    color-scheme: light;
+  }
+
+  /* El indicador nativo es un icono gris de 12px pegado al borde: no se lee como
+     boton. Se agranda y se le da fondo y hover para que se note que abre algo. */
+  .urban-date-field::-webkit-calendar-picker-indicator {
+    @apply ml-2 cursor-pointer rounded-md bg-slate-100 p-1.5 opacity-70 transition;
+
+    /* content-box explicito: el reset global de box-sizing no alcanza a los
+       pseudo-elementos del shadow DOM, y con border-box el padding se comeria
+       el icono en vez de agrandar el area clickeable. */
+    box-sizing: content-box;
+    height: 1.15rem;
+    width: 1.15rem;
+  }
+
+  .urban-date-field::-webkit-calendar-picker-indicator:hover {
+    @apply bg-sky-100 opacity-100;
+  }
+
+  .urban-date-field:focus-within::-webkit-calendar-picker-indicator {
+    @apply opacity-100;
+  }
 }
 
 .urban-card {
