@@ -1,17 +1,24 @@
 import { CitizenContributionKind, CitizenContributionStatus, ProposalSource, ProposalStatus } from "@prisma/client";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
+import { readSessionToken, sessionCookieName } from "@/lib/auth/session";
+import { CONTRIBUTION_BLOCK_MESSAGE, moderateContribution } from "@/lib/moderation";
+import { analyzeAggression } from "@/lib/ai/moderation-intent";
+import { UNCLASSIFIED_AXIS } from "@/lib/citizen/contributions";
+import { classifyContributionTopic } from "@/lib/ai/topic-classifier";
 
+// name y dni NO se aceptan del cliente: salen de la cuenta del vecino, que los
+// declaró una sola vez al registrarse.
+// axis y confidence tampoco: el aporte entra sin clasificar y el eje lo asigna el
+// equipo municipal al revisarlo. La heurística por palabras clave que hacía esto en
+// la landing etiquetaba "Ambiente" cualquier texto que no matcheara nada.
 const contributionSchema = z.object({
   kind: z.enum(["Propuesta", "Reclamo", "Aporte"]),
-  name: z.string().trim().min(2).max(120),
-  dni: z.string().trim().min(6).max(20),
   zone: z.string().trim().min(2).max(160),
   text: z.string().trim().min(10).max(4000),
-  fileName: z.string().trim().max(240).optional().default(""),
-  axis: z.string().trim().min(2).max(80),
-  confidence: z.string().trim().min(2).max(40)
+  fileName: z.string().trim().max(240).optional().default("")
 });
 
 const kindToDb: Record<z.infer<typeof contributionSchema>["kind"], CitizenContributionKind> = {
@@ -36,6 +43,8 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
       take: 100,
       include: {
+        // El email vive en User: sin este join no hay forma de contactar al vecino.
+        user: { select: { email: true } },
         proposal: {
           select: {
             id: true,
@@ -58,8 +67,12 @@ export async function GET() {
         text: contribution.text,
         fileName: contribution.fileName ?? "",
         axis: contribution.axis,
+        axisReason: contribution.axisReason ?? "",
+        axisConfirmed: contribution.axisConfirmed,
         confidence: contribution.confidence,
         status: contribution.status,
+        // Los aportes anteriores al login obligatorio no tienen autor: sin email.
+        email: contribution.user?.email ?? null,
         createdAt: contribution.createdAt.toISOString(),
         proposal: contribution.proposal
           ? {
@@ -84,8 +97,51 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "La base de datos no esta configurada." }, { status: 503 });
   }
 
+  // Presentar requiere cuenta: la identidad sale de la sesión, no del formulario.
+  const store = await cookies();
+  const session = await readSessionToken(store.get(sessionCookieName)?.value);
+
+  if (!session) {
+    return NextResponse.json(
+      { error: "Ingresá con tu cuenta para presentar una propuesta o reclamo." },
+      { status: 401 }
+    );
+  }
+
+  const author = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { name: true, dni: true }
+  });
+
+  if (!author) {
+    return NextResponse.json({ error: "No encontramos tu cuenta. Volvé a ingresar." }, { status: 401 });
+  }
+
   try {
     const payload = contributionSchema.parse(await request.json());
+
+    const moderated = `${payload.text} ${payload.zone}`;
+    const verdict = moderateContribution(moderated);
+
+    if (verdict.blocked) {
+      console.info("Aporte ciudadano bloqueado por moderacion lexica.", { matched: verdict.matched });
+      return NextResponse.json({ error: verdict.message }, { status: 422 });
+    }
+
+    // En paralelo para no sumarle espera al vecino: la moderación por intención y la
+    // sugerencia de eje son dos llamadas independientes. Si la moderación bloquea, la
+    // sugerencia se descarta (una llamada barata desperdiciada, y sólo en los casos
+    // bloqueados, que son la excepción).
+    const [aggression, suggestion] = await Promise.all([
+      analyzeAggression(moderated),
+      classifyContributionTopic({ kind: payload.kind, zone: payload.zone, text: payload.text })
+    ]);
+
+    if (aggression.agresivo) {
+      console.info("Aporte ciudadano bloqueado por intencion.", { tipo: aggression.tipo });
+      return NextResponse.json({ error: CONTRIBUTION_BLOCK_MESSAGE }, { status: 422 });
+    }
+
     const title = `${payload.kind}: ${payload.zone}`;
 
     const contribution = await prisma.$transaction(async (tx) => {
@@ -101,13 +157,18 @@ export async function POST(request: Request) {
       return tx.citizenContribution.create({
         data: {
           kind: kindToDb[payload.kind],
-          name: payload.name,
-          dni: payload.dni,
+          name: author.name,
+          dni: author.dni ?? "",
           zone: payload.zone,
           text: payload.text,
           fileName: payload.fileName || null,
-          axis: payload.axis,
-          confidence: payload.confidence,
+          userId: session.userId,
+          // Sugerencia de Migue, sin confirmar: la revisa una persona. Si el
+          // clasificador falló o no supo, queda "Sin clasificar", que es la verdad.
+          axis: suggestion?.axis ?? UNCLASSIFIED_AXIS,
+          axisReason: suggestion?.reason || null,
+          axisConfirmed: false,
+          confidence: "",
           status: CitizenContributionStatus.LINKED_TO_PROPOSAL,
           proposalId: proposal.id
         },

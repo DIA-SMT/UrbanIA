@@ -13,7 +13,8 @@ const patchSchema = z.object({
   objective: z.string().trim().min(1).max(800).optional(),
   analysis: z.string().trim().min(1).max(12000).optional(),
   actions: z.array(z.string().trim().min(1)).max(12).optional(),
-  risks: z.array(z.string().trim().min(1)).max(12).optional()
+  risks: z.array(z.string().trim().min(1)).max(12).optional(),
+  proposedText: z.string().trim().max(40000).nullish()
 });
 
 function asStringArray(value: unknown): string[] {
@@ -57,7 +58,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         ...(parsed.data.objective !== undefined ? { objective: parsed.data.objective } : {}),
         ...(parsed.data.analysis !== undefined ? { analysis: parsed.data.analysis } : {}),
         ...(parsed.data.actions !== undefined ? { actions: parsed.data.actions } : {}),
-        ...(parsed.data.risks !== undefined ? { risks: parsed.data.risks } : {})
+        ...(parsed.data.risks !== undefined ? { risks: parsed.data.risks } : {}),
+        ...(parsed.data.proposedText !== undefined ? { proposedText: parsed.data.proposedText } : {})
       }
     });
 
@@ -71,6 +73,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       actions: asStringArray(updated.actions),
       risks: asStringArray(updated.risks),
       citedArticles: asCitedArticles(updated.citedArticles),
+      proposedText: updated.proposedText,
       model: updated.model,
       editedByHuman: updated.editedByHuman,
       createdAt: updated.createdAt.toISOString()
