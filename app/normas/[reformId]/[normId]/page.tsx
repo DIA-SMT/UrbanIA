@@ -16,10 +16,16 @@ export default async function NormaPage({ params }: { params: Promise<{ reformId
 
   if (!process.env.DATABASE_URL) notFound();
 
-  const [reform, norm] = await Promise.all([getReform(reformId).catch(() => null), getNorm(normId).catch(() => null)]);
+  // La sesion va primero porque getNorm la necesita: sin viewerId no puede resolver
+  // el apoyo propio y los botones "A favor"/"En contra" arrancarian siempre neutros.
+  const session = await getSessionUser();
+
+  const [reform, norm] = await Promise.all([
+    getReform(reformId).catch(() => null),
+    getNorm(normId, session?.userId).catch(() => null)
+  ]);
   if (!reform || !norm || norm.reformId !== reform.id) notFound();
 
-  const session = await getSessionUser();
   const canEdit = session ? isStaff(session.role) : false;
   const canDelete = session?.role === "ADMIN";
 

@@ -39,7 +39,7 @@ export function ObjectBlock({
             type="button"
             onClick={onFormalize}
             disabled={!canFormalize || formalizing}
-            className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {formalizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {formalizing ? "Formalizando el articulado..." : "Formalizar con IA"}

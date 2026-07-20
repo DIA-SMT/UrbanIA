@@ -269,6 +269,17 @@ export type ProjectListItem = {
   budgetTotal: number;
   anchorCount: number;
   latestFeasibility: FeasibilityLevel | null;
+  /** Quien la creo. Null en los registros anteriores a que se guardara el autor. */
+  authorId: string | null;
+  authorName: string | null;
+  /** Devoluciones internas del equipo sobre la norma. */
+  opinionCount: number;
+  /** Apoyo interno: a favor, en contra y el neto. */
+  supportCount: number;
+  objectionCount: number;
+  supportNet: number;
+  /** Voto del usuario que mira, si lo resolvio la consulta. */
+  myValue: 1 | -1 | null;
 };
 
 export type ProjectDetail = ProjectListItem & {
@@ -304,6 +315,9 @@ export type ReformListItem = {
   consolidatedCount: number;
   /** Normas cuyo ultimo analisis detecto conflictos relevantes o de fondo. */
   conflictCount: number;
+  /** Quien creo el codigo. Null en los registros anteriores al autor. */
+  authorId: string | null;
+  authorName: string | null;
 };
 
 export type ReformDetail = ReformListItem & {

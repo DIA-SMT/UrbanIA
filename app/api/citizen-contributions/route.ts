@@ -167,6 +167,7 @@ export async function POST(request: Request) {
           // clasificador falló o no supo, queda "Sin clasificar", que es la verdad.
           axis: suggestion?.axis ?? UNCLASSIFIED_AXIS,
           axisReason: suggestion?.reason || null,
+          relatedTopic: suggestion?.relatedTopic ?? null,
           axisConfirmed: false,
           confidence: "",
           status: CitizenContributionStatus.LINKED_TO_PROPOSAL,

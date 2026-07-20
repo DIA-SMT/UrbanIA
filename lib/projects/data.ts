@@ -30,7 +30,10 @@ import type {
 
 const listInclude = {
   budgetItems: { select: { amount: true } },
-  diagnoses: { orderBy: { version: "desc" }, take: 1, select: { feasibility: true } }
+  diagnoses: { orderBy: { version: "desc" }, take: 1, select: { feasibility: true } },
+  createdBy: { select: { id: true, name: true } },
+  supports: { select: { userId: true, value: true } },
+  _count: { select: { opinions: true } }
 } satisfies Prisma.ProjectInclude;
 
 const detailInclude = {
@@ -38,7 +41,10 @@ const detailInclude = {
   attachments: { orderBy: { createdAt: "asc" } },
   diagnoses: { orderBy: { version: "desc" } },
   proposal: { select: { id: true, title: true } },
-  reform: { select: { id: true, code: true, title: true } }
+  reform: { select: { id: true, code: true, title: true } },
+  createdBy: { select: { id: true, name: true } },
+  supports: { select: { userId: true, value: true } },
+  _count: { select: { opinions: true } }
 } satisfies Prisma.ProjectInclude;
 
 type ProjectListPayload = Prisma.ProjectGetPayload<{ include: typeof listInclude }>;
@@ -66,8 +72,34 @@ function asCitedArticles(value: Prisma.JsonValue | null): ProjectCitedArticle[] 
     .filter((item) => item.articleId && item.quote);
 }
 
-export function toProjectListItem(project: ProjectListPayload, anchorCount: number): ProjectListItem {
+/**
+ * Apoyo del equipo sobre una norma. `viewerId` resuelve el voto propio: sin el, la
+ * UI no puede marcar el boton activo ni saber que un segundo click lo quita.
+ */
+function toSupportSummary(supports: { userId: string; value: number }[], viewerId?: string | null) {
+  let supportCount = 0;
+  let objectionCount = 0;
+  let myValue: 1 | -1 | null = null;
+
+  for (const support of supports) {
+    if (support.value > 0) supportCount += 1;
+    else if (support.value < 0) objectionCount += 1;
+    if (viewerId && support.userId === viewerId) myValue = support.value > 0 ? 1 : -1;
+  }
+
+  return { supportCount, objectionCount, supportNet: supportCount - objectionCount, myValue };
+}
+
+export function toProjectListItem(
+  project: ProjectListPayload,
+  anchorCount: number,
+  viewerId?: string | null
+): ProjectListItem {
   return {
+    ...toSupportSummary(project.supports, viewerId),
+    opinionCount: project._count.opinions,
+    authorId: project.createdBy?.id ?? null,
+    authorName: project.createdBy?.name ?? null,
     id: project.id,
     code: project.code,
     title: project.title,
@@ -178,7 +210,7 @@ export async function listProjects(filters: ProjectFilters = {}): Promise<Projec
   return projects.map((project) => toProjectListItem(project, anchorMap.get(project.id) ?? 0));
 }
 
-export async function getProject(id: string): Promise<ProjectDetail | null> {
+export async function getProject(id: string, viewerId?: string | null): Promise<ProjectDetail | null> {
   const project = await prisma.project.findUnique({ where: { id }, include: detailInclude });
   if (!project) return null;
 
@@ -187,7 +219,8 @@ export async function getProject(id: string): Promise<ProjectDetail | null> {
   return {
     ...toProjectListItem(
       { ...project, diagnoses: project.diagnoses.slice(0, 1).map((diagnosis) => ({ feasibility: diagnosis.feasibility })) },
-      anchors.length
+      anchors.length,
+      viewerId
     ),
     eiaNotes: project.eiaNotes,
     officialNotes: project.officialNotes,
@@ -328,9 +361,12 @@ export async function listNorms(reformId: string, filters: NormFilters = {}): Pr
   return listProjects({ ...filters, reformId });
 }
 
-/** Detalle de una norma: anchors, ultimo analisis y articleText incluidos. */
-export async function getNorm(id: string): Promise<NormDetail | null> {
-  return getProject(id);
+/**
+ * Detalle de una norma: anchors, ultimo analisis y articleText incluidos.
+ * `viewerId` resuelve el apoyo propio del que mira (ver toSupportSummary).
+ */
+export async function getNorm(id: string, viewerId?: string | null): Promise<NormDetail | null> {
+  return getProject(id, viewerId);
 }
 
 /** NormativeLink de una norma con el articulo del CPU 2014 incluido. */
@@ -427,7 +463,12 @@ async function latestFeasibilityByNorm(normIds: string[]): Promise<Map<string, s
   return latest;
 }
 
-type ReformPayload = Prisma.NormativeReformGetPayload<{ include: { norms: { select: { id: true; status: true } } } }>;
+const reformInclude = {
+  norms: { select: { id: true, status: true } },
+  createdBy: { select: { id: true, name: true } }
+} satisfies Prisma.NormativeReformInclude;
+
+type ReformPayload = Prisma.NormativeReformGetPayload<{ include: typeof reformInclude }>;
 
 async function toReformListItem(reform: ReformPayload): Promise<ReformListItem> {
   const latest = await latestFeasibilityByNorm(reform.norms.map((norm) => norm.id));
@@ -446,7 +487,9 @@ async function toReformListItem(reform: ReformPayload): Promise<ReformListItem> 
     draftCount: reform.norms.filter((norm) => norm.status === "DRAFT").length,
     inReviewCount: reform.norms.filter((norm) => norm.status === "IN_REVIEW").length,
     consolidatedCount: reform.norms.filter((norm) => norm.status === "APPROVED").length,
-    conflictCount
+    conflictCount,
+    authorId: reform.createdBy?.id ?? null,
+    authorName: reform.createdBy?.name ?? null
   };
 }
 
@@ -455,7 +498,7 @@ export async function listReforms(filters: ReformFilters = {}): Promise<ReformLi
     where: filters.status ? { status: filters.status } : {},
     orderBy: { createdAt: "desc" },
     take: 100,
-    include: { norms: { select: { id: true, status: true } } }
+    include: reformInclude
   });
 
   return Promise.all(reforms.map(toReformListItem));
@@ -464,7 +507,7 @@ export async function listReforms(filters: ReformFilters = {}): Promise<ReformLi
 export async function getReform(id: string): Promise<ReformDetail | null> {
   const reform = await prisma.normativeReform.findUnique({
     where: { id },
-    include: { norms: { select: { id: true, status: true } } }
+    include: reformInclude
   });
   if (!reform) return null;
 

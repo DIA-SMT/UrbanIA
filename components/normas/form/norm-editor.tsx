@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { MunicipalArea, ProjectStatus } from "@prisma/client";
 import { ArrowLeft, FileDown, Loader2, Save, Send, Trash2 } from "lucide-react";
 import { FormBlock } from "@/components/projects/form/form-ui";
+import { TeamFeedbackBlock } from "@/components/normas/form/team-feedback-block";
 import { IdentificationBlock } from "@/components/normas/form/identification-block";
 import { ObjectBlock } from "@/components/normas/form/object-block";
 import { OldCodeBlock } from "@/components/normas/form/old-code-block";
@@ -34,6 +35,26 @@ export function NormEditor({
   canDelete?: boolean;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  /**
+   * Precarga desde el panel de temas mas pedidos:
+   *   /normas/{reformId}/nueva?materia=PLANEAMIENTO&tema=Usos del suelo
+   * Solo aplica a una norma nueva; sobre una existente los params se ignoran para
+   * no pisar lo que el equipo ya escribio. El texto es un punto de partida editable.
+   */
+  const seeded = useMemo(() => {
+    if (norm) return { areas: null, summary: null };
+    const rawArea = searchParams.get("materia");
+    const topic = searchParams.get("tema");
+    const area = rawArea && rawArea in materiaLabels ? (rawArea as MunicipalArea) : null;
+    return {
+      areas: area ? [area] : null,
+      summary: topic
+        ? `Tema surgido de los aportes ciudadanos: "${topic}". Redactar la norma que regule este aspecto del CPU.`
+        : null
+    };
+  }, [norm, searchParams]);
 
   const [normId, setNormId] = useState<string | null>(norm?.id ?? null);
   const [code, setCode] = useState<string | null>(norm?.code ?? null);
@@ -41,8 +62,8 @@ export function NormEditor({
   const [title, setTitle] = useState(norm?.title ?? "");
   const [articleNumber, setArticleNumber] = useState(norm?.articleNumber ?? "");
   const [status, setStatus] = useState<ProjectStatus>(norm?.status ?? "DRAFT");
-  const [areas, setAreas] = useState<MunicipalArea[]>(norm?.areas ?? []);
-  const [summary, setSummary] = useState(norm?.summary ?? "");
+  const [areas, setAreas] = useState<MunicipalArea[]>(norm?.areas ?? seeded.areas ?? []);
+  const [summary, setSummary] = useState(norm?.summary ?? seeded.summary ?? "");
   const [articleText, setArticleText] = useState(norm?.articleText ?? "");
   const [officialNotes, setOfficialNotes] = useState(norm?.officialNotes ?? "");
 
@@ -270,7 +291,8 @@ export function NormEditor({
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
           {materiaPrincipal ? `${materiaPrincipal} · ` : ""}
           {normStatusLabels[status]}
-          {code ? <span className="ml-2 rounded bg-white/[0.06] px-2 py-0.5 font-mono text-xs font-bold text-sky-200">{code}</span> : null}
+          {code ? <span className="ml-2 rounded bg-white/[0.06] px-2 py-0.5 font-mono text-xs font-semibold text-sky-200">{code}</span> : null}
+          {norm?.authorName ? <span className="ml-2 text-slate-500">· Creada por {norm.authorName}</span> : null}
         </p>
         {!normId ? (
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
@@ -347,11 +369,19 @@ export function NormEditor({
         index={5}
         title="Código viejo (CPU 2014)"
         description="Los artículos que la norma toca. La IA los detecta y marca en la comparación; el equipo revisa la relación, quita o agrega a mano."
+        collapsible
+        defaultOpen={anchors.length > 0}
       >
         <OldCodeBlock normId={normId} ensureDraft={ensureDraft} anchors={anchors} disabled={readOnly} onChange={setAnchors} />
       </FormBlock>
 
-      <FormBlock index={6} title="Observaciones del equipo" description="Lo que el análisis IA omitió o lo que quieras dejar asentado.">
+      <FormBlock
+        index={6}
+        title="Observaciones del equipo"
+        description="Lo que el análisis IA omitió o lo que quieras dejar asentado."
+        collapsible
+        defaultOpen={Boolean(officialNotes.trim())}
+      >
         <textarea
           value={officialNotes}
           disabled={readOnly}
@@ -361,6 +391,28 @@ export function NormEditor({
           className="w-full resize-y rounded-md border border-white/10 bg-slate-950/60 px-4 py-3 text-sm leading-7 text-slate-100 outline-none placeholder:text-slate-600 focus:border-sky-300/50 disabled:opacity-60"
         />
       </FormBlock>
+
+      {/* Solo sobre una norma persistida: sobre un borrador sin id no hay nada que opinar. */}
+      {normId ? (
+        <FormBlock
+          index={7}
+          title="Opiniones del equipo"
+          description="Devoluciones internas y apoyo a la norma. No lo ven los vecinos."
+          collapsible
+          defaultOpen={Boolean(norm?.opinionCount)}
+        >
+          <TeamFeedbackBlock
+            normId={normId}
+            canEdit={canEdit}
+            initialSupport={{
+              supportCount: norm?.supportCount ?? 0,
+              objectionCount: norm?.objectionCount ?? 0,
+              net: norm?.supportNet ?? 0,
+              myValue: norm?.myValue ?? null
+            }}
+          />
+        </FormBlock>
+      ) : null}
 
       {canEdit ? (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-[#07111d]/95 px-4 py-3 backdrop-blur lg:pl-[260px]">
@@ -407,7 +459,7 @@ export function NormEditor({
                 type="button"
                 onClick={() => finalize("final")}
                 disabled={saving || !canDraft}
-                className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-black text-white disabled:opacity-50"
+                className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Guardar norma

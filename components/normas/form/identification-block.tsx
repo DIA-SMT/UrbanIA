@@ -44,7 +44,7 @@ export function IdentificationBlock({
         />
       </div>
       <div>
-        <span className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">Materia</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Materia</span>
         <div className="mt-2 flex flex-wrap gap-2">
           {(Object.keys(materiaLabels) as MunicipalArea[]).map((area) => {
             const active = areas.includes(area);
