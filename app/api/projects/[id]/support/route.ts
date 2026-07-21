@@ -7,14 +7,19 @@ export const dynamic = "force-dynamic";
 
 /**
  * Apoyo (+1) u objecion (-1) del equipo municipal a una norma. Interno: los vecinos
- * no votan normas. El unique (projectId, userId) del schema hace que cambiar de
- * opinion actualice el mismo registro en vez de acumular votos.
+ * no votan normas.
+ *
+ * El voto se cuenta por NOMBRE declarado, no por cuenta: las direcciones comparten
+ * una cuenta institucional y con una clave por cuenta solo podia votar el primero.
+ * Es una solucion provisoria y no verificable (ver la migracion
+ * 20260721140000_norm_support_by_voter_name); userId se guarda igual para saber
+ * desde que cuenta salio cada voto.
  */
 
-async function readSummary(projectId: string, viewerId: string) {
+async function readSummary(projectId: string, voterName: string | null) {
   const supports = await prisma.normSupport.findMany({
     where: { projectId },
-    select: { userId: true, value: true }
+    select: { voterName: true, value: true }
   });
 
   let supportCount = 0;
@@ -24,10 +29,16 @@ async function readSummary(projectId: string, viewerId: string) {
   for (const support of supports) {
     if (support.value > 0) supportCount += 1;
     else if (support.value < 0) objectionCount += 1;
-    if (support.userId === viewerId) myValue = support.value > 0 ? 1 : -1;
+    if (voterName && support.voterName === voterName) myValue = support.value > 0 ? 1 : -1;
   }
 
-  return { supportCount, objectionCount, net: supportCount - objectionCount, myValue };
+  return {
+    supportCount,
+    objectionCount,
+    net: supportCount - objectionCount,
+    myValue,
+    voters: supports.map((support) => ({ voterName: support.voterName, value: support.value }))
+  };
 }
 
 async function guard() {
@@ -49,14 +60,17 @@ async function guard() {
   return { session };
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const gate = await guard();
   if (gate.error) return gate.error;
 
   const { id } = await params;
+  // El servidor no sabe quien esta trabajando (vive en el sessionStorage del
+  // navegador), asi que el nombre viaja como parametro para resolver myValue.
+  const voterName = new URL(request.url).searchParams.get("voterName");
 
   try {
-    return NextResponse.json(await readSummary(id, gate.session.userId));
+    return NextResponse.json(await readSummary(id, voterName));
   } catch (error) {
     console.error("No se pudo leer el apoyo de la norma", error);
     return NextResponse.json({ error: "No se pudo leer el apoyo" }, { status: 500 });
@@ -64,7 +78,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 }
 
 const voteSchema = z.object({
-  value: z.union([z.literal(1), z.literal(-1)])
+  value: z.union([z.literal(1), z.literal(-1)]),
+  voterName: z.string().trim().min(1).max(120)
 });
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -75,7 +90,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const parsed = voteSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Datos inválidos", detail: "El apoyo solo admite +1 (a favor) o -1 (en contra)." },
+      { error: "Datos inválidos", detail: "Elegí tu nombre y un apoyo válido (+1 a favor o -1 en contra)." },
       { status: 400 }
     );
   }
@@ -87,12 +102,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     await prisma.normSupport.upsert({
-      where: { projectId_userId: { projectId: id, userId: gate.session.userId } },
-      create: { projectId: id, userId: gate.session.userId, value: parsed.data.value },
-      update: { value: parsed.data.value }
+      where: { projectId_voterName: { projectId: id, voterName: parsed.data.voterName } },
+      create: { projectId: id, userId: gate.session.userId, voterName: parsed.data.voterName, value: parsed.data.value },
+      update: { value: parsed.data.value, userId: gate.session.userId }
     });
 
-    return NextResponse.json(await readSummary(id, gate.session.userId));
+    return NextResponse.json(await readSummary(id, parsed.data.voterName));
   } catch (error) {
     console.error("No se pudo registrar el apoyo", error);
     return NextResponse.json(
@@ -102,18 +117,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 }
 
-/** Vuelve a neutral: el usuario retira su apoyo u objecion. */
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+const removeSchema = z.object({ voterName: z.string().trim().min(1).max(120) });
+
+/** Vuelve a neutral: la persona retira su apoyo u objecion. */
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const gate = await guard();
   if (gate.error) return gate.error;
 
   const { id } = await params;
+  const parsed = removeSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Datos inválidos", detail: "Elegí tu nombre para retirar el voto." }, { status: 400 });
+  }
 
   try {
     // deleteMany y no delete: si no habia voto, delete tira P2025 y esto tiene que
     // ser idempotente (doble click en el boton activo).
-    await prisma.normSupport.deleteMany({ where: { projectId: id, userId: gate.session.userId } });
-    return NextResponse.json(await readSummary(id, gate.session.userId));
+    await prisma.normSupport.deleteMany({ where: { projectId: id, voterName: parsed.data.voterName } });
+    return NextResponse.json(await readSummary(id, parsed.data.voterName));
   } catch (error) {
     console.error("No se pudo quitar el apoyo", error);
     return NextResponse.json({ error: "No se pudo quitar el apoyo" }, { status: 500 });

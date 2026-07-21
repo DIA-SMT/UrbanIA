@@ -32,7 +32,7 @@ const listInclude = {
   budgetItems: { select: { amount: true } },
   diagnoses: { orderBy: { version: "desc" }, take: 1, select: { feasibility: true } },
   createdBy: { select: { id: true, name: true } },
-  supports: { select: { userId: true, value: true } },
+  supports: { select: { voterName: true, value: true } },
   _count: { select: { opinions: true } }
 } satisfies Prisma.ProjectInclude;
 
@@ -43,7 +43,7 @@ const detailInclude = {
   proposal: { select: { id: true, title: true } },
   reform: { select: { id: true, code: true, title: true } },
   createdBy: { select: { id: true, name: true } },
-  supports: { select: { userId: true, value: true } },
+  supports: { select: { voterName: true, value: true } },
   _count: { select: { opinions: true } }
 } satisfies Prisma.ProjectInclude;
 
@@ -73,30 +73,32 @@ function asCitedArticles(value: Prisma.JsonValue | null): ProjectCitedArticle[] 
 }
 
 /**
- * Apoyo del equipo sobre una norma. `viewerId` resuelve el voto propio: sin el, la
- * UI no puede marcar el boton activo ni saber que un segundo click lo quita.
+ * Apoyo del equipo sobre una norma.
+ *
+ * El voto propio NO se resuelve aca: se cuenta por nombre declarado, y quien esta
+ * trabajando vive en el sessionStorage del navegador, que el servidor no ve. Por
+ * eso se devuelve la lista de votantes y el cliente marca el boton activo.
  */
-function toSupportSummary(supports: { userId: string; value: number }[], viewerId?: string | null) {
+function toSupportSummary(supports: { voterName: string; value: number }[]) {
   let supportCount = 0;
   let objectionCount = 0;
-  let myValue: 1 | -1 | null = null;
 
   for (const support of supports) {
     if (support.value > 0) supportCount += 1;
     else if (support.value < 0) objectionCount += 1;
-    if (viewerId && support.userId === viewerId) myValue = support.value > 0 ? 1 : -1;
   }
 
-  return { supportCount, objectionCount, supportNet: supportCount - objectionCount, myValue };
+  return {
+    supportCount,
+    objectionCount,
+    supportNet: supportCount - objectionCount,
+    voters: supports.map((support) => ({ voterName: support.voterName, value: support.value }))
+  };
 }
 
-export function toProjectListItem(
-  project: ProjectListPayload,
-  anchorCount: number,
-  viewerId?: string | null
-): ProjectListItem {
+export function toProjectListItem(project: ProjectListPayload, anchorCount: number): ProjectListItem {
   return {
-    ...toSupportSummary(project.supports, viewerId),
+    ...toSupportSummary(project.supports),
     opinionCount: project._count.opinions,
     authorId: project.createdBy?.id ?? null,
     // Los dos por separado: el DTO lleva los hechos y la UI decide como mostrarlos.
@@ -120,6 +122,7 @@ export function toProjectListItem(
     articleNumber: project.articleNumber,
     hasArticleText: Boolean(project.articleText && project.articleText.trim().length),
     createdAt: project.createdAt.toISOString(),
+    updatedAt: project.updatedAt.toISOString(),
     budgetTotal: project.budgetItems.reduce((sum, item) => sum + toNumber(item.amount), 0),
     anchorCount,
     latestFeasibility: project.diagnoses[0]?.feasibility ?? null
@@ -187,9 +190,34 @@ export async function getProjectAnchors(projectId: string): Promise<ProjectAncho
   }));
 }
 
+/**
+ * Nombres que ya firmaron una norma o una devolucion.
+ *
+ * Alimentan el desplegable de autoria. No se recuerda "el ultimo que escribio":
+ * la cuenta es compartida y prellenar el campo con el nombre anterior hace que la
+ * proxima persona publique firmando como otra sin darse cuenta. La lista se ofrece,
+ * pero elegirse es un acto explicito.
+ */
+export async function listAuthorNames(): Promise<string[]> {
+  const [fromNorms, fromOpinions] = await Promise.all([
+    prisma.project.findMany({
+      where: { authorName: { not: null } },
+      select: { authorName: true },
+      distinct: ["authorName"]
+    }),
+    prisma.normOpinion.findMany({ select: { authorName: true }, distinct: ["authorName"] })
+  ]);
+
+  const names = new Set<string>();
+  for (const row of fromNorms) if (row.authorName) names.add(row.authorName);
+  for (const row of fromOpinions) names.add(row.authorName);
+
+  return [...names].sort((a, b) => a.localeCompare(b, "es"));
+}
+
 export type ProjectFilters = { status?: ProjectStatus; stage?: ProjectStage; area?: MunicipalArea; reformId?: string };
 
-export async function listProjects(filters: ProjectFilters = {}, viewerId?: string | null): Promise<ProjectListItem[]> {
+export async function listProjects(filters: ProjectFilters = {}): Promise<ProjectListItem[]> {
   const projects = await prisma.project.findMany({
     where: {
       ...(filters.status ? { status: filters.status } : {}),
@@ -211,10 +239,10 @@ export async function listProjects(filters: ProjectFilters = {}, viewerId?: stri
   });
   const anchorMap = new Map(anchorCounts.map((entry) => [entry.sourceId, entry._count._all]));
 
-  return projects.map((project) => toProjectListItem(project, anchorMap.get(project.id) ?? 0, viewerId));
+  return projects.map((project) => toProjectListItem(project, anchorMap.get(project.id) ?? 0));
 }
 
-export async function getProject(id: string, viewerId?: string | null): Promise<ProjectDetail | null> {
+export async function getProject(id: string): Promise<ProjectDetail | null> {
   const project = await prisma.project.findUnique({ where: { id }, include: detailInclude });
   if (!project) return null;
 
@@ -224,7 +252,6 @@ export async function getProject(id: string, viewerId?: string | null): Promise<
     ...toProjectListItem(
       { ...project, diagnoses: project.diagnoses.slice(0, 1).map((diagnosis) => ({ feasibility: diagnosis.feasibility })) },
       anchors.length,
-      viewerId
     ),
     eiaNotes: project.eiaNotes,
     officialNotes: project.officialNotes,
@@ -234,7 +261,6 @@ export async function getProject(id: string, viewerId?: string | null): Promise<
     articleText: project.articleText,
     reformCode: project.reform?.code ?? null,
     reformTitle: project.reform?.title ?? null,
-    updatedAt: project.updatedAt.toISOString(),
     diagnoses: project.diagnoses.map(toDiagnosisView),
     budgetItems: project.budgetItems.map(toBudgetItemView),
     attachments: project.attachments.map(toAttachmentView),
@@ -365,16 +391,15 @@ export async function updateProject(id: string, input: UpdateProjectInput): Prom
 export type NormFilters = { status?: ProjectStatus; area?: MunicipalArea };
 
 /** Normas de un codigo nuevo, con filtros por estado y materia. */
-export async function listNorms(reformId: string, filters: NormFilters = {}, viewerId?: string | null): Promise<NormListItem[]> {
-  return listProjects({ ...filters, reformId }, viewerId);
+export async function listNorms(reformId: string, filters: NormFilters = {}): Promise<NormListItem[]> {
+  return listProjects({ ...filters, reformId });
 }
 
 /**
  * Detalle de una norma: anchors, ultimo analisis y articleText incluidos.
- * `viewerId` resuelve el apoyo propio del que mira (ver toSupportSummary).
  */
-export async function getNorm(id: string, viewerId?: string | null): Promise<NormDetail | null> {
-  return getProject(id, viewerId);
+export async function getNorm(id: string): Promise<NormDetail | null> {
+  return getProject(id);
 }
 
 /** NormativeLink de una norma con el articulo del CPU 2014 incluido. */
@@ -517,15 +542,15 @@ export async function listReforms(filters: ReformFilters = {}): Promise<ReformLi
   return Promise.all(reforms.map(toReformListItem));
 }
 
-/** `viewerId` resuelve el voto propio de cada norma para el tablero. */
-export async function getReform(id: string, viewerId?: string | null): Promise<ReformDetail | null> {
+/** Detalle de un codigo nuevo con sus normas. */
+export async function getReform(id: string): Promise<ReformDetail | null> {
   const reform = await prisma.normativeReform.findUnique({
     where: { id },
     include: reformInclude
   });
   if (!reform) return null;
 
-  const [listItem, norms] = await Promise.all([toReformListItem(reform), listNorms(reform.id, {}, viewerId)]);
+  const [listItem, norms] = await Promise.all([toReformListItem(reform), listNorms(reform.id, {})]);
 
   return { ...listItem, updatedAt: reform.updatedAt.toISOString(), norms };
 }

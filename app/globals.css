@@ -380,6 +380,33 @@ html.urban-light .text-rose-200 {
   color: #be123c !important;
 }
 
+/* Apoyo y objecion en tema claro. El verde acento (#81fc87) y el rose (#ef5b85)
+   estan pensados para fondo oscuro y sobre blanco quedan ilegibles; se bajan a
+   una version con contraste suficiente, manteniendo el mismo significado. */
+html.urban-light .text-civic-green {
+  color: #15803d !important;
+}
+
+html.urban-light .text-civic-rose {
+  color: #be123c !important;
+}
+
+html.urban-light .bg-civic-green\/15 {
+  background-color: rgba(21, 128, 61, 0.1) !important;
+}
+
+html.urban-light .border-civic-green\/50 {
+  border-color: rgba(21, 128, 61, 0.45) !important;
+}
+
+html.urban-light .bg-civic-rose\/15 {
+  background-color: rgba(190, 18, 60, 0.1) !important;
+}
+
+html.urban-light .border-civic-rose\/50 {
+  border-color: rgba(190, 18, 60, 0.45) !important;
+}
+
 html.urban-light .bg-civic-blue,
 html.urban-light .file\:bg-civic-blue::file-selector-button {
   background-color: #1f89f6 !important;

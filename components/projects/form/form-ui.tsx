@@ -64,21 +64,24 @@ export function TextField({
   label,
   value,
   onChange,
-  placeholder
+  placeholder,
+  disabled = false
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }) {
   return (
     <label className="grid gap-1.5">
       <FieldLabel>{label}</FieldLabel>
       <input
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="h-11 w-full rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-300/50"
+        className="h-11 w-full rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-300/50 disabled:opacity-60"
       />
     </label>
   );
@@ -88,20 +91,23 @@ export function SelectField<T extends string>({
   label,
   value,
   options,
-  onChange
+  onChange,
+  disabled = false
 }: {
   label: string;
   value: T;
   options: Array<{ value: T; label: string }>;
   onChange: (value: T) => void;
+  disabled?: boolean;
 }) {
   return (
     <label className="grid gap-1.5">
       <FieldLabel>{label}</FieldLabel>
       <select
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value as T)}
-        className="h-11 w-full rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm font-semibold text-slate-100 outline-none focus:border-sky-300/50"
+        className="h-11 w-full rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm font-semibold text-slate-100 outline-none focus:border-sky-300/50 disabled:opacity-60"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>{option.label}</option>

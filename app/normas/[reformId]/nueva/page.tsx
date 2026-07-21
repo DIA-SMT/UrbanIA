@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
-import { getReform } from "@/lib/projects/data";
+import { getReform, listAuthorNames } from "@/lib/projects/data";
 import { NormEditor } from "@/components/normas/form/norm-editor";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +22,10 @@ export default async function NuevaNormaPage({ params }: { params: Promise<{ ref
 
   // El nombre no viaja en la sesion (solo userId y role): se resuelve aca para
   // mostrar con que cuenta se esta redactando.
-  const [reform, account] = await Promise.all([
-    getReform(reformId, session.userId).catch(() => null),
-    prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } }).catch(() => null)
+  const [reform, account, knownAuthors] = await Promise.all([
+    getReform(reformId).catch(() => null),
+    prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } }).catch(() => null),
+    listAuthorNames().catch(() => [])
   ]);
   if (!reform) notFound();
 
@@ -35,6 +36,7 @@ export default async function NuevaNormaPage({ params }: { params: Promise<{ ref
         norm={null}
         canEdit
         accountName={account?.name ?? null}
+        knownAuthors={knownAuthors}
       />
     </AppShell>
   );

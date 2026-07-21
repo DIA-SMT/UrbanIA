@@ -20,7 +20,10 @@ const config: Config = {
           sky: "#35aeea",
           aqua: "#35aeea",
           amber: "#f6d500",
-          rose: "#ef5b85"
+          rose: "#ef5b85",
+          /// Verde acento Ciudad Digital (AGENTS.md): estados positivos puntuales,
+          /// como el apoyo a una norma. Nunca como color dominante.
+          green: "#81fc87"
         }
       },
       fontFamily: {

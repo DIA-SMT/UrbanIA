@@ -8,6 +8,7 @@ import { Anchor, ArrowLeft, FileDown, FileStack, FileText, MessageSquare, Plus }
 import { EmptyState } from "@/components/ui/empty-state";
 import { AuthorLine, FilterBar, FilterChip, FilterGroup, MetricStrip } from "@/components/ui/board-ui";
 import { SupportControls } from "@/components/normas/support-controls";
+import { ActiveVoterBar } from "@/components/normas/active-voter";
 import {
   conflictLevelLabels,
   conflictLevelStyles,
@@ -24,7 +25,16 @@ type StatusFilter = ProjectStatus | "ALL";
 type MateriaFilter = MunicipalArea | "ALL";
 
 /** Interior de un codigo nuevo: sus normas, con filtros por estado y materia. */
-export function NormsBoard({ reform, canEdit }: { reform: ReformDetail; canEdit: boolean }) {
+export function NormsBoard({
+  reform,
+  canEdit,
+  knownAuthors = []
+}: {
+  reform: ReformDetail;
+  canEdit: boolean;
+  /** Alimenta el selector de identidad: sin nombre elegido no se puede votar. */
+  knownAuthors?: string[];
+}) {
   const router = useRouter();
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [materia, setMateria] = useState<MateriaFilter>("ALL");
@@ -118,6 +128,8 @@ export function NormsBoard({ reform, canEdit }: { reform: ReformDetail; canEdit:
           </div>
         </div>
       </section>
+
+      {canEdit ? <ActiveVoterBar knownAuthors={knownAuthors} /> : null}
 
       <FilterBar>
         <FilterGroup label="Estado">
@@ -228,19 +240,28 @@ function NormCard({ reformId, norm, canEdit }: { reformId: string; norm: NormLis
             supportCount: norm.supportCount,
             objectionCount: norm.objectionCount,
             net: norm.supportNet,
-            myValue: norm.myValue
+            voters: norm.voters
           }}
         />
+        {/* Burbuja: se lee como "hay conversacion acá", no como un boton mas. */}
         <Link
           href={`/normas/${reformId}/${norm.id}#opiniones`}
-          className="inline-flex items-center gap-1.5 rounded-md border border-white/8 bg-white/[0.02] px-2 py-1 text-[11px] font-semibold text-slate-400 transition hover:border-white/15 hover:text-slate-200"
+          className={`group inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all duration-150 ${
+            norm.opinionCount
+              ? "border-civic-blue/35 bg-civic-blue/10 text-sky-200 hover:border-civic-blue/60 hover:bg-civic-blue/[0.16]"
+              : "border-white/10 bg-white/[0.03] text-slate-400 hover:border-civic-blue/35 hover:bg-civic-blue/[0.07] hover:text-sky-200"
+          }`}
         >
-          <MessageSquare className="h-3 w-3" />
+          <MessageSquare className={`h-3.5 w-3.5 transition-transform duration-150 group-hover:-translate-y-px ${norm.opinionCount ? "fill-civic-blue/20" : ""}`} />
           {norm.opinionCount ? `${norm.opinionCount} ${norm.opinionCount === 1 ? "devolución" : "devoluciones"}` : "Opinar"}
         </Link>
       </div>
-      <div className="mt-2">
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
         <AuthorLine name={norm.authorName} account={norm.authorAccount} />
+        <span className="text-xs text-slate-500">
+          Últ. actualización{" "}
+          {new Date(norm.updatedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+        </span>
       </div>
     </div>
   );

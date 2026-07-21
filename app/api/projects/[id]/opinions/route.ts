@@ -47,11 +47,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 const createSchema = z.object({
   body: z.string().trim().min(1).max(4000),
   /**
-   * Quien firma la devolucion. Las direcciones comparten una cuenta institucional,
-   * asi que el nombre del User no alcanza para saber que persona opino. Si viene
-   * vacio se cae al nombre de la cuenta.
+   * Quien firma la devolucion. Obligatorio: las direcciones comparten una cuenta
+   * institucional, asi que sin esto todas las devoluciones quedan firmadas igual
+   * y no se sabe quien opino. Se exige en el servidor y no solo en el formulario,
+   * porque la regla es del sistema, no de la pantalla.
    */
-  authorName: z.string().trim().max(120).optional()
+  authorName: z.string().trim().min(1).max(120)
 });
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -77,24 +78,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const parsed = createSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Datos inválidos", detail: "Escribí el texto de la devolución (máximo 4000 caracteres)." },
+      { error: "Datos inválidos", detail: "Escribí tu nombre y el texto de la devolución (máximo 4000 caracteres)." },
       { status: 400 }
     );
   }
 
   try {
-    // El nombre no viaja en la sesion (solo userId y role), asi que se resuelve
-    // contra la base y se guarda como snapshot: la devolucion queda identificada
-    // aunque despues se borre la cuenta.
-    const [norm, author] = await Promise.all([
+    // Se valida que la cuenta siga existiendo: sin eso, un userId viejo rompe por
+    // clave foranea y el error sale como un 500 en vez de un 401 entendible.
+    const [norm, account] = await Promise.all([
       prisma.project.findUnique({ where: { id }, select: { id: true } }),
-      prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } })
+      prisma.user.findUnique({ where: { id: session.userId }, select: { id: true } })
     ]);
 
     if (!norm) {
       return NextResponse.json({ error: "Norma inexistente", detail: "La norma que intentás comentar no existe." }, { status: 404 });
     }
-    if (!author) {
+    if (!account) {
       return NextResponse.json({ error: "No autenticado", detail: "No encontramos tu cuenta. Volvé a ingresar." }, { status: 401 });
     }
 
@@ -102,7 +102,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       data: {
         projectId: id,
         userId: session.userId,
-        authorName: parsed.data.authorName?.trim() || author.name,
+        // Snapshot: la devolucion queda identificada aunque se borre la cuenta.
+        authorName: parsed.data.authorName,
         body: parsed.data.body
       }
     });

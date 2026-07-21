@@ -822,7 +822,17 @@ model NormOpinion {
 model NormSupport {
   id        String   @id @default(cuid())
   projectId String
+  /// Cuenta desde la que se emitio el voto. Ya NO identifica al votante: varias
+  /// personas comparten la cuenta institucional de su direccion.
   userId    String
+  /// PROVISORIO. Quien vota, declarado en pantalla. Es lo que hace que dos
+  /// personas de la misma direccion puedan votar la misma norma.
+  ///
+  /// No es verificable: cualquiera con la cuenta abierta puede votar eligiendo
+  /// otro nombre. El conteo sirve como termometro de trabajo interno, no como
+  /// votacion formal, y no deberia citarse como tal. La solucion real es una
+  /// cuenta por persona, y cuando exista este campo se reemplaza por userId.
+  voterName String
   /// +1 = a favor, -1 = en contra. La API valida el par; Postgres no tiene
   /// enum para esto y un CHECK complicaria el upsert.
   value     Int
@@ -831,8 +841,8 @@ model NormSupport {
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  /// Un voto por persona y norma: cambiar de opinion actualiza el mismo registro.
-  @@unique([projectId, userId])
+  /// Un voto por nombre y norma: cambiar de opinion actualiza el mismo registro.
+  @@unique([projectId, voterName])
   @@index([projectId])
 }
 

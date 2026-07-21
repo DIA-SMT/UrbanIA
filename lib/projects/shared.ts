@@ -266,6 +266,8 @@ export type ProjectListItem = {
   articleNumber: string | null;
   hasArticleText: boolean;
   createdAt: string;
+  /** Ultima modificacion real del contenido (el autosave no persiste sin cambios). */
+  updatedAt: string;
   budgetTotal: number;
   anchorCount: number;
   latestFeasibility: FeasibilityLevel | null;
@@ -281,8 +283,12 @@ export type ProjectListItem = {
   supportCount: number;
   objectionCount: number;
   supportNet: number;
-  /** Voto del usuario que mira, si lo resolvio la consulta. */
-  myValue: 1 | -1 | null;
+  /**
+   * Quienes votaron y que votaron. El voto propio lo resuelve el cliente contra
+   * la identidad activa: se cuenta por nombre declarado, y el servidor no sabe
+   * quien esta trabajando (vive en el sessionStorage del navegador).
+   */
+  voters: { voterName: string; value: number }[];
 };
 
 export type ProjectDetail = ProjectListItem & {
@@ -294,7 +300,6 @@ export type ProjectDetail = ProjectListItem & {
   articleText: string | null;
   reformCode: string | null;
   reformTitle: string | null;
-  updatedAt: string;
   diagnoses: ProjectDiagnosisView[];
   budgetItems: ProjectBudgetItemView[];
   attachments: ProjectAttachmentView[];
