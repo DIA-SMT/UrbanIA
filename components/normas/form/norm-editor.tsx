@@ -27,12 +27,15 @@ export function NormEditor({
   reform,
   norm,
   canEdit,
-  canDelete = false
+  canDelete = false,
+  accountName = null
 }: {
   reform: { id: string; code: string; title: string };
   norm: NormDetail | null;
   canEdit: boolean;
   canDelete?: boolean;
+  /** Cuenta de quien esta redactando. En una norma nueva es el unico respaldo. */
+  accountName?: string | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -66,6 +69,9 @@ export function NormEditor({
   const [summary, setSummary] = useState(norm?.summary ?? seeded.summary ?? "");
   const [articleText, setArticleText] = useState(norm?.articleText ?? "");
   const [officialNotes, setOfficialNotes] = useState(norm?.officialNotes ?? "");
+  // Vacio en una norma nueva a proposito: prellenarlo con la cuenta compartida
+  // invitaria a dejarlo asi, que es justo lo que hay que evitar.
+  const [authorName, setAuthorName] = useState(norm?.authorName ?? "");
 
   const [anchors, setAnchors] = useState<ProjectAnchorView[]>(norm?.anchors ?? []);
   const [analyses, setAnalyses] = useState<ProjectDiagnosisView[]>(norm?.diagnoses ?? []);
@@ -96,9 +102,10 @@ export function NormEditor({
       areas,
       articleNumber: articleNumber.trim() || null,
       articleText: articleText.trim() || null,
-      officialNotes: officialNotes.trim() || null
+      officialNotes: officialNotes.trim() || null,
+      authorName: authorName.trim() || null
     }),
-    [title, summary, status, areas, articleNumber, articleText, officialNotes]
+    [title, summary, status, areas, articleNumber, articleText, officialNotes, authorName]
   );
 
   // Crea el borrador (una sola vez) cuando hay titulo + objeto valido.
@@ -292,7 +299,12 @@ export function NormEditor({
           {materiaPrincipal ? `${materiaPrincipal} · ` : ""}
           {normStatusLabels[status]}
           {code ? <span className="ml-2 rounded bg-white/[0.06] px-2 py-0.5 font-mono text-xs font-semibold text-sky-200">{code}</span> : null}
-          {norm?.authorName ? <span className="ml-2 text-slate-500">· Creada por {norm.authorName}</span> : null}
+          {norm?.authorName || norm?.authorAccount ? (
+            <span className="ml-2 text-slate-500">
+              · Creada por {norm.authorName ?? norm.authorAccount}
+              {norm.authorName && norm.authorAccount ? ` (${norm.authorAccount})` : ""}
+            </span>
+          ) : null}
         </p>
         {!normId ? (
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
@@ -307,11 +319,14 @@ export function NormEditor({
           articleNumber={articleNumber}
           status={status}
           areas={areas}
+          authorName={authorName}
+          accountName={norm?.authorAccount ?? accountName}
           disabled={readOnly}
           onTitleChange={setTitle}
           onArticleNumberChange={setArticleNumber}
           onStatusChange={setStatus}
           onToggleArea={toggleArea}
+          onAuthorNameChange={setAuthorName}
         />
       </FormBlock>
 
@@ -392,18 +407,22 @@ export function NormEditor({
         />
       </FormBlock>
 
-      {/* Solo sobre una norma persistida: sobre un borrador sin id no hay nada que opinar. */}
+      {/* Solo sobre una norma persistida: sobre un borrador sin id no hay nada que opinar.
+          Sin colapsar: si arranca cerrado cuando no hay devoluciones, nadie lo encuentra
+          para dejar la primera. */}
+      {/* accountName en TeamFeedbackBlock es la cuenta de quien MIRA, no la de quien
+          creo la norma: el que deja la devolucion puede ser de otra direccion. */}
       {normId ? (
+        <div id="opiniones" className="scroll-mt-6">
         <FormBlock
           index={7}
           title="Opiniones del equipo"
           description="Devoluciones internas y apoyo a la norma. No lo ven los vecinos."
-          collapsible
-          defaultOpen={Boolean(norm?.opinionCount)}
         >
           <TeamFeedbackBlock
             normId={normId}
             canEdit={canEdit}
+            accountName={accountName}
             initialSupport={{
               supportCount: norm?.supportCount ?? 0,
               objectionCount: norm?.objectionCount ?? 0,
@@ -412,6 +431,7 @@ export function NormEditor({
             }}
           />
         </FormBlock>
+        </div>
       ) : null}
 
       {canEdit ? (

@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { MunicipalArea, ProjectStatus, ReformStatus } from "@prisma/client";
-import { Anchor, ArrowLeft, FileDown, FileStack, FileText, MessageSquare, Plus, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Anchor, ArrowLeft, FileDown, FileStack, FileText, MessageSquare, Plus } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AuthorLine, FilterBar, FilterChip, FilterGroup, MetricStrip } from "@/components/ui/board-ui";
+import { SupportControls } from "@/components/normas/support-controls";
 import {
   conflictLevelLabels,
   conflictLevelStyles,
@@ -113,7 +114,7 @@ export function NormsBoard({ reform, canEdit }: { reform: ReformDetail; canEdit:
                 { label: "con conflictos", value: reform.conflictCount, tone: reform.conflictCount ? "warn" : "default" }
               ]}
             />
-            <AuthorLine name={reform.authorName} />
+            <AuthorLine name={reform.authorName} account={reform.authorAccount} />
           </div>
         </div>
       </section>
@@ -141,7 +142,7 @@ export function NormsBoard({ reform, canEdit }: { reform: ReformDetail; canEdit:
         {visible.length ? (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {visible.map((norm) => (
-              <NormCard key={norm.id} reformId={reform.id} norm={norm} />
+              <NormCard key={norm.id} reformId={reform.id} norm={norm} canEdit={canEdit} />
             ))}
           </div>
         ) : (
@@ -171,9 +172,15 @@ export function NormsBoard({ reform, canEdit }: { reform: ReformDetail; canEdit:
   );
 }
 
-function NormCard({ reformId, norm }: { reformId: string; norm: NormListItem }) {
+/**
+ * Card de una norma. El cuerpo navega al detalle, pero el pie NO: ahi viven los
+ * botones de apoyo y el acceso a las devoluciones, y por eso la card dejo de ser
+ * un unico <Link> envolvente (no se pueden anidar botones dentro de un link).
+ */
+function NormCard({ reformId, norm, canEdit }: { reformId: string; norm: NormListItem; canEdit: boolean }) {
   return (
-    <Link href={`/normas/${reformId}/${norm.id}`} className="urban-lift block rounded-lg border border-white/8 bg-white/[0.03] p-4">
+    <div className="urban-lift flex flex-col rounded-lg border border-white/8 bg-white/[0.03] p-4">
+      <Link href={`/normas/${reformId}/${norm.id}`} className="block">
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-[11px] font-medium text-slate-400">
           {norm.code}
@@ -203,28 +210,39 @@ function NormCard({ reformId, norm }: { reformId: string; norm: NormListItem }) 
           ))}
         </div>
       ) : null}
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/8 pt-3 text-xs text-slate-400">
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-400">
         <span className="inline-flex items-center gap-1.5">
           <Anchor className="h-3.5 w-3.5 text-[#1f89f6]" />
           {norm.anchorCount} {norm.anchorCount === 1 ? "artículo viejo relacionado" : "artículos viejos relacionados"}
         </span>
-        {norm.opinionCount ? (
-          <span className="inline-flex items-center gap-1.5">
-            <MessageSquare className="h-3.5 w-3.5" />
-            {norm.opinionCount}
-          </span>
-        ) : null}
-        {norm.supportNet !== 0 ? (
-          <span className={`inline-flex items-center gap-1.5 font-semibold ${norm.supportNet > 0 ? "text-sky-200" : "text-rose-200"}`}>
-            {norm.supportNet > 0 ? <ThumbsUp className="h-3.5 w-3.5" /> : <ThumbsDown className="h-3.5 w-3.5" />}
-            {norm.supportNet > 0 ? `+${norm.supportNet}` : norm.supportNet}
-          </span>
-        ) : null}
+      </div>
+      </Link>
+
+      {/* Fuera del Link: son acciones, no navegación. */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/8 pt-3">
+        <SupportControls
+          normId={norm.id}
+          canVote={canEdit}
+          size="sm"
+          initial={{
+            supportCount: norm.supportCount,
+            objectionCount: norm.objectionCount,
+            net: norm.supportNet,
+            myValue: norm.myValue
+          }}
+        />
+        <Link
+          href={`/normas/${reformId}/${norm.id}#opiniones`}
+          className="inline-flex items-center gap-1.5 rounded-md border border-white/8 bg-white/[0.02] px-2 py-1 text-[11px] font-semibold text-slate-400 transition hover:border-white/15 hover:text-slate-200"
+        >
+          <MessageSquare className="h-3 w-3" />
+          {norm.opinionCount ? `${norm.opinionCount} ${norm.opinionCount === 1 ? "devolución" : "devoluciones"}` : "Opinar"}
+        </Link>
       </div>
       <div className="mt-2">
-        <AuthorLine name={norm.authorName} />
+        <AuthorLine name={norm.authorName} account={norm.authorAccount} />
       </div>
-    </Link>
+    </div>
   );
 }
 

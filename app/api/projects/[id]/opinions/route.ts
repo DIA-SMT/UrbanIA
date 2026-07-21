@@ -45,7 +45,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 }
 
 const createSchema = z.object({
-  body: z.string().trim().min(1).max(4000)
+  body: z.string().trim().min(1).max(4000),
+  /**
+   * Quien firma la devolucion. Las direcciones comparten una cuenta institucional,
+   * asi que el nombre del User no alcanza para saber que persona opino. Si viene
+   * vacio se cae al nombre de la cuenta.
+   */
+  authorName: z.string().trim().max(120).optional()
 });
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -96,7 +102,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       data: {
         projectId: id,
         userId: session.userId,
-        authorName: author.name,
+        authorName: parsed.data.authorName?.trim() || author.name,
         body: parsed.data.body
       }
     });

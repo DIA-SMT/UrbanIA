@@ -143,7 +143,7 @@ function ReformCard({ reform }: { reform: ReformListItem }) {
         ) : null}
       </div>
       <div className="mt-2">
-        <AuthorLine name={reform.authorName} />
+        <AuthorLine name={reform.authorName} account={reform.authorAccount} />
       </div>
       <Link
         href={`/normas/${reform.id}`}

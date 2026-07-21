@@ -4,33 +4,60 @@ import type { MunicipalArea, ProjectStatus } from "@prisma/client";
 import { SelectField, TextField } from "@/components/projects/form/form-ui";
 import { materiaLabels, normStatusLabels, normVisibleStatuses } from "@/lib/projects/shared";
 
-/** Bloque 1: titulo, numero tentativo, materia (multi-select) y estado. */
+/** Bloque 1: autor, titulo, numero tentativo, materia (multi-select) y estado. */
 export function IdentificationBlock({
   title,
   articleNumber,
   status,
   areas,
+  authorName,
+  accountName,
   disabled,
   onTitleChange,
   onArticleNumberChange,
   onStatusChange,
-  onToggleArea
+  onToggleArea,
+  onAuthorNameChange
 }: {
   title: string;
   articleNumber: string;
   status: ProjectStatus;
   areas: MunicipalArea[];
+  authorName: string;
+  accountName: string | null;
   disabled: boolean;
   onTitleChange: (value: string) => void;
   onArticleNumberChange: (value: string) => void;
   onStatusChange: (value: ProjectStatus) => void;
   onToggleArea: (area: MunicipalArea) => void;
+  onAuthorNameChange: (value: string) => void;
 }) {
   // Si la fila trae un estado de obra heredado, se muestra igual para no ocultarlo.
   const statusOptions = normVisibleStatuses.includes(status) ? normVisibleStatuses : [...normVisibleStatuses, status];
 
   return (
     <div className="grid gap-3">
+      {/* Primero el autor: la cuenta es institucional y compartida, asi que sin este
+          dato todas las normas de una direccion quedan firmadas igual. */}
+      <div className="rounded-md border border-white/8 bg-white/[0.02] p-3">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <TextField
+            label="Autor de la norma"
+            value={authorName}
+            onChange={onAuthorNameChange}
+            placeholder="Nombre y apellido de quien redacta"
+          />
+          {accountName ? (
+            <p className="pb-2 text-[11px] leading-5 text-slate-500">
+              Cuenta: <span className="font-semibold text-slate-400">{accountName}</span>
+            </p>
+          ) : null}
+        </div>
+        <p className="mt-2 text-[11px] leading-5 text-slate-500">
+          Si lo dejás vacío, la norma queda firmada con el nombre de la cuenta.
+        </p>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px]">
         <TextField label="Título de la norma" value={title} onChange={onTitleChange} placeholder="Ej. Alturas máximas en corredores de transporte" />
         <TextField label="Artículo n.º" value={articleNumber} onChange={onArticleNumberChange} placeholder="Ej. 12" />

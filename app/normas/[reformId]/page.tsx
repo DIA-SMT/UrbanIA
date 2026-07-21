@@ -11,10 +11,13 @@ export default async function ReformPage({ params }: { params: Promise<{ reformI
 
   if (!process.env.DATABASE_URL) notFound();
 
-  const reform = await getReform(reformId).catch(() => null);
+  // La sesion va primero: getReform la necesita para resolver el voto propio de
+  // cada norma, si no los botones del tablero arrancan todos en neutro.
+  const session = await getSessionUser();
+
+  const reform = await getReform(reformId, session?.userId).catch(() => null);
   if (!reform) notFound();
 
-  const session = await getSessionUser();
   const canEdit = session ? isStaff(session.role) : false;
 
   return (

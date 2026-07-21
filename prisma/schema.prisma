@@ -689,6 +689,11 @@ model Project {
   officialNotes String?
   createdById   String?
   createdBy     User?               @relation(fields: [createdById], references: [id])
+  /// Quien redacto, dentro de la cuenta. Las direcciones entran con una cuenta
+  /// institucional compartida ("Direccion IA"), asi que createdBy no alcanza para
+  /// saber que persona escribio la norma. No reemplaza a createdById: ese sigue
+  /// siendo el registro autenticado y no falsificable; este es el nombre visible.
+  authorName    String?
   /// Fabrica de Normas: un Project con reformId es una NORMA (articulo) de un
   /// codigo nuevo en construccion. title = titulo de la norma, summary = objeto.
   reformId      String?

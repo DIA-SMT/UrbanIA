@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Send, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
+import { Loader2, Send, Trash2 } from "lucide-react";
+import { SupportControls, type SupportSummary } from "@/components/normas/support-controls";
 
 /**
  * Devoluciones y apoyo del equipo sobre una norma ya existente. Todo interno: los
@@ -19,13 +20,6 @@ type Opinion = {
   createdAt: string;
 };
 
-type SupportSummary = {
-  supportCount: number;
-  objectionCount: number;
-  net: number;
-  myValue: 1 | -1 | null;
-};
-
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString("es-AR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
@@ -33,18 +27,23 @@ function formatDateTime(iso: string) {
 export function TeamFeedbackBlock({
   normId,
   canEdit,
-  initialSupport
+  initialSupport,
+  accountName = null
 }: {
   normId: string;
   canEdit: boolean;
   initialSupport: SupportSummary;
+  /** Cuenta institucional: se usa como respaldo si nadie firma con su nombre. */
+  accountName?: string | null;
 }) {
   const [support, setSupport] = useState<SupportSummary>(initialSupport);
-  const [voting, setVoting] = useState(false);
 
   const [opinions, setOpinions] = useState<Opinion[]>([]);
   const [loadingOpinions, setLoadingOpinions] = useState(true);
   const [body, setBody] = useState("");
+  // Quien firma. La cuenta es compartida, asi que sin esto todas las devoluciones
+  // de una direccion aparecen con el mismo nombre.
+  const [signature, setSignature] = useState("");
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
 
@@ -64,26 +63,6 @@ export function TeamFeedbackBlock({
     void loadOpinions();
   }, [loadOpinions]);
 
-  async function vote(value: 1 | -1) {
-    if (!canEdit || voting) return;
-    setVoting(true);
-    try {
-      // Clickear el voto activo lo retira: es la unica forma de volver a neutral.
-      const removing = support.myValue === value;
-      const response = await fetch(`/api/projects/${normId}/support`, {
-        method: removing ? "DELETE" : "POST",
-        headers: { "Content-Type": "application/json" },
-        ...(removing ? {} : { body: JSON.stringify({ value }) })
-      });
-      const payload = await response.json();
-      if (response.ok) setSupport(payload);
-    } catch {
-      // Sin cambio visible: el estado sigue reflejando lo ultimo confirmado.
-    } finally {
-      setVoting(false);
-    }
-  }
-
   async function publish() {
     const text = body.trim();
     if (!text || posting) return;
@@ -93,7 +72,7 @@ export function TeamFeedbackBlock({
       const response = await fetch(`/api/projects/${normId}/opinions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: text })
+        body: JSON.stringify({ body: text, authorName: signature.trim() || undefined })
       });
       const payload = await response.json();
       if (!response.ok) {
@@ -121,20 +100,7 @@ export function TeamFeedbackBlock({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3 rounded-md border border-white/8 bg-white/[0.02] px-3 py-2.5">
-        <SupportButton
-          tone="support"
-          active={support.myValue === 1}
-          count={support.supportCount}
-          disabled={!canEdit || voting}
-          onClick={() => vote(1)}
-        />
-        <SupportButton
-          tone="object"
-          active={support.myValue === -1}
-          count={support.objectionCount}
-          disabled={!canEdit || voting}
-          onClick={() => vote(-1)}
-        />
+        <SupportControls normId={normId} initial={initialSupport} canVote={canEdit} onChange={setSupport} />
         <span className="text-xs text-slate-400">
           Neto{" "}
           <span className={`font-bold tabular-nums ${support.net > 0 ? "text-sky-200" : support.net < 0 ? "text-rose-200" : "text-slate-300"}`}>
@@ -187,7 +153,17 @@ export function TeamFeedbackBlock({
             className="w-full resize-y rounded-md border border-white/10 bg-slate-950/60 px-4 py-3 text-sm leading-6 text-slate-100 outline-none placeholder:text-slate-600 focus:border-sky-300/50"
           />
           {error ? <p className="text-xs font-semibold text-amber-200">{error}</p> : null}
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Firma</span>
+              <input
+                value={signature}
+                onChange={(event) => setSignature(event.target.value)}
+                maxLength={120}
+                placeholder={accountName ? `Tu nombre (si no, ${accountName})` : "Nombre y apellido"}
+                className="h-9 w-64 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-300/50"
+              />
+            </label>
             <button
               type="button"
               onClick={publish}
@@ -204,34 +180,3 @@ export function TeamFeedbackBlock({
   );
 }
 
-function SupportButton({
-  tone,
-  active,
-  count,
-  disabled,
-  onClick
-}: {
-  tone: "support" | "object";
-  active: boolean;
-  count: number;
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  const activeClass = tone === "support" ? "border-sky-300/40 bg-sky-300/10 text-sky-100" : "border-rose-300/40 bg-rose-300/10 text-rose-100";
-  const Icon = tone === "support" ? ThumbsUp : ThumbsDown;
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
-        active ? activeClass : "border-white/8 bg-white/[0.02] text-slate-400 hover:border-white/15 hover:text-slate-200"
-      }`}
-    >
-      <Icon className="h-3.5 w-3.5" />
-      {tone === "support" ? "A favor" : "En contra"}
-      <span className="tabular-nums">{count}</span>
-    </button>
-  );
-}

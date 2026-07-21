@@ -99,7 +99,11 @@ export function toProjectListItem(
     ...toSupportSummary(project.supports, viewerId),
     opinionCount: project._count.opinions,
     authorId: project.createdBy?.id ?? null,
-    authorName: project.createdBy?.name ?? null,
+    // Los dos por separado: el DTO lleva los hechos y la UI decide como mostrarlos.
+    // Resolver el fallback aca haria que el formulario prellenara el campo con el
+    // nombre de la cuenta compartida, que es justo lo que hay que evitar.
+    authorName: project.authorName,
+    authorAccount: project.createdBy?.name ?? null,
     id: project.id,
     code: project.code,
     title: project.title,
@@ -185,7 +189,7 @@ export async function getProjectAnchors(projectId: string): Promise<ProjectAncho
 
 export type ProjectFilters = { status?: ProjectStatus; stage?: ProjectStage; area?: MunicipalArea; reformId?: string };
 
-export async function listProjects(filters: ProjectFilters = {}): Promise<ProjectListItem[]> {
+export async function listProjects(filters: ProjectFilters = {}, viewerId?: string | null): Promise<ProjectListItem[]> {
   const projects = await prisma.project.findMany({
     where: {
       ...(filters.status ? { status: filters.status } : {}),
@@ -207,7 +211,7 @@ export async function listProjects(filters: ProjectFilters = {}): Promise<Projec
   });
   const anchorMap = new Map(anchorCounts.map((entry) => [entry.sourceId, entry._count._all]));
 
-  return projects.map((project) => toProjectListItem(project, anchorMap.get(project.id) ?? 0));
+  return projects.map((project) => toProjectListItem(project, anchorMap.get(project.id) ?? 0, viewerId));
 }
 
 export async function getProject(id: string, viewerId?: string | null): Promise<ProjectDetail | null> {
@@ -254,6 +258,8 @@ export type CreateProjectInput = {
   districtId?: string | null;
   officialNotes?: string | null;
   createdById?: string | null;
+  /** Persona que redacta, dentro de la cuenta compartida. */
+  authorName?: string | null;
   reformId?: string | null;
   articleNumber?: string | null;
   articleText?: string | null;
@@ -297,6 +303,7 @@ export async function createProject(input: CreateProjectInput): Promise<ProjectD
             districtId: input.districtId ?? null,
             officialNotes: input.officialNotes ?? null,
             createdById: input.createdById ?? null,
+            authorName: input.authorName ?? null,
             reformId: input.reformId ?? null,
             articleNumber: input.articleNumber ?? null,
             articleText: input.articleText ?? null
@@ -340,6 +347,7 @@ export async function updateProject(id: string, input: UpdateProjectInput): Prom
       ...(input.addressLabel !== undefined ? { addressLabel: input.addressLabel } : {}),
       ...(input.districtId !== undefined ? { districtId: input.districtId } : {}),
       ...(input.officialNotes !== undefined ? { officialNotes: input.officialNotes } : {}),
+      ...(input.authorName !== undefined ? { authorName: input.authorName } : {}),
       ...(input.reformId !== undefined ? { reformId: input.reformId } : {}),
       ...(input.articleNumber !== undefined ? { articleNumber: input.articleNumber } : {}),
       ...(input.articleText !== undefined ? { articleText: input.articleText } : {})
@@ -357,8 +365,8 @@ export async function updateProject(id: string, input: UpdateProjectInput): Prom
 export type NormFilters = { status?: ProjectStatus; area?: MunicipalArea };
 
 /** Normas de un codigo nuevo, con filtros por estado y materia. */
-export async function listNorms(reformId: string, filters: NormFilters = {}): Promise<NormListItem[]> {
-  return listProjects({ ...filters, reformId });
+export async function listNorms(reformId: string, filters: NormFilters = {}, viewerId?: string | null): Promise<NormListItem[]> {
+  return listProjects({ ...filters, reformId }, viewerId);
 }
 
 /**
@@ -384,6 +392,8 @@ export type CreateNormInput = {
   articleText?: string | null;
   officialNotes?: string | null;
   createdById?: string | null;
+  /** Persona que redacta, dentro de la cuenta compartida. */
+  authorName?: string | null;
 };
 
 async function nextNormCode(tx: Prisma.TransactionClient): Promise<string> {
@@ -417,7 +427,8 @@ export async function createNorm(input: CreateNormInput): Promise<NormDetail> {
             articleNumber: input.articleNumber ?? null,
             articleText: input.articleText ?? null,
             officialNotes: input.officialNotes ?? null,
-            createdById: input.createdById ?? null
+            createdById: input.createdById ?? null,
+            authorName: input.authorName ?? null
           },
           select: { id: true }
         });
@@ -489,7 +500,9 @@ async function toReformListItem(reform: ReformPayload): Promise<ReformListItem> 
     consolidatedCount: reform.norms.filter((norm) => norm.status === "APPROVED").length,
     conflictCount,
     authorId: reform.createdBy?.id ?? null,
-    authorName: reform.createdBy?.name ?? null
+    // Los codigos todavia no piden quien redacta a mano: solo tienen la cuenta.
+    authorName: null,
+    authorAccount: reform.createdBy?.name ?? null
   };
 }
 
@@ -504,14 +517,15 @@ export async function listReforms(filters: ReformFilters = {}): Promise<ReformLi
   return Promise.all(reforms.map(toReformListItem));
 }
 
-export async function getReform(id: string): Promise<ReformDetail | null> {
+/** `viewerId` resuelve el voto propio de cada norma para el tablero. */
+export async function getReform(id: string, viewerId?: string | null): Promise<ReformDetail | null> {
   const reform = await prisma.normativeReform.findUnique({
     where: { id },
     include: reformInclude
   });
   if (!reform) return null;
 
-  const [listItem, norms] = await Promise.all([toReformListItem(reform), listNorms(reform.id)]);
+  const [listItem, norms] = await Promise.all([toReformListItem(reform), listNorms(reform.id, {}, viewerId)]);
 
   return { ...listItem, updatedAt: reform.updatedAt.toISOString(), norms };
 }

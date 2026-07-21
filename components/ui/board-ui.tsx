@@ -74,7 +74,18 @@ export function FilterBar({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-md border border-white/8 bg-white/[0.02] px-3 py-2.5">{children}</div>;
 }
 
-/** Autor de un registro. Los previos al guardado de autor no lo tienen. */
-export function AuthorLine({ name }: { name: string | null }) {
-  return <span className="text-xs text-slate-500">{name ? `Creada por ${name}` : "Autor no registrado"}</span>;
+/**
+ * Autor de un registro. `name` es la persona que redacto y `account` la cuenta
+ * institucional que comparten varias personas: cuando estan las dos se muestran
+ * juntas, porque "Juan Perez" solo no dice de que direccion es.
+ */
+export function AuthorLine({ name, account }: { name: string | null; account: string | null }) {
+  if (!name && !account) return <span className="text-xs text-slate-500">Autor no registrado</span>;
+
+  return (
+    <span className="text-xs text-slate-500">
+      Creada por <span className="text-slate-400">{name ?? account}</span>
+      {name && account ? ` · ${account}` : null}
+    </span>
+  );
 }

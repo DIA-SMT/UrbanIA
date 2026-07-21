@@ -269,9 +269,12 @@ export type ProjectListItem = {
   budgetTotal: number;
   anchorCount: number;
   latestFeasibility: FeasibilityLevel | null;
-  /** Quien la creo. Null en los registros anteriores a que se guardara el autor. */
+  /** Cuenta que la creo. Null en los registros anteriores a que se guardara el autor. */
   authorId: string | null;
+  /** Persona que redacto, cargada a mano. Null si no la cargaron. */
   authorName: string | null;
+  /** La cuenta institucional, que varias personas comparten. Es el respaldo. */
+  authorAccount: string | null;
   /** Devoluciones internas del equipo sobre la norma. */
   opinionCount: number;
   /** Apoyo interno: a favor, en contra y el neto. */
@@ -318,6 +321,9 @@ export type ReformListItem = {
   /** Quien creo el codigo. Null en los registros anteriores al autor. */
   authorId: string | null;
   authorName: string | null;
+  /** La cuenta institucional. En codigos es lo unico que hay: todavia no se carga
+   *  a mano quien redacta un codigo, solo quien redacta cada norma. */
+  authorAccount: string | null;
 };
 
 export type ReformDetail = ReformListItem & {

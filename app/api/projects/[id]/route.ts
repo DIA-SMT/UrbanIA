@@ -27,6 +27,7 @@ const patchSchema = z.object({
   articleNumber: z.string().trim().max(20).nullish(),
   articleText: z.string().trim().max(40000).nullish(),
   officialNotes: z.string().trim().max(8000).nullish(),
+  authorName: z.string().trim().max(120).nullish(),
   reformId: z.string().trim().min(1).max(60).nullish()
 });
 
