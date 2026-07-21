@@ -26,6 +26,8 @@ model User {
   projects     Project[]
   contributions CitizenContribution[]
   reforms      NormativeReform[]
+  normOpinions NormOpinion[]
+  normSupports NormSupport[]
 }
 
 model Regulation {
@@ -293,6 +295,10 @@ model CitizenContribution {
   axis        String
   /// Por qué Migue sugirió ese eje, con el artículo en el que se apoyó.
   axisReason  String?
+  /// Tema del CPU con el que se relaciona un aporte "Fuera del alcance del CPU".
+  /// El Código no lo regula, pero lo roza: basura -> Usos del suelo (Art. 20).
+  /// Guarda el label del tema (ver OUT_OF_SCOPE_RELATIONS). Null = sin puente.
+  relatedTopic String?
   /// false = eje sugerido por Migue, todavía sin revisar. true = lo confirmó una persona.
   axisConfirmed Boolean                 @default(false)
   confidence  String
@@ -311,6 +317,8 @@ model CitizenContribution {
   @@index([status])
   @@index([proposalId])
   @@index([userId])
+  @@index([axis])
+  @@index([relatedTopic])
 }
 
 model Comment {
@@ -681,6 +689,11 @@ model Project {
   officialNotes String?
   createdById   String?
   createdBy     User?               @relation(fields: [createdById], references: [id])
+  /// Quien redacto, dentro de la cuenta. Las direcciones entran con una cuenta
+  /// institucional compartida ("Direccion IA"), asi que createdBy no alcanza para
+  /// saber que persona escribio la norma. No reemplaza a createdById: ese sigue
+  /// siendo el registro autenticado y no falsificable; este es el nombre visible.
+  authorName    String?
   /// Fabrica de Normas: un Project con reformId es una NORMA (articulo) de un
   /// codigo nuevo en construccion. title = titulo de la norma, summary = objeto.
   reformId      String?
@@ -696,6 +709,8 @@ model Project {
   attachments   ProjectAttachment[]
   cabinetIdeas  CabinetIdea[]
   hearingRecords HearingRecord[]
+  opinions      NormOpinion[]
+  supports      NormSupport[]
 
   @@index([status])
   @@index([stage])
@@ -779,6 +794,56 @@ enum ReformStatus {
   IN_REVIEW
   CONSOLIDATED
   ARCHIVED
+}
+
+// Devolucion interna del equipo municipal sobre una norma ya presentada.
+// No se reutiliza Comment porque Comment cuelga de Proposal (participacion
+// ciudadana): son dos conversaciones distintas, con distinto publico.
+model NormOpinion {
+  id         String   @id @default(cuid())
+  /// La norma opinada: un Project con reformId.
+  projectId  String
+  /// Autor. SetNull para conservar la devolucion si se borra la cuenta.
+  userId     String?
+  /// Snapshot del nombre al momento de opinar: la opinion sigue identificada
+  /// aunque el User desaparezca y userId quede en null.
+  authorName String
+  body       String
+  createdAt  DateTime @default(now())
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@index([userId])
+}
+
+// Apoyo u objecion del equipo municipal a una norma. Interno, no ciudadano.
+// Tampoco reutiliza Vote, que cuelga de Proposal.
+model NormSupport {
+  id        String   @id @default(cuid())
+  projectId String
+  /// Cuenta desde la que se emitio el voto. Ya NO identifica al votante: varias
+  /// personas comparten la cuenta institucional de su direccion.
+  userId    String
+  /// PROVISORIO. Quien vota, declarado en pantalla. Es lo que hace que dos
+  /// personas de la misma direccion puedan votar la misma norma.
+  ///
+  /// No es verificable: cualquiera con la cuenta abierta puede votar eligiendo
+  /// otro nombre. El conteo sirve como termometro de trabajo interno, no como
+  /// votacion formal, y no deberia citarse como tal. La solucion real es una
+  /// cuenta por persona, y cuando exista este campo se reemplaza por userId.
+  voterName String
+  /// +1 = a favor, -1 = en contra. La API valida el par; Postgres no tiene
+  /// enum para esto y un CHECK complicaria el upsert.
+  value     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Un voto por nombre y norma: cambiar de opinion actualiza el mismo registro.
+  @@unique([projectId, voterName])
+  @@index([projectId])
 }
 
 enum ProjectStatus {

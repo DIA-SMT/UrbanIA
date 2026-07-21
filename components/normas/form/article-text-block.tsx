@@ -36,14 +36,14 @@ export function ArticleTextBlock({
       {showComparison && !disabled ? (
         <div className="rounded-xl border border-sky-300/25 bg-sky-300/[0.06] p-4">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-sky-200">
+            <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-sky-200">
               <Sparkles className="h-3.5 w-3.5" />
               Articulado formalizado por la IA
             </p>
             <button
               type="button"
               onClick={onUseProposed}
-              className="urban-button inline-flex items-center gap-1.5 rounded-md bg-civic-blue px-3 py-1.5 text-xs font-black text-white"
+              className="urban-button inline-flex items-center gap-1.5 rounded-md bg-civic-blue px-3 py-1.5 text-xs font-semibold text-white"
             >
               <Check className="h-3.5 w-3.5" />
               Usar este texto

@@ -5,20 +5,25 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowRight, Factory, FileStack, Loader2, Plus, X } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { AuthorLine, MetricStrip, SectionTitle } from "@/components/ui/board-ui";
+import { TopicsDemandPanel } from "@/components/normas/topics-demand-panel";
+import type { TopicsDemandPayload } from "@/lib/citizen/shared";
 import { reformStatusLabels, reformStatusStyles, type ReformListItem } from "@/lib/projects/shared";
 
 /**
  * Pantalla principal de la Fabrica de Normas: los codigos nuevos en
- * construccion, con sus metricas de avance.
+ * construccion, con sus metricas de avance y la demanda ciudadana que los motiva.
  */
 export function ReformsBoard({
   reforms,
   isLive,
-  canCreate
+  canCreate,
+  demand
 }: {
   reforms: ReformListItem[];
   isLive: boolean;
   canCreate: boolean;
+  demand: TopicsDemandPayload;
 }) {
   const [creating, setCreating] = useState(false);
 
@@ -38,7 +43,7 @@ export function ReformsBoard({
         <div className="p-5 lg:p-7">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-sky-200">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-sky-300/20 bg-sky-300/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-sky-200">
                 <Factory className="h-4 w-4" />
                 Fábrica de Normas
               </div>
@@ -51,7 +56,7 @@ export function ReformsBoard({
               <button
                 type="button"
                 onClick={() => setCreating(true)}
-                className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white"
+                className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-bold text-white"
               >
                 <Plus className="h-4 w-4" />
                 Nuevo código
@@ -59,22 +64,31 @@ export function ReformsBoard({
             ) : null}
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Metric label="Códigos nuevos" value={metrics.total.toString()} />
-            <Metric label="Normas en borrador" value={metrics.drafts.toString()} />
-            <Metric label="En revisión" value={metrics.inReview.toString()} />
-            <Metric label="Consolidadas" value={metrics.consolidated.toString()} />
+          <div className="mt-6">
+            <MetricStrip
+              items={[
+                { label: "códigos nuevos", value: metrics.total },
+                { label: "en borrador", value: metrics.drafts },
+                { label: "en revisión", value: metrics.inReview },
+                { label: "consolidadas", value: metrics.consolidated }
+              ]}
+            />
           </div>
         </div>
       </section>
 
+      {canCreate ? <TopicsDemandPanel demand={demand} reforms={reforms} canCreate={canCreate} /> : null}
+
       <section className="urban-card rounded-lg p-4 lg:p-5">
         {reforms.length ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {reforms.map((reform) => (
-              <ReformCard key={reform.id} reform={reform} />
-            ))}
-          </div>
+          <>
+            <SectionTitle icon={FileStack}>Códigos en construcción</SectionTitle>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {reforms.map((reform) => (
+                <ReformCard key={reform.id} reform={reform} />
+              ))}
+            </div>
+          </>
         ) : (
           <EmptyState
             icon={Factory}
@@ -89,7 +103,7 @@ export function ReformsBoard({
                 <button
                   type="button"
                   onClick={() => setCreating(true)}
-                  className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-black text-white"
+                  className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-bold text-white"
                 >
                   <Plus className="h-4 w-4" />
                   Nuevo código
@@ -109,12 +123,12 @@ function ReformCard({ reform }: { reform: ReformListItem }) {
   return (
     <div className="urban-lift flex flex-col rounded-lg border border-white/8 bg-white/[0.03] p-4">
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-[11px] font-bold text-slate-400">{reform.code}</span>
-        <span className={`rounded-md border px-2 py-0.5 text-[10px] font-black ${reformStatusStyles[reform.status]}`}>
+        <span className="font-mono text-[11px] font-medium text-slate-400">{reform.code}</span>
+        <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${reformStatusStyles[reform.status]}`}>
           {reformStatusLabels[reform.status]}
         </span>
       </div>
-      <h3 className="mt-3 text-base font-black leading-6 text-white">{reform.title}</h3>
+      <h3 className="mt-3 text-base font-bold leading-6 text-white">{reform.title}</h3>
       {reform.description ? <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-400">{reform.description}</p> : null}
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/8 pt-3 text-xs text-slate-400">
         <span className="inline-flex items-center gap-1.5">
@@ -122,28 +136,22 @@ function ReformCard({ reform }: { reform: ReformListItem }) {
           {reform.normCount} {reform.normCount === 1 ? "norma" : "normas"}
         </span>
         {reform.conflictCount ? (
-          <span className="inline-flex items-center gap-1.5 font-bold text-amber-200">
+          <span className="inline-flex items-center gap-1.5 font-semibold text-amber-200">
             <AlertTriangle className="h-3.5 w-3.5" />
             {reform.conflictCount} con conflictos
           </span>
         ) : null}
       </div>
+      <div className="mt-2">
+        <AuthorLine name={reform.authorName} account={reform.authorAccount} />
+      </div>
       <Link
         href={`/normas/${reform.id}`}
-        className="urban-button mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-black text-white"
+        className="urban-button mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-bold text-white"
       >
         Abrir
         <ArrowRight className="h-4 w-4" />
       </Link>
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-white/8 bg-white/[0.03] p-3">
-      <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-black text-white">{value}</p>
     </div>
   );
 }
@@ -178,14 +186,14 @@ function CreateReformModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
       <div className="urban-card w-full max-w-lg rounded-xl p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-black text-white">Nuevo código</h2>
+          <h2 className="text-lg font-bold text-white">Nuevo código</h2>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-white" aria-label="Cerrar">
             <X className="h-5 w-5" />
           </button>
         </div>
         <div className="grid gap-3">
           <label className="grid gap-1.5">
-            <span className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">Título</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Título</span>
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
@@ -194,7 +202,7 @@ function CreateReformModal({ onClose }: { onClose: () => void }) {
             />
           </label>
           <label className="grid gap-1.5">
-            <span className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">Objeto y alcance (opcional)</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Objeto y alcance (opcional)</span>
             <textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
@@ -212,7 +220,7 @@ function CreateReformModal({ onClose }: { onClose: () => void }) {
               type="button"
               onClick={create}
               disabled={saving || !title.trim()}
-              className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-black text-white disabled:opacity-50"
+              className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               Crear código

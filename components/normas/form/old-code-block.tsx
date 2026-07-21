@@ -88,7 +88,7 @@ export function OldCodeBlock({
           <BookOpenCheck className="h-4 w-4 text-[#1f89f6]" />
           CPU 2014 · Ordenanza vigente
         </p>
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.06] px-2.5 py-1 text-xs font-black text-sky-200">
+        <span className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.06] px-2.5 py-1 text-xs font-semibold text-sky-200">
           <Anchor className="h-3.5 w-3.5" />
           {anchors.length} {anchors.length === 1 ? "artículo marcado" : "artículos marcados"}
         </span>
@@ -100,12 +100,12 @@ export function OldCodeBlock({
             const isAi = anchorItem.createdBy === AI_AUTHOR;
             return (
               <div key={anchorItem.id} className="flex items-start gap-3 rounded-md border border-white/10 bg-white/[0.03] p-3">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-sky-400/10 text-xs font-black text-sky-200">{anchorItem.articleNumber}</span>
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-sky-400/10 text-xs font-semibold text-sky-200">{anchorItem.articleNumber}</span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="truncate text-sm font-bold text-slate-200">{anchorItem.articleTitle}</span>
                     <span
-                      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-black ${
+                      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
                         isAi ? "border-sky-300/30 bg-sky-300/10 text-sky-100" : "border-slate-300/25 bg-slate-400/10 text-slate-200"
                       }`}
                       title={isAi ? "Anclado automáticamente en la comparación" : "Anclado por el equipo"}
@@ -114,7 +114,7 @@ export function OldCodeBlock({
                       {isAi ? "IA" : "Manual"}
                     </span>
                     {disabled ? (
-                      <span className={`rounded border px-1.5 py-0.5 text-[10px] font-black ${relationshipTypeStyles[anchorItem.relationshipType]}`}>
+                      <span className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${relationshipTypeStyles[anchorItem.relationshipType]}`}>
                         {relationshipTypeLabels[anchorItem.relationshipType]}
                       </span>
                     ) : (
@@ -122,7 +122,7 @@ export function OldCodeBlock({
                         value={anchorItem.relationshipType}
                         disabled={busyAnchorId === anchorItem.id}
                         onChange={(event) => changeRelationship(anchorItem, event.target.value as NormativeRelationshipType)}
-                        className={`h-7 rounded border px-1.5 text-[11px] font-black outline-none disabled:opacity-60 ${relationshipTypeStyles[anchorItem.relationshipType]} bg-slate-950/60`}
+                        className={`h-7 rounded border px-1.5 text-[11px] font-semibold outline-none disabled:opacity-60 ${relationshipTypeStyles[anchorItem.relationshipType]} bg-slate-950/60`}
                         aria-label={`Relación del artículo ${anchorItem.articleNumber}`}
                         title="Corregir la relación marcada"
                       >
@@ -161,7 +161,7 @@ export function OldCodeBlock({
           <button
             type="button"
             onClick={() => setShowManualAdd((current) => !current)}
-            className="inline-flex items-center gap-1.5 text-xs font-black text-slate-400 transition hover:text-sky-200"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 transition hover:text-sky-200"
           >
             <Plus className="h-3.5 w-3.5" />
             Agregar a mano
@@ -305,7 +305,7 @@ function ManualAdd({
                 disabled={already || anchoringId === result.id}
                 className="flex w-full items-start gap-3 rounded-md border border-white/8 bg-white/[0.02] p-2.5 text-left transition hover:border-sky-300/30 disabled:opacity-50"
               >
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-sky-400/10 text-xs font-black text-sky-200">{result.number}</span>
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-sky-400/10 text-xs font-semibold text-sky-200">{result.number}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-bold text-slate-200">{result.title}</span>
                   <span className="mt-0.5 block truncate text-xs text-slate-500">{result.excerpt}</span>
