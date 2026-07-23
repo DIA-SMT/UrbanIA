@@ -64,8 +64,15 @@ async function main() {
   for (const meeting of queue) {
     log(`Procesando "${meeting.title}"...`);
     await runIngestJob(meeting.id);
-    const done = await prisma.meeting.findUnique({ where: { id: meeting.id }, select: { status: true, hearingStatus: true } });
+    const done = await prisma.meeting.findUnique({
+      where: { id: meeting.id },
+      select: { status: true, hearingStatus: true, metadata: true }
+    });
     log(`"${meeting.title}": status=${done?.status} hearingStatus=${done?.hearingStatus}`);
+    if (done?.status === "ERROR") {
+      const metadata = done.metadata && typeof done.metadata === "object" && !Array.isArray(done.metadata) ? (done.metadata as Record<string, unknown>) : {};
+      if (typeof metadata.error === "string" && metadata.error) log(`  motivo: ${metadata.error}`);
+    }
   }
 }
 
