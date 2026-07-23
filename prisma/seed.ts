@@ -447,6 +447,102 @@ async function main() {
 
   await seedProjectModule();
   await seedNormFactory();
+  await seedHearings();
+}
+
+/** Registro de audiencias de ejemplo: una proxima y una finalizada con analisis. */
+async function seedHearings() {
+  const reform = await prisma.normativeReform.findFirst({ where: { code: "COD-2026-01" }, select: { id: true } });
+
+  const scheduledTitle = "Audiencia pública — Alturas y usos del corredor Aconquija";
+  const existingScheduled = await prisma.meeting.findFirst({ where: { title: scheduledTitle, kind: "PUBLIC_HEARING" }, select: { id: true } });
+  if (!existingScheduled) {
+    await prisma.meeting.create({
+      data: {
+        title: scheduledTitle,
+        kind: "PUBLIC_HEARING",
+        status: "PENDING",
+        hearingStatus: "SCHEDULED",
+        hearingSource: "MANUAL",
+        modality: "Presencial",
+        location: "Concejo Deliberante, San Miguel de Tucuman",
+        occurredAt: new Date("2026-08-14T18:00:00-03:00"),
+        reformId: reform?.id ?? null,
+        description:
+          "Audiencia para debatir las alturas maximas y la compatibilidad de usos sobre el corredor Aconquija, en el marco del Codigo de Planeamiento Urbano 2026."
+      }
+    });
+  }
+
+  const completedTitle = "Audiencia pública — Estacionamiento y peatonalizacion del microcentro";
+  const existingCompleted = await prisma.meeting.findFirst({ where: { title: completedTitle, kind: "PUBLIC_HEARING" }, select: { id: true } });
+  if (!existingCompleted) {
+    const meeting = await prisma.meeting.create({
+      data: {
+        title: completedTitle,
+        kind: "PUBLIC_HEARING",
+        status: "READY",
+        hearingStatus: "COMPLETED",
+        hearingSource: "LIVE",
+        modality: "Presencial",
+        location: "Salon municipal, microcentro",
+        occurredAt: new Date("2026-07-03T17:00:00-03:00"),
+        reformId: reform?.id ?? null,
+        description: "Debate sobre el regimen de estacionamiento y la peatonalizacion parcial del microcentro."
+      }
+    });
+
+    await prisma.meetingParticipant.createMany({
+      data: [
+        { meetingId: meeting.id, displayName: "Camara de Comercio", role: "Sector comercial" },
+        { meetingId: meeting.id, displayName: "Colegio de Arquitectos", role: "Colegio profesional" },
+        { meetingId: meeting.id, displayName: "Vecinos del microcentro", role: "Organizacion barrial" }
+      ]
+    });
+
+    await prisma.meetingAnalysis.create({
+      data: {
+        meetingId: meeting.id,
+        version: 1,
+        model: "seed",
+        summary:
+          "La audiencia discutio la eliminacion de los minimos de cocheras y la peatonalizacion parcial del microcentro. Hubo respaldo tecnico y de organizaciones barriales, y reparos del sector comercial por la carga y descarga.",
+        conclusions: [
+          {
+            agreements: "Consenso en priorizar el transporte publico y la caminabilidad del area central.",
+            disagreements: "El sector comercial pide preservar espacios de carga y descarga en horario acotado.",
+            nextSteps: "Definir el regimen de carga y descarga y delimitar cartograficamente el area peatonal."
+          }
+        ],
+        topics: ["Estacionamiento", "Peatonalizacion", "Carga y descarga"],
+        citations: ["Articulo 78"]
+      }
+    });
+
+    const estacionamiento = await prisma.project.findFirst({ where: { code: "NOR-2026-0003" }, select: { id: true } });
+    if (estacionamiento) {
+      await prisma.hearingNormMatch.createMany({
+        data: [
+          {
+            meetingId: meeting.id,
+            projectId: estacionamiento.id,
+            fragment: "eliminar los minimos de cocheras en el microcentro nos parece un acierto para priorizar el transporte publico",
+            stance: "SUPPORT",
+            confidence: 0.86,
+            atMs: 420000
+          },
+          {
+            meetingId: meeting.id,
+            projectId: estacionamiento.id,
+            fragment: "sin espacios de carga y descarga los comercios no pueden operar",
+            stance: "CHANGE_REQUEST",
+            confidence: 0.78,
+            atMs: 1080000
+          }
+        ]
+      });
+    }
+  }
 }
 
 main()

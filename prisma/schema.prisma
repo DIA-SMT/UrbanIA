@@ -417,6 +417,15 @@ model Meeting {
   description        String?
   language           String               @default("es")
   metadata           Json                 @default("{}")
+  /// Registro de audiencias: estado y origen de la ficha. Opcionales para no
+  /// romper los Meeting genericos (reuniones/actas) que no son audiencias.
+  hearingStatus      HearingStatus?
+  hearingSource      HearingSource?
+  modality           String?
+  /// Audiencia en vivo: el codigo nuevo (Fabrica de Normas) que se debate.
+  /// Acota el macheo en vivo a las normas de esa reforma.
+  reformId           String?
+  reform             NormativeReform?     @relation(fields: [reformId], references: [id], onDelete: SetNull)
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   mediaFiles         MeetingMedia[]
@@ -426,6 +435,49 @@ model Meeting {
   insights           MeetingInsight[]
   actionItems        MeetingActionItem[]
   projectAttachments ProjectAttachment[]
+  normMatches        HearingNormMatch[]
+
+  @@index([reformId])
+}
+
+/// Cruce en vivo audiencia <-> mininorma: que norma del codigo nuevo se esta
+/// discutiendo, con que postura y con que fragmento de la transcripcion.
+model HearingNormMatch {
+  id         String             @id @default(cuid())
+  meetingId  String
+  projectId  String
+  fragment   String
+  stance     HearingMatchStance @default(MENTION)
+  confidence Float              @default(0)
+  atMs       Int?
+  createdAt  DateTime           @default(now())
+  meeting    Meeting            @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  norm       Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@index([projectId])
+}
+
+enum HearingMatchStance {
+  SUPPORT
+  OPPOSE
+  CHANGE_REQUEST
+  MENTION
+}
+
+enum HearingStatus {
+  SCHEDULED
+  LIVE
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+enum HearingSource {
+  LIVE
+  YOUTUBE
+  UPLOAD
+  MANUAL
 }
 
 model MeetingMedia {
@@ -583,6 +635,7 @@ model Project {
   budgetItems   ProjectBudgetItem[]
   attachments   ProjectAttachment[]
   cabinetIdeas  CabinetIdea[]
+  hearingMatches HearingNormMatch[]
 
   @@index([status])
   @@index([stage])
@@ -656,6 +709,7 @@ model NormativeReform {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   norms       Project[]
+  hearings    Meeting[]
 
   @@index([status])
   @@index([createdAt])

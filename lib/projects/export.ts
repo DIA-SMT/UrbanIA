@@ -1,5 +1,12 @@
 import "server-only";
 
+import {
+  DOCUMENT_SHELL_STYLES,
+  renderFooter,
+  renderLetterhead,
+  renderWatermark,
+  type LetterheadMeta
+} from "@/lib/brand/document-shell";
 import type { NormDetail, NormListItem, ReformDetail } from "@/lib/projects/shared";
 import {
   conflictLevelLabels,
@@ -11,9 +18,9 @@ import {
 
 /**
  * Export en PDF de la Fabrica de Normas, con el patron del repo (sin
- * dependencias): la ruta devuelve HTML imprimible que dispara el dialogo de
- * impresion del navegador ("Guardar como PDF"). Sirve para el codigo nuevo
- * consolidado y para la norma individual.
+ * dependencias): la ruta devuelve HTML imprimible con identidad municipal
+ * (membrete, marca de agua y pie institucional) que dispara el dialogo de
+ * impresion del navegador ("Guardar como PDF").
  */
 
 /** Orden numerico-consciente: "2" antes que "10"; sin numero, al final. */
@@ -39,34 +46,33 @@ function toParagraphs(value: string): string {
     .join("");
 }
 
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
-}
-
 const PRINT_STYLES = `
   * { box-sizing: border-box; }
-  body { font-family: Inter, "Segoe UI", system-ui, sans-serif; color: #0b1220; margin: 40px; line-height: 1.55; }
+  body { font-family: Inter, "Segoe UI", system-ui, sans-serif; color: #0b1220; line-height: 1.55; }
   h1 { font-size: 22px; margin: 0 0 4px; }
   h2 { font-size: 16px; margin: 28px 0 6px; }
   h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #1f89f6; margin: 18px 0 6px; }
   p { margin: 6px 0; font-size: 13px; }
-  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: #64748b; font-weight: 800; }
   .muted { color: #475569; font-size: 12px; }
   .article-text { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; background: #f8fafc; }
   .article-text p { font-size: 13px; }
   ul { margin: 6px 0; padding-left: 18px; }
   li { margin: 3px 0; font-size: 13px; }
   .norm { page-break-inside: avoid; border-top: 2px solid #1f89f6; margin-top: 26px; padding-top: 10px; }
-  .footer { margin-top: 32px; font-size: 10px; color: #94a3b8; }
-  @media print { body { margin: 16mm; } }
 `;
 
-function printDocument(title: string, bodyHtml: string): string {
+/**
+ * Arma el documento imprimible con el shell institucional: marca de agua,
+ * membrete y pie repetidos por pagina, y el cuerpo con espacio reservado.
+ */
+function printDocument(title: string, bodyHtml: string, meta: LetterheadMeta): string {
   return [
     "<!doctype html>",
-    `<html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${PRINT_STYLES}</style></head><body>`,
-    bodyHtml,
-    `<div class="footer">Generado desde UrbanIA — Municipalidad de San Miguel de Tucumán, el ${formatDate(new Date())}. Documento de trabajo; no es texto vigente. La IA orienta; el equipo municipal redacta y valida.</div>`,
+    `<html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${PRINT_STYLES}${DOCUMENT_SHELL_STYLES}</style></head><body>`,
+    renderWatermark(),
+    renderLetterhead(meta),
+    `<main class="doc-body">${bodyHtml}</main>`,
+    renderFooter({ docCode: meta.docCode }),
     `<script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 350); });</script>`,
     "</body></html>"
   ].join("");
@@ -76,25 +82,35 @@ function normHeading(norm: Pick<NormListItem, "articleNumber" | "title">): strin
   return norm.articleNumber ? `Artículo ${norm.articleNumber} — ${norm.title}` : norm.title;
 }
 
-function normMetaLine(norm: NormListItem): string {
+/**
+ * Linea de metadatos de una norma. `includeIdentity` agrega codigo y estado:
+ * va en las secciones del codigo consolidado, pero no en el documento de una
+ * norma sola (ahi ya lo muestra el membrete).
+ */
+function normMetaLine(norm: NormListItem, includeIdentity: boolean): string {
   const materia = norm.areas.map((area) => materiaLabels[area]).join(", ");
   const parts = [
-    norm.code,
-    normStatusLabels[norm.status],
+    ...(includeIdentity ? [norm.code, normStatusLabels[norm.status]] : []),
     ...(materia ? [materia] : []),
     ...(norm.latestFeasibility ? [`Último análisis: ${conflictLevelLabels[norm.latestFeasibility]}`] : [])
   ];
   return parts.map(escapeHtml).join(" · ");
 }
 
-function normSectionHtml(norm: NormListItem & { articleText?: string | null }, headingTag: "h1" | "h2"): string {
+function normSectionHtml(
+  norm: NormListItem & { articleText?: string | null },
+  headingTag: "h1" | "h2",
+  includeIdentity: boolean
+): string {
   const articleBlock = norm.articleText?.trim()
     ? `<div class="article-text">${toParagraphs(norm.articleText)}</div>`
     : `<p class="muted">Sin texto redactado todavía.</p>`;
 
+  const metaLine = normMetaLine(norm, includeIdentity);
+
   return [
     `<${headingTag}>${escapeHtml(normHeading(norm))}</${headingTag}>`,
-    `<p class="muted">${normMetaLine(norm)}</p>`,
+    ...(metaLine ? [`<p class="muted">${metaLine}</p>`] : []),
     `<h3>Objeto</h3>${toParagraphs(norm.summary)}`,
     `<h3>Texto del articulado</h3>${articleBlock}`
   ].join("");
@@ -105,25 +121,24 @@ export function reformToPrintHtml(reform: ReformDetail, normTexts: Map<string, s
   const sorted = [...reform.norms].sort((a, b) => compareArticleNumbers(a.articleNumber, b.articleNumber));
 
   const header = [
-    `<p class="eyebrow">Fábrica de Normas · ${escapeHtml(reform.code)} · ${escapeHtml(reformStatusLabels[reform.status])}</p>`,
     `<h1>${escapeHtml(reform.title)}</h1>`,
     `<p class="muted">${reform.normCount} ${reform.normCount === 1 ? "norma" : "normas"} · Borrador para elevar a ordenanza</p>`,
     ...(reform.description ? [toParagraphs(reform.description)] : [])
   ].join("");
 
   const body = sorted
-    .map((norm) => `<section class="norm">${normSectionHtml({ ...norm, articleText: normTexts.get(norm.id) ?? null }, "h2")}</section>`)
+    .map((norm) => `<section class="norm">${normSectionHtml({ ...norm, articleText: normTexts.get(norm.id) ?? null }, "h2", true)}</section>`)
     .join("");
 
-  return printDocument(`${reform.code} — ${reform.title}`, header + body);
+  return printDocument(`${reform.code} — ${reform.title}`, header + body, {
+    subtitle: "Fábrica de Normas · Código nuevo",
+    docCode: reform.code,
+    statusLabel: reformStatusLabels[reform.status]
+  });
 }
 
 /** Una norma individual, con sus articulos del CPU 2014 relacionados. */
 export function normToPrintHtml(norm: NormDetail): string {
-  const header = norm.reformTitle
-    ? `<p class="eyebrow">${escapeHtml(norm.reformCode ?? "")} · ${escapeHtml(norm.reformTitle)}</p>`
-    : `<p class="eyebrow">Fábrica de Normas</p>`;
-
   const anchorsBlock = norm.anchors.length
     ? [
         `<h3>Artículos del CPU 2014 relacionados</h3>`,
@@ -136,5 +151,9 @@ export function normToPrintHtml(norm: NormDetail): string {
       ].join("")
     : "";
 
-  return printDocument(`${norm.code} — ${norm.title}`, header + normSectionHtml(norm, "h1") + anchorsBlock);
+  return printDocument(`${norm.code} — ${norm.title}`, normSectionHtml(norm, "h1", false) + anchorsBlock, {
+    subtitle: norm.reformTitle ? `Fábrica de Normas · ${norm.reformTitle}` : "Fábrica de Normas",
+    docCode: norm.code,
+    statusLabel: normStatusLabels[norm.status]
+  });
 }

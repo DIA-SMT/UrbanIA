@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
+
+// useLayoutEffect en cliente, useEffect en server (evita el warning de SSR).
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 import { FileText, Loader2, Paperclip, Send, Trash2, X } from "lucide-react";
 import { MarkdownText } from "@/components/assistant/markdown-text";
 import { SourceCitation } from "@/components/assistant/source-citation";
@@ -17,29 +20,41 @@ const MIGUE_POSITION_KEY = "urbania-migue-position";
 const LAUNCHER_SIZE = 84;
 const EDGE_MARGIN = 8;
 
-/** Mantiene el launcher siempre dentro de la pantalla. */
+type MigueSide = "left" | "right";
+type MigueDock = { side: MigueSide; y: number };
+
+/** Mantiene el launcher siempre dentro de la pantalla (durante el arrastre libre). */
 function clampToViewport(x: number, y: number): { x: number; y: number } {
   const maxX = Math.max(EDGE_MARGIN, window.innerWidth - LAUNCHER_SIZE - EDGE_MARGIN);
   const maxY = Math.max(EDGE_MARGIN, window.innerHeight - LAUNCHER_SIZE - EDGE_MARGIN);
   return { x: Math.min(Math.max(x, EDGE_MARGIN), maxX), y: Math.min(Math.max(y, EDGE_MARGIN), maxY) };
 }
 
-/** Direccion de apertura del panel segun el cuadrante donde quedo el launcher. */
-function quadrantClass(position: { x: number; y: number }): string {
-  const onLeft = position.x + LAUNCHER_SIZE / 2 < window.innerWidth / 2;
-  const onTop = position.y + LAUNCHER_SIZE / 2 < window.innerHeight / 2;
-  return `${onTop ? "flex-col-reverse" : "flex-col"} ${onLeft ? "items-start" : "items-end"}`;
+/** X (top-left) del launcher pegado a un borde lateral. */
+function dockX(side: MigueSide): number {
+  return side === "left" ? EDGE_MARGIN : Math.max(EDGE_MARGIN, window.innerWidth - LAUNCHER_SIZE - EDGE_MARGIN);
 }
 
-/** Ancla por el borde mas cercano para que el panel crezca hacia el centro sin salirse. */
-function quadrantStyle(position: { x: number; y: number }): React.CSSProperties {
-  const onLeft = position.x + LAUNCHER_SIZE / 2 < window.innerWidth / 2;
-  const onTop = position.y + LAUNCHER_SIZE / 2 < window.innerHeight / 2;
+/** Mantiene la altura dentro de la pantalla. */
+function clampY(y: number): number {
+  const maxY = Math.max(EDGE_MARGIN, window.innerHeight - LAUNCHER_SIZE - EDGE_MARGIN);
+  return Math.min(Math.max(y, EDGE_MARGIN), maxY);
+}
+
+/** Direccion de apertura del panel: hacia el centro segun borde y mitad vertical. */
+function sideClass(side: MigueSide, y: number): string {
+  const onTop = y + LAUNCHER_SIZE / 2 < window.innerHeight / 2;
+  return `${onTop ? "flex-col-reverse" : "flex-col"} ${side === "left" ? "items-start" : "items-end"}`;
+}
+
+/** Ancla el contenedor por el borde lateral + la mitad vertical mas cercana. */
+function dockStyleFor(side: MigueSide, y: number): React.CSSProperties {
   const style: React.CSSProperties = {};
-  if (onLeft) style.left = position.x;
-  else style.right = Math.max(EDGE_MARGIN, window.innerWidth - position.x - LAUNCHER_SIZE);
-  if (onTop) style.top = position.y;
-  else style.bottom = Math.max(EDGE_MARGIN, window.innerHeight - position.y - LAUNCHER_SIZE);
+  if (side === "left") style.left = EDGE_MARGIN;
+  else style.right = EDGE_MARGIN;
+  const onTop = y + LAUNCHER_SIZE / 2 < window.innerHeight / 2;
+  if (onTop) style.top = y;
+  else style.bottom = Math.max(EDGE_MARGIN, window.innerHeight - y - LAUNCHER_SIZE);
   return style;
 }
 
@@ -96,29 +111,72 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
   const scrollRef = useRef<HTMLDivElement>(null);
   const draftRef = useRef<HTMLTextAreaElement>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ pointerId: number; grabX: number; grabY: number; startX: number; startY: number; moved: boolean } | null>(null);
-  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
-  // Posicion del launcher (top-left en px del viewport). null = ancla por defecto (abajo-derecha).
-  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
-  const [dragging, setDragging] = useState(false);
+  // Velocidad horizontal suavizada, para detectar la "tirada" (fling) al soltar.
+  const velRef = useRef<{ x: number; t: number }>({ x: 0, t: 0 });
+  const vxRef = useRef(0);
+  // Parametros del arco pendiente + trigger del layout effect que lo lanza.
+  const throwRef = useRef<{ offX: number; offY: number } | null>(null);
+  const [throwSeq, setThrowSeq] = useState(0);
+  // Migue pegado a un borde lateral. null = ancla por defecto hasta hidratar.
+  const [dock, setDock] = useState<MigueDock | null>(null);
+  // Posicion libre (top-left px) mientras se arrastra. null = quieto en su borde.
+  const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
+  const dragging = drag !== null;
 
-  // Restaura la posicion guardada y la vuelve a encuadrar si cambia el tamano de ventana.
-  useEffect(() => {
+  function persistDock(next: MigueDock) {
     try {
-      const stored = window.localStorage.getItem(MIGUE_POSITION_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed && typeof parsed.x === "number" && typeof parsed.y === "number") setPosition(clampToViewport(parsed.x, parsed.y));
+      window.localStorage.setItem(MIGUE_POSITION_KEY, JSON.stringify(next));
+    } catch {
+      // storage bloqueado
+    }
+  }
+
+  // Restaura el borde/altura guardados (migrando el formato viejo {x,y}) y re-encuadra al resize.
+  useEffect(() => {
+    let initial: MigueDock;
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(MIGUE_POSITION_KEY) ?? "null");
+      if (parsed && (parsed.side === "left" || parsed.side === "right") && typeof parsed.y === "number") {
+        initial = { side: parsed.side, y: clampY(parsed.y) };
+      } else if (parsed && typeof parsed.x === "number" && typeof parsed.y === "number") {
+        initial = { side: parsed.x + LAUNCHER_SIZE / 2 < window.innerWidth / 2 ? "left" : "right", y: clampY(parsed.y) };
+      } else {
+        initial = { side: "right", y: clampY(window.innerHeight - LAUNCHER_SIZE - 24) };
       }
     } catch {
-      // posicion corrupta: se ignora
+      initial = { side: "right", y: clampY(window.innerHeight - LAUNCHER_SIZE - 24) };
     }
+    setDock(initial);
+
     function onResize() {
-      setPosition((current) => (current ? clampToViewport(current.x, current.y) : current));
+      setDock((current) => (current ? { side: current.side, y: clampY(current.y) } : current));
     }
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  // Lanza el arco (tipo pelota) desde donde se solto hasta el borde de destino.
+  useIsomorphicLayoutEffect(() => {
+    const params = throwRef.current;
+    const el = containerRef.current;
+    throwRef.current = null;
+    if (!params || !el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const { offX, offY } = params;
+    const arc = Math.min(Math.max(Math.abs(offX) * 0.22, 36), 170);
+    const spin = offX > 0 ? 12 : -12;
+    el.animate(
+      [
+        { transform: `translate(${offX}px, ${offY}px) rotate(0deg)` },
+        { transform: `translate(${offX * 0.5}px, ${offY * 0.5 - arc}px) rotate(${spin}deg) scale(1.08)`, offset: 0.45 },
+        { transform: "translate(0px, 0px) rotate(0deg) scale(1)" }
+      ],
+      { duration: 560, easing: "cubic-bezier(.3,1.15,.4,1)" }
+    );
+  }, [throwSeq]);
 
   function onLauncherPointerDown(event: React.PointerEvent<HTMLButtonElement>) {
     if (event.button !== 0) return;
@@ -131,6 +189,8 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
       startY: event.clientY,
       moved: false
     };
+    velRef.current = { x: event.clientX, t: performance.now() };
+    vxRef.current = 0;
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
@@ -139,41 +199,52 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
   }
 
   function onLauncherPointerMove(event: React.PointerEvent<HTMLButtonElement>) {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
+    const dragState = dragRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
     // Umbral de 5px para distinguir un click de un arrastre.
-    if (!drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 5) {
-      drag.moved = true;
-      setDragging(true);
+    if (!dragState.moved && Math.hypot(event.clientX - dragState.startX, event.clientY - dragState.startY) > 5) {
+      dragState.moved = true;
     }
-    if (drag.moved) {
-      const next = clampToViewport(event.clientX - drag.grabX, event.clientY - drag.grabY);
-      lastPosRef.current = next;
-      setPosition(next);
+    if (dragState.moved) {
+      const now = performance.now();
+      const dt = Math.max(1, now - velRef.current.t);
+      const vx = (event.clientX - velRef.current.x) / dt;
+      vxRef.current = 0.55 * vx + 0.45 * vxRef.current;
+      velRef.current = { x: event.clientX, t: now };
+      setDrag(clampToViewport(event.clientX - dragState.grabX, event.clientY - dragState.grabY));
     }
   }
 
   function onLauncherPointerUp(event: React.PointerEvent<HTMLButtonElement>) {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
+    const dragState = dragRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
     try {
       event.currentTarget.releasePointerCapture(event.pointerId);
     } catch {
       // sin captura activa
     }
     dragRef.current = null;
-    if (drag.moved) {
-      setDragging(false);
-      if (lastPosRef.current) {
-        try {
-          window.localStorage.setItem(MIGUE_POSITION_KEY, JSON.stringify(lastPosRef.current));
-        } catch {
-          // storage bloqueado
-        }
-      }
-    } else {
+
+    if (!dragState.moved) {
       setIsOpen((value) => !value);
+      return;
     }
+
+    // Borde de destino: si hubo envion horizontal (fling) manda esa direccion;
+    // si no, el lado de la mitad donde se solto. Asi cruza al tirarlo o vuelve.
+    const cur = clampToViewport(event.clientX - dragState.grabX, event.clientY - dragState.grabY);
+    const center = cur.x + LAUNCHER_SIZE / 2;
+    const vx = vxRef.current;
+    const side: MigueSide = Math.abs(vx) > 0.45 ? (vx > 0 ? "right" : "left") : center < window.innerWidth / 2 ? "left" : "right";
+    const y = clampY(cur.y);
+    const next: MigueDock = { side, y };
+
+    // Offset desde donde se solto hasta el borde: el arco arranca ahi y termina pegado.
+    throwRef.current = { offX: cur.x - dockX(side), offY: cur.y - y };
+    setDock(next);
+    setDrag(null);
+    setThrowSeq((seq) => seq + 1);
+    persistDock(next);
   }
 
   useEffect(() => {
@@ -334,12 +405,23 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
     }
   }
 
-  // Ancla el contenedor segun el cuadrante del launcher para que el panel abra hacia el centro.
-  const dockClass = position === null ? "bottom-24 right-4 md:right-6 lg:bottom-6 flex-col items-end" : quadrantClass(position);
-  const dockStyle: React.CSSProperties = position === null ? {} : quadrantStyle(position);
+  // Mientras se arrastra sigue el puntero; en reposo queda pegado a su borde lateral.
+  let dockClass: string;
+  let dockStyle: React.CSSProperties;
+  if (drag) {
+    const side: MigueSide = drag.x + LAUNCHER_SIZE / 2 < window.innerWidth / 2 ? "left" : "right";
+    dockClass = sideClass(side, drag.y);
+    dockStyle = { left: drag.x, top: drag.y };
+  } else if (dock) {
+    dockClass = sideClass(dock.side, dock.y);
+    dockStyle = dockStyleFor(dock.side, dock.y);
+  } else {
+    dockClass = "bottom-24 right-4 md:right-6 lg:bottom-6 flex-col items-end";
+    dockStyle = {};
+  }
 
   return (
-    <div className={`migue-theme-${appearance} fixed z-[80] flex gap-3 ${dockClass}`} style={dockStyle}>
+    <div ref={containerRef} className={`migue-theme-${appearance} fixed z-[80] flex gap-3 ${dockClass}`} style={dockStyle}>
       {isOpen ? (
         <section className="flex max-h-[calc(100dvh-10rem)] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(2,6,23,0.35)] dark:border-white/10 dark:bg-[#0d1b2a]">
           <div className="flex shrink-0 items-center gap-3 bg-gradient-to-br from-[#35aeea] via-[#1f89f6] to-[#0d6fe0] p-4">
