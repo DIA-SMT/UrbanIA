@@ -32,6 +32,45 @@ export function readIngestSpec(metadata: Prisma.JsonValue | null): IngestSpec | 
   return null;
 }
 
+/* ------------------------------- Heartbeat -------------------------------- */
+// El job corre fire-and-forget dentro del dev server: si el proceso muere a
+// mitad de camino (reinicio, cierre de terminal), el catch nunca corre y la
+// audiencia quedaria en PROCESSING para siempre sin error. El latido periodico
+// permite detectar ese caso: PROCESSING sin latido fresco = job muerto.
+
+const HEARTBEAT_INTERVAL_MS = 30_000;
+/** Sin latido por este tiempo, un PROCESSING se considera trabado. */
+export const INGEST_STALL_MS = 3 * 60_000;
+
+function readMetaObject(metadata: Prisma.JsonValue | null): Prisma.JsonObject {
+  return metadata && typeof metadata === "object" && !Array.isArray(metadata) ? (metadata as Prisma.JsonObject) : {};
+}
+
+async function touchHeartbeat(meetingId: string): Promise<void> {
+  try {
+    const meeting = await prisma.meeting.findUnique({ where: { id: meetingId }, select: { metadata: true } });
+    if (!meeting) return;
+    await prisma.meeting.update({
+      where: { id: meetingId },
+      data: { metadata: { ...readMetaObject(meeting.metadata), ingestHeartbeatAt: new Date().toISOString() } }
+    });
+  } catch {
+    // El latido nunca debe tirar el job.
+  }
+}
+
+/**
+ * True si una ingesta en curso dejo de latir (job muerto). El fallback a
+ * updatedAt cubre audiencias de antes del heartbeat.
+ */
+export function isIngestStalled(metadata: Prisma.JsonValue | null, updatedAt: Date, now = Date.now()): boolean {
+  if (!readIngestSpec(metadata)) return false;
+  const raw = readMetaObject(metadata).ingestHeartbeatAt;
+  const beat = typeof raw === "string" ? Date.parse(raw) : Number.NaN;
+  const reference = Number.isNaN(beat) ? updatedAt.getTime() : beat;
+  return now - reference > INGEST_STALL_MS;
+}
+
 /**
  * Procesa una audiencia encolada: transcribe (Whisper) y machea en lote. Nunca
  * lanza: registra el error en la audiencia y no rompe el board.
@@ -76,6 +115,12 @@ export async function runIngestJob(meetingId: string): Promise<void> {
 
   await prisma.meeting.update({ where: { id: meetingId }, data: { status: "PROCESSING" } });
 
+  // Primer latido inmediato + latido periodico mientras el job vive.
+  await touchHeartbeat(meetingId);
+  const heartbeat = setInterval(() => {
+    void touchHeartbeat(meetingId);
+  }, HEARTBEAT_INTERVAL_MS);
+
   try {
     const chunks = spec.mode === "youtube" ? await youtubeChunksWithSpeakers(spec.url) : await transcribeFromFile(spec.filePath);
     await matchFullTranscript({
@@ -87,6 +132,7 @@ export async function runIngestJob(meetingId: string): Promise<void> {
   } catch (error) {
     await markHearingError(meetingId, error instanceof Error ? error.message : "Error desconocido en la ingesta");
   } finally {
+    clearInterval(heartbeat);
     // El audio subido es temporal: se limpia pase lo que pase.
     if (spec.mode === "upload") {
       try {

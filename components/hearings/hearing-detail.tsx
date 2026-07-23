@@ -17,10 +17,12 @@ import {
   Paperclip,
   Pencil,
   Radio,
+  RefreshCw,
   Save,
   Scale,
   Sparkles,
   Trash2,
+  TriangleAlert,
   Users,
   X
 } from "lucide-react";
@@ -115,6 +117,27 @@ export function HearingDetail({
   const [expanded, setExpanded] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState("");
+  const [retryStarted, setRetryStarted] = useState(false);
+
+  async function retryIngest() {
+    setRetryError("");
+    setRetrying(true);
+    try {
+      const response = await fetch(`/api/hearings/${hearing.id}/retry-ingest`, { method: "POST" });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.detail || payload?.error || "No se pudo reintentar el procesamiento.");
+      }
+      setRetryStarted(true);
+      router.refresh();
+    } catch (error) {
+      setRetryError(error instanceof Error ? error.message : "No se pudo reintentar el procesamiento.");
+    } finally {
+      setRetrying(false);
+    }
+  }
 
   // Edicion inline de las fichas. null = seccion en modo lectura.
   const [fichaDraft, setFichaDraft] = useState<HearingFicha | null>(null);
@@ -277,6 +300,33 @@ export function HearingDetail({
           </span>
         ) : null}
       </div>
+
+      {hearing.ingestError || hearing.ingestStalled ? (
+        <div className="rounded-lg border border-amber-300/25 bg-amber-300/10 p-4">
+          <p className="inline-flex items-center gap-2 text-sm font-black text-amber-100">
+            <TriangleAlert className="h-4 w-4 shrink-0" />
+            {hearing.ingestError ? "El procesamiento del video falló" : "El procesamiento se interrumpió"}
+          </p>
+          <p className="mt-1.5 text-xs leading-5 text-amber-100/80">
+            {hearing.ingestError ??
+              "El servidor se detuvo mientras se procesaba el video y el trabajo quedó a medias. Se puede retomar desde acá."}
+          </p>
+          {retryError ? <p className="mt-2 text-xs font-bold text-rose-200">{retryError}</p> : null}
+          {retryStarted ? (
+            <p className="mt-2 text-xs font-bold text-emerald-200">Procesamiento relanzado: puede tardar varios minutos. Actualizá la página para ver el avance.</p>
+          ) : canEdit ? (
+            <button
+              type="button"
+              onClick={retryIngest}
+              disabled={retrying}
+              className="urban-button mt-3 inline-flex items-center gap-1.5 rounded-md border border-amber-300/30 bg-amber-300/15 px-3 py-1.5 text-xs font-black text-amber-100 disabled:opacity-60"
+            >
+              {retrying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              {retrying ? "Relanzando…" : "Reintentar procesamiento"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {hearing.description ? (
         <Section title="Descripción">

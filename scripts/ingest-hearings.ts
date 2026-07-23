@@ -2,7 +2,8 @@
  * Worker de ingesta batch de audiencias grabadas (YouTube / archivo subido).
  *
  * Procesa la cola: Meeting (kind PUBLIC_HEARING) con status PENDING/ERROR y
- * metadata.ingest (mode youtube|upload). Por cada uno corre runIngestJob, que
+ * metadata.ingest (mode youtube|upload), mas los PROCESSING cuyo latido vencio
+ * (job muerto a mitad de camino). Por cada uno corre runIngestJob, que
  * transcribe con Whisper y machea en lote contra las mininormas del codigo
  * nuevo (mismo motor que el modo en vivo), deja la audiencia COMPLETED o
  * registra el error sin romper el board.
@@ -19,7 +20,7 @@
  */
 
 import { prisma } from "@/lib/db/prisma";
-import { readIngestSpec, runIngestJob } from "@/lib/hearings/ingest-job";
+import { isIngestStalled, readIngestSpec, runIngestJob } from "@/lib/hearings/ingest-job";
 import { transcribeFromYoutube } from "@/lib/hearings/transcribe";
 
 function log(message: string) {
@@ -41,12 +42,18 @@ async function main() {
     return;
   }
 
+  // PENDING/ERROR es la cola normal. PROCESSING entra solo si dejo de latir:
+  // el job fire-and-forget murio con el dev server y nadie registro el error.
   const candidates = await prisma.meeting.findMany({
-    where: { kind: "PUBLIC_HEARING", status: { in: ["PENDING", "ERROR"] } },
+    where: { kind: "PUBLIC_HEARING", status: { in: ["PENDING", "ERROR", "PROCESSING"] } },
     orderBy: { createdAt: "asc" },
-    select: { id: true, title: true, metadata: true }
+    select: { id: true, title: true, status: true, updatedAt: true, metadata: true }
   });
-  const queue = candidates.filter((meeting) => readIngestSpec(meeting.metadata) !== null);
+  const queue = candidates.filter(
+    (meeting) =>
+      readIngestSpec(meeting.metadata) !== null &&
+      (meeting.status !== "PROCESSING" || isIngestStalled(meeting.metadata, meeting.updatedAt))
+  );
 
   if (!queue.length) {
     log("No hay audiencias en cola.");

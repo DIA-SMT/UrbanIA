@@ -10,6 +10,7 @@ import {
   lifecycleFromStatus,
   syncRecordLifecycle
 } from "@/lib/hearings/record";
+import { isIngestStalled } from "@/lib/hearings/ingest-job";
 import type {
   HearingActionItemView,
   HearingAnalysisView,
@@ -59,16 +60,22 @@ function readMetaString(metadata: Prisma.JsonValue | null, key: string): string 
 }
 
 function toListItem(meeting: MeetingListPayload): HearingListItem {
+  const resolved = resolveHearingStatus(meeting.hearingStatus, meeting.status);
+  const processing = resolved === "PROCESSING";
+  const ingestError = processing ? readMetaString(meeting.metadata, "error") : null;
   return {
     id: meeting.id,
     title: meeting.title,
     occurredAt: meeting.occurredAt ? meeting.occurredAt.toISOString() : null,
-    hearingStatus: resolveHearingStatus(meeting.hearingStatus, meeting.status),
+    hearingStatus: resolved,
     location: meeting.location,
     reformId: meeting.reformId,
     reformCode: meeting.reform?.code ?? null,
     reformTitle: meeting.reform?.title ?? null,
     topic: readMetaString(meeting.metadata, "topic"),
+    ingestError,
+    // Sin error registrado pero sin latido: el job murio con el proceso.
+    ingestStalled: processing && !ingestError && isIngestStalled(meeting.metadata, meeting.updatedAt),
     matchCount: meeting._count.normMatches,
     participantCount: meeting._count.participants
   };
@@ -251,16 +258,23 @@ export async function getHearing(id: string): Promise<HearingDetail | null> {
   const conclusions = recordConclusions ?? analysisView?.conclusions ?? null;
   const conclusionsByTeam = Boolean(recordConclusions) || (analysisView?.editedByHuman ?? false);
 
+  const resolvedStatus = resolveHearingStatus(meeting.hearingStatus, meeting.status);
+  const processing = resolvedStatus === "PROCESSING";
+  const ingestError = processing && typeof metadata.error === "string" && metadata.error.trim() ? metadata.error : null;
+  const ingestStalled = processing && !ingestError && isIngestStalled(meeting.metadata, meeting.updatedAt);
+
   return {
     id: meeting.id,
     title: meeting.title,
     occurredAt: meeting.occurredAt ? meeting.occurredAt.toISOString() : null,
-    hearingStatus: resolveHearingStatus(meeting.hearingStatus, meeting.status),
+    hearingStatus: resolvedStatus,
     location: meeting.location,
     reformId: meeting.reformId,
     reformCode: meeting.reform?.code ?? null,
     reformTitle: meeting.reform?.title ?? null,
     topic: typeof metadata.topic === "string" && metadata.topic.trim().length > 0 ? metadata.topic : null,
+    ingestError,
+    ingestStalled,
     matchCount: meeting._count.normMatches,
     participantCount: meeting._count.participants,
     description: meeting.description,

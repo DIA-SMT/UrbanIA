@@ -58,7 +58,12 @@ async function createHearing(input: {
       occurredAt: input.occurredAt ? new Date(input.occurredAt) : null,
       reformId: input.reformId,
       description: input.description ?? null,
-      metadata: { requestedBy: input.session.userId, ...(input.ingest ? { ingest: input.ingest } : {}) }
+      metadata: { requestedBy: input.session.userId, ...(input.ingest ? { ingest: input.ingest } : {}) },
+      // El expediente nace con la audiencia (igual que en createHearing de
+      // lib/hearings/data.ts): sin el, el espejo de lifecycle seria un no-op.
+      hearingRecord: {
+        create: { lifecycle: "EN_CURSO", mainTopic: "", recordNumber: "", recordTitle: input.title }
+      }
     },
     select: { id: true }
   });

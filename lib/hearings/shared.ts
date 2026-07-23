@@ -89,6 +89,10 @@ export type HearingListItem = {
   reformTitle: string | null;
   /** Tema libre, cuando la audiencia no está vinculada a un código nuevo. */
   topic: string | null;
+  /** Error registrado por la ingesta batch (YouTube/audio), si fallo. */
+  ingestError: string | null;
+  /** True si la ingesta quedo en PROCESSING sin latido: el job murio a mitad. */
+  ingestStalled: boolean;
   matchCount: number;
   participantCount: number;
 };
