@@ -1,0 +1,40 @@
+name: Keep-alive Supabase
+
+# Supabase free pausa el proyecto tras 7 dias sin actividad de base de datos.
+# Este workflow hace la peticion minima posible -un SELECT 1- para reiniciar ese
+# contador. No sirve para nada mas: es solo un latido.
+
+on:
+  # Cada 3 dias a las 06:17 UTC (03:17 Argentina). El minuto 17 evita la
+  # congestion del tope de hora, cuando GitHub suele demorar o saltear los cron.
+  # Margen amplio: aun si se saltea una corrida, 6 dias sigue bajo el limite de 7.
+  # Para maxima seguridad se puede pasar a diario: "17 6 * * *".
+  schedule:
+    - cron: "17 6 */3 * *"
+  # Permite dispararlo a mano desde la pestana Actions para probarlo al instante.
+  workflow_dispatch:
+
+# Si dos corridas se solapan, alcanza con una.
+concurrency:
+  group: keepalive-supabase
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: SELECT 1 contra la base
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Falta el secret DATABASE_URL en el repo (Settings > Secrets > Actions)."
+            exit 1
+          fi
+          # psql (preinstalado en el runner) no acepta los parametros de Prisma
+          # (connection_limit, pool_timeout): se corta la query string y se deja
+          # solo sslmode=require, que la conexion a Supabase necesita.
+          CLEAN_URL="${DATABASE_URL%%\?*}?sslmode=require"
+          psql "$CLEAN_URL" -tAc "select 1;"
+          echo "Latido OK: la base respondio."
