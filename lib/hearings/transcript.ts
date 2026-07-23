@@ -4,7 +4,12 @@
  * red, por eso este camino es el fallback confiable de la ingesta batch.
  */
 
-export type TranscriptChunk = { text: string; atMs?: number };
+/**
+ * Un tramo de transcripcion. `speaker` solo viene de las fuentes que separan
+ * voces (la transcripcion de YouTube en dos pasadas); el resto lo deja vacio y
+ * cae en la etiqueta generica de la audiencia.
+ */
+export type TranscriptChunk = { text: string; atMs?: number; speaker?: string | null };
 
 export type TranscriptFormat = "txt" | "vtt" | "srt";
 

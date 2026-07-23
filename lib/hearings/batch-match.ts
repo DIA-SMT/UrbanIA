@@ -62,6 +62,8 @@ export async function matchFullTranscript({
   if (!usable.length) throw new Error("La transcripcion no tiene texto para procesar");
 
   // 1. Guardar la transcripcion como segmentos (memoria publica, no se altera).
+  // Si la fuente separo voces, cada tramo conserva su orador; si no, todos caen
+  // en la etiqueta generica de la audiencia.
   await prisma.transcriptSegment.deleteMany({ where: { meetingId } });
   await prisma.transcriptSegment.createMany({
     data: usable.map((chunk) => ({
@@ -69,7 +71,7 @@ export async function matchFullTranscript({
       startMs: chunk.atMs ?? 0,
       endMs: chunk.atMs ?? 0,
       content: chunk.text,
-      speakerLabel
+      speakerLabel: chunk.speaker?.trim() || speakerLabel
     }))
   });
 

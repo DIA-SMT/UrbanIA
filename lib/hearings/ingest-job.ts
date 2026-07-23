@@ -13,6 +13,9 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { markHearingError, matchFullTranscript } from "@/lib/hearings/batch-match";
 import { transcribeFromFile, transcribeFromYoutube } from "@/lib/hearings/transcribe";
+import { transcribeYoutubeHearing } from "@/lib/hearings/youtube-transcript";
+import { parseTranscriptSegments } from "@/lib/hearings/transcript-segments";
+import type { TranscriptChunk } from "@/lib/hearings/transcript";
 
 export type IngestSpec =
   | { mode: "youtube"; url: string }
@@ -33,6 +36,31 @@ export function readIngestSpec(metadata: Prisma.JsonValue | null): IngestSpec | 
  * Procesa una audiencia encolada: transcribe (Whisper) y machea en lote. Nunca
  * lanza: registra el error en la audiencia y no rompe el board.
  */
+/**
+ * Transcripcion de YouTube con oradores identificados (dos pasadas: ASR que
+ * separa voces + atado de nombres probados con cita textual), convertida a los
+ * tramos que consume el macheo batch. Si esa via falla (modelo caido, video
+ * raro), cae a la via Whisper original: mejor una transcripcion sin oradores
+ * que ninguna.
+ */
+async function youtubeChunksWithSpeakers(url: string): Promise<TranscriptChunk[]> {
+  try {
+    const result = await transcribeYoutubeHearing(url);
+    const segments = parseTranscriptSegments(result.transcript);
+    if (segments.length) {
+      return segments.map((segment) => ({ text: segment.content, atMs: segment.startMs, speaker: segment.speakerLabel }));
+    }
+    // Texto sin el formato esperado: se conserva entero como un solo tramo.
+    if (result.transcript.trim()) {
+      return [{ text: result.transcript.trim(), atMs: 0 }];
+    }
+    throw new Error("La transcripcion con oradores volvio vacia");
+  } catch (error) {
+    console.error("Transcripcion con oradores fallo; se usa la via Whisper", error);
+    return transcribeFromYoutube(url);
+  }
+}
+
 export async function runIngestJob(meetingId: string): Promise<void> {
   const meeting = await prisma.meeting.findUnique({
     where: { id: meetingId },
@@ -49,7 +77,7 @@ export async function runIngestJob(meetingId: string): Promise<void> {
   await prisma.meeting.update({ where: { id: meetingId }, data: { status: "PROCESSING" } });
 
   try {
-    const chunks = spec.mode === "youtube" ? await transcribeFromYoutube(spec.url) : await transcribeFromFile(spec.filePath);
+    const chunks = spec.mode === "youtube" ? await youtubeChunksWithSpeakers(spec.url) : await transcribeFromFile(spec.filePath);
     await matchFullTranscript({
       meetingId,
       reformId: meeting.reformId,
