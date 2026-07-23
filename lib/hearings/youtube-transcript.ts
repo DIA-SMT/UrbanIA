@@ -1,6 +1,6 @@
-// NO es "server-only" a proposito: ademas de la ruta /api/hearings/transcribe-youtube,
-// lo usa la ingesta batch (ingest-job.ts) que corre en el worker CLI con tsx fuera
-// de Next, donde importar "server-only" tira. Mismo criterio que transcribe.ts.
+// NO es "server-only" a proposito: lo usa la ingesta batch (ingest-job.ts) que
+// corre en el worker CLI con tsx fuera de Next, donde importar "server-only"
+// tira. Mismo criterio que transcribe.ts.
 // Depende de binarios del SISTEMA (yt-dlp, ffmpeg, ffprobe) en el PATH.
 
 import { spawn } from "node:child_process";
