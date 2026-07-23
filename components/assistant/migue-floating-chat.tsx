@@ -427,10 +427,10 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
           <div className="flex shrink-0 items-center gap-3 bg-gradient-to-br from-[#35aeea] via-[#1f89f6] to-[#0d6fe0] p-4">
             <span className="migue-launcher-avatar">
               <Image
-                src="/migue/migue-assistant-transparent.png"
+                src="/migue/migue-cara.png"
                 alt=""
                 width={256}
-                height={384}
+                height={256}
                 className="migue-launcher-image"
               />
             </span>
@@ -621,10 +621,10 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
       >
         <span className="migue-launcher-avatar">
           <Image
-            src="/migue/migue-assistant-transparent.png"
+            src="/migue/migue-cara.png"
             alt=""
             width={256}
-            height={384}
+            height={256}
             className="migue-launcher-image"
           />
         </span>
