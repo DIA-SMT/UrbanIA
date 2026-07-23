@@ -171,22 +171,32 @@ body {
   flex-shrink: 0;
   overflow: hidden;
   border-radius: 9999px;
-  background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.3), rgba(7, 81, 157, 0.92) 72%);
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+  /* Color de respaldo si la imagen tarda o falla: iguala el fondo claro del
+     retrato (#f5f5f5) para que nunca se vea un circulo vacio de otro color. */
+  background: #f2f4f7;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.9),
+    0 2px 6px rgba(2, 6, 23, 0.28);
 }
 
+/* El retrato de Migue trae su PROPIO fondo claro horneado en la imagen, asi que
+   el circulo se ve igual en tema claro y oscuro: el tema no puede tocarlo. Por
+   eso ya no hay recorte manual ni fondo dependiente del tema (lo que rompia con
+   el PNG transparente anterior, cuyo traje marino se fundia con el fondo). */
 .migue-launcher-image {
   position: absolute;
-  bottom: -0.85rem;
-  left: 50%;
-  height: 4.2rem;
-  transform: translateX(-50%);
-  object-fit: contain;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Zoom leve hacia la cara para reducir el aire blanco de arriba. */
+  transform: scale(1.08);
+  transform-origin: 50% 34%;
   transition: transform 180ms ease;
 }
 
 .migue-launcher:hover .migue-launcher-image {
-  transform: translateX(-50%) scale(1.06);
+  transform: scale(1.14);
 }
 
 .migue-launcher-label {
