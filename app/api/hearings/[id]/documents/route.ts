@@ -1,9 +1,8 @@
-import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { getHearing } from "@/lib/hearings/data";
+import { ensureHearingRecord } from "@/lib/hearings/record";
 import { hasSupabaseStorage, uploadHearingDocument } from "@/lib/storage/supabase";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +12,8 @@ const ALLOWED_EXTENSIONS = [".pdf", ".txt", ".doc", ".docx", ".odt", ".jpg", ".j
 
 /**
  * Sube un documento adjunto a una audiencia: guarda el archivo real en Supabase
- * Storage y registra sus datos (link, peso, tipo) en metadata.documents, sin
- * migración de esquema. Devuelve la audiencia actualizada.
+ * Storage y lo registra como HearingDocument del expediente (link, peso, tipo,
+ * quien lo subio). Devuelve la audiencia actualizada.
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!process.env.DATABASE_URL) {
@@ -61,7 +60,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   try {
-    const meeting = await prisma.meeting.findFirst({ where: { id, kind: "PUBLIC_HEARING" }, select: { metadata: true } });
+    const meeting = await prisma.meeting.findFirst({ where: { id, kind: "PUBLIC_HEARING" }, select: { id: true } });
     if (!meeting) return NextResponse.json({ error: "Audiencia no encontrada" }, { status: 404 });
 
     const bytes = new Uint8Array(await file.arrayBuffer());
@@ -72,25 +71,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       bytes
     });
 
-    const previousMetadata =
-      meeting.metadata && typeof meeting.metadata === "object" && !Array.isArray(meeting.metadata)
-        ? (meeting.metadata as Prisma.JsonObject)
-        : {};
-    const previousDocuments = Array.isArray(previousMetadata.documents) ? (previousMetadata.documents as Prisma.JsonArray) : [];
+    const recordId = await ensureHearingRecord(id);
+    const uploader = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
 
-    const document = {
-      id: randomUUID(),
-      fileName,
-      url: uploaded.url,
-      storagePath: uploaded.storagePath,
-      mimeType: file.type || null,
-      sizeBytes: file.size,
-      uploadedAt: new Date().toISOString()
-    };
-
-    await prisma.meeting.update({
-      where: { id },
-      data: { metadata: { ...previousMetadata, documents: [...previousDocuments, document] } }
+    await prisma.hearingDocument.create({
+      data: {
+        hearingRecordId: recordId,
+        name: fileName,
+        type: file.type || extension.replace(".", "").toUpperCase(),
+        url: uploaded.url,
+        storagePath: uploaded.storagePath,
+        sizeBytes: file.size,
+        uploadedBy: uploader?.name ?? null
+      }
     });
 
     const hearing = await getHearing(id);

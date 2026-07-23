@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { matchTranscriptWindow, persistDetectedMatches } from "@/lib/hearings/live-match";
+import { syncRecordLifecycle } from "@/lib/hearings/record";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Al primer tramo, la audiencia pasa a estar en vivo.
     if (meeting.hearingStatus !== "LIVE" && meeting.hearingStatus !== "COMPLETED") {
       await prisma.meeting.update({ where: { id }, data: { hearingStatus: "LIVE", status: "PROCESSING" } });
+      await syncRecordLifecycle(id, "LIVE");
     }
 
     const detected = await matchTranscriptWindow({ reformId: meeting.reformId, window: parsed.data.window });

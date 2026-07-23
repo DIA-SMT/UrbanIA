@@ -91,8 +91,9 @@ export function HearingDetail({
     .filter(([, value]) => value.trim().length > 0)
     .map(([label, value]) => ({ label, value }));
 
-  // Conclusiones (foto 2) con contenido, para el detalle expandido.
-  const c = hearing.analysis?.conclusions ?? null;
+  // Conclusiones (foto 2) del expediente unificado: las del equipo si las hay,
+  // si no las del ultimo analisis IA.
+  const c = hearing.conclusions;
   const conclusionEntries = c
     ? (
         [
@@ -350,6 +351,7 @@ export function HearingDetail({
         <Section
           title="Conclusiones y temas observados"
           icon={Sparkles}
+          badge={hearing.conclusionsByTeam ? "Firmadas por el equipo" : "Borrador de Migue"}
           action={canEdit ? <EditButton label="Editar conclusiones" onClick={() => setConclusionsDraft(c ?? emptyHearingConclusions())} /> : undefined}
         >
           <div className="grid gap-3 sm:grid-cols-2">

@@ -8,8 +8,9 @@ import { removeHearingDocument } from "@/lib/storage/supabase";
 export const dynamic = "force-dynamic";
 
 /**
- * Elimina un documento adjunto: lo borra del bucket de Supabase Storage y lo
- * saca de metadata.documents. Devuelve la audiencia actualizada.
+ * Elimina un documento adjunto del expediente: borra el objeto del bucket de
+ * Supabase Storage y la fila HearingDocument. Mantiene un fallback para los
+ * documentos previos a la unificacion que quedaron en metadata.documents.
  */
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string; docId: string }> }) {
   if (!process.env.DATABASE_URL) {
@@ -25,6 +26,24 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     const meeting = await prisma.meeting.findFirst({ where: { id, kind: "PUBLIC_HEARING" }, select: { metadata: true } });
     if (!meeting) return NextResponse.json({ error: "Audiencia no encontrada" }, { status: 404 });
 
+    // Camino unificado: fila HearingDocument del expediente.
+    const document = await prisma.hearingDocument.findFirst({
+      where: { id: docId, hearingRecord: { meetingId: id } },
+      select: { id: true, storagePath: true }
+    });
+
+    if (document) {
+      if (document.storagePath) {
+        // Si el borrado del objeto falla, no cortamos: igual sacamos el registro.
+        await removeHearingDocument(document.storagePath).catch((error) => console.error("No se pudo borrar el objeto del bucket", error));
+      }
+      await prisma.hearingDocument.delete({ where: { id: document.id } });
+
+      const hearing = await getHearing(id);
+      return NextResponse.json({ hearing });
+    }
+
+    // Fallback legacy: documentos guardados en metadata.documents.
     const previousMetadata =
       meeting.metadata && typeof meeting.metadata === "object" && !Array.isArray(meeting.metadata)
         ? (meeting.metadata as Prisma.JsonObject)
@@ -38,7 +57,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
     const storagePath = typeof target.storagePath === "string" ? target.storagePath : null;
     if (storagePath) {
-      // Si el borrado del objeto falla, no cortamos: igual sacamos el registro.
       await removeHearingDocument(storagePath).catch((error) => console.error("No se pudo borrar el objeto del bucket", error));
     }
 

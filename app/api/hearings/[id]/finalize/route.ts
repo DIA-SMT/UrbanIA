@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { saveRecordConclusions, syncRecordLifecycle } from "@/lib/hearings/record";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +28,9 @@ const bodySchema = z.object({
 
 /**
  * Cierra la audiencia: guarda la transcripcion final, persiste las conclusiones
- * (foto 2) ya revisadas por el operador (no re-corre la IA: eso lo hizo el paso
- * /analyze) y deja la audiencia en COMPLETED. Sin conclusiones, guarda solo la
- * transcripcion (fallback sin IA).
+ * (foto 2) ya revisadas por el operador en el HearingRecord (expediente
+ * unificado; no re-corre la IA: eso lo hizo /analyze) y deja la audiencia en
+ * COMPLETED. Sin conclusiones, guarda solo la transcripcion (fallback sin IA).
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!process.env.DATABASE_URL) {
@@ -59,27 +60,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       data: { meetingId: id, startMs: 0, endMs: 0, content: transcript, speakerLabel: "Audiencia en vivo" }
     });
 
-    // Conclusiones revisadas por el humano como MeetingAnalysis versionado.
+    // Conclusiones revisadas por el humano: al HearingRecord (columnas firmadas
+    // que re-correr la IA no pisa). MeetingAnalysis queda solo para salidas IA.
     if (conclusions) {
-      const lastVersion = await prisma.meetingAnalysis.findFirst({
-        where: { meetingId: id },
-        orderBy: { version: "desc" },
-        select: { version: true }
-      });
-      await prisma.meetingAnalysis.create({
-        data: {
-          meetingId: id,
-          model: "human-review",
-          version: (lastVersion?.version ?? 0) + 1,
-          summary: conclusions.summary,
-          conclusions: [conclusions] as Prisma.InputJsonValue,
-          topics: conclusions.observedTopics
-            .split(",")
-            .map((topic) => topic.trim())
-            .filter(Boolean) as Prisma.InputJsonValue,
-          citations: [] as Prisma.InputJsonValue
-        }
-      });
+      await saveRecordConclusions(id, conclusions);
     }
 
     const previousMetadata =
@@ -97,6 +81,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         metadata: { ...previousMetadata, draftTranscript: null, draftSavedAt: null, finalizedAt: new Date().toISOString() }
       }
     });
+    await syncRecordLifecycle(id, "COMPLETED");
 
     return NextResponse.json({ ok: true });
   } catch (error) {

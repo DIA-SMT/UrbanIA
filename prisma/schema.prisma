@@ -609,11 +609,27 @@ model HearingRecord {
   recordTitle              String
   relatedProposal          String?
   proposalOrigin           HearingProposalOrigin  @default(CONCEJO)
+  /// Etiqueta exacta del origen elegida en la ficha ("Ejecutivo municipal",
+  /// "Área técnica"...). El enum proposalOrigin es mas grueso; esta columna
+  /// conserva lo que el operador eligio sin forzarlo a 3 valores.
+  proposalSource           String?
   promotingArea            String?
   recordStatus             String?
   recordDocument           String?
   relatedArticles          String[]
   projectId                String?
+  /// Participacion declarada en la ficha (texto libre del operador). La
+  /// participacion detectada por IA en la transcripcion vive aparte, en
+  /// MeetingParticipant: una es carga manual del acta, la otra evidencia.
+  participantsText         String?
+  institution              String?
+  participantRole          String?
+  actorType                String?
+  intervention             String?
+  /// Observaciones del acta como conjunto (las por-tema van en
+  /// HearingObservedTopic, que las tiene por fila).
+  technicalObservation     String?
+  citizenObservation       String?
   /// Conclusiones del acta. Son campos propios y no MeetingAnalysis porque las
   /// firma una persona: si vivieran en el analisis, volver a correr el modelo
   /// pisaria lo que un funcionario ya valido.
@@ -665,6 +681,10 @@ model HearingDocument {
   description     String?
   uploadedBy      String?
   uploadedAt      DateTime      @default(now())
+  /// Ruta del objeto en Supabase Storage (bucket de audiencias): permite borrar
+  /// el archivo real cuando se elimina el registro. url es el link publico.
+  storagePath     String?
+  sizeBytes       Int?
   hearingRecord   HearingRecord @relation(fields: [hearingRecordId], references: [id], onDelete: Cascade)
 
   @@index([hearingRecordId])

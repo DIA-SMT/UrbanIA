@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { getHearing, updateHearing } from "@/lib/hearings/data";
+import { removeHearingDocument } from "@/lib/storage/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,18 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
   const { id } = await params;
   try {
+    // Los HearingDocument caen por cascade, pero los archivos del bucket no:
+    // se borran a mano (best-effort) antes de eliminar la reunion.
+    const documents = await prisma.hearingDocument.findMany({
+      where: { hearingRecord: { meetingId: id }, storagePath: { not: null } },
+      select: { storagePath: true }
+    });
+    for (const document of documents) {
+      if (document.storagePath) {
+        await removeHearingDocument(document.storagePath).catch((error) => console.error("No se pudo borrar el objeto del bucket", error));
+      }
+    }
+
     await prisma.meeting.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (error) {

@@ -3,6 +3,13 @@ import "server-only";
 import { Prisma, type HearingSource, type HearingStatus, type ProcessingStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { toHearingConclusions, toHearingFicha } from "@/lib/hearings/shared";
+import {
+  conclusionsFromRecord,
+  documentsFromRecord,
+  fichaFromRecord,
+  lifecycleFromStatus,
+  syncRecordLifecycle
+} from "@/lib/hearings/record";
 import type {
   HearingActionItemView,
   HearingAnalysisView,
@@ -145,6 +152,7 @@ function readConclusions(value: Prisma.JsonValue | null): HearingAnalysisView["c
 
 const detailInclude = {
   reform: { select: { id: true, code: true, title: true } },
+  hearingRecord: { include: { observedTopics: { orderBy: { createdAt: "asc" } }, documents: { orderBy: { uploadedAt: "asc" } } } },
   analyses: { orderBy: { version: "desc" }, take: 1 },
   normMatches: {
     include: { norm: { select: { code: true, title: true, articleNumber: true } } },
@@ -229,8 +237,19 @@ export async function getHearing(id: string): Promise<HearingDetail | null> {
       ? (meeting.metadata as Record<string, Prisma.JsonValue>)
       : {};
   const draftTranscript = typeof metadata.draftTranscript === "string" ? metadata.draftTranscript : null;
-  const ficha = toHearingFicha(metadata.ficha);
-  const documents = readDocuments(metadata.documents);
+
+  // Expediente unificado: el HearingRecord es la fuente de la ficha, las
+  // conclusiones y los documentos. metadata queda como fallback de lectura para
+  // audiencias previas a la unificacion (o records recien creados vacios).
+  const record = meeting.hearingRecord;
+  const recordFicha = record ? fichaFromRecord(record) : null;
+  const ficha = recordFicha && Object.values(recordFicha).some((value) => value.trim().length > 0)
+    ? recordFicha
+    : toHearingFicha(metadata.ficha);
+  const documents = record?.documents.length ? documentsFromRecord(record.documents) : readDocuments(metadata.documents);
+  const recordConclusions = record ? conclusionsFromRecord(record) : null;
+  const conclusions = recordConclusions ?? analysisView?.conclusions ?? null;
+  const conclusionsByTeam = Boolean(recordConclusions) || (analysisView?.editedByHuman ?? false);
 
   return {
     id: meeting.id,
@@ -250,6 +269,8 @@ export async function getHearing(id: string): Promise<HearingDetail | null> {
     createdAt: meeting.createdAt.toISOString(),
     draftTranscript,
     ficha,
+    conclusions,
+    conclusionsByTeam,
     analysis: analysisView,
     matches,
     participants,
@@ -286,7 +307,18 @@ export async function createHearing(input: CreateHearingInput): Promise<HearingD
       modality: input.modality ?? null,
       location: input.location ?? null,
       reformId: input.reformId ?? null,
-      description: input.description ?? null
+      description: input.description ?? null,
+      // El expediente (HearingRecord) nace con la audiencia: es el unico
+      // almacenamiento de la ficha y las conclusiones. El numero de acta lo
+      // asigna el equipo despues.
+      hearingRecord: {
+        create: {
+          lifecycle: lifecycleFromStatus("SCHEDULED"),
+          mainTopic: input.topic ?? "",
+          recordNumber: "",
+          recordTitle: input.title
+        }
+      }
     },
     select: { id: true }
   });
@@ -319,6 +351,10 @@ export async function updateHearing(id: string, input: UpdateHearingInput): Prom
       ...(input.hearingStatus !== undefined ? { hearingStatus: input.hearingStatus } : {})
     }
   });
+
+  if (input.hearingStatus !== undefined) {
+    await syncRecordLifecycle(id, input.hearingStatus);
+  }
 
   return getHearing(id);
 }

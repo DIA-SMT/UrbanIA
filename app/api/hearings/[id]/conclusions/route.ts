@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { getHearing } from "@/lib/hearings/data";
+import { saveRecordConclusions } from "@/lib/hearings/record";
 
 export const dynamic = "force-dynamic";
 
@@ -25,9 +25,9 @@ const bodySchema = z.object({ conclusions: conclusionsSchema });
 
 /**
  * Edicion de la Ficha 2 (conclusiones y temas observados) desde el detalle.
- * Guarda una nueva version de MeetingAnalysis "human-review" (el detalle lee la
- * ultima), sin tocar la transcripcion ni el estado de la audiencia. A diferencia
- * de /finalize, no cierra la audiencia: solo corrige/actualiza las conclusiones.
+ * Persiste en el HearingRecord (expediente unificado): son las conclusiones
+ * firmadas por una persona, en columnas propias que re-correr la IA no pisa.
+ * A diferencia de /finalize, no cierra la audiencia.
  */
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!process.env.DATABASE_URL) {
@@ -47,27 +47,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const meeting = await prisma.meeting.findFirst({ where: { id, kind: "PUBLIC_HEARING" }, select: { id: true } });
     if (!meeting) return NextResponse.json({ error: "Audiencia no encontrada" }, { status: 404 });
 
-    const conclusions = parsed.data.conclusions;
-    const lastVersion = await prisma.meetingAnalysis.findFirst({
-      where: { meetingId: id },
-      orderBy: { version: "desc" },
-      select: { version: true }
-    });
-
-    await prisma.meetingAnalysis.create({
-      data: {
-        meetingId: id,
-        model: "human-review",
-        version: (lastVersion?.version ?? 0) + 1,
-        summary: conclusions.summary,
-        conclusions: [conclusions] as Prisma.InputJsonValue,
-        topics: conclusions.observedTopics
-          .split(",")
-          .map((topic) => topic.trim())
-          .filter(Boolean) as Prisma.InputJsonValue,
-        citations: [] as Prisma.InputJsonValue
-      }
-    });
+    await saveRecordConclusions(id, parsed.data.conclusions);
 
     const hearing = await getHearing(id);
     return NextResponse.json({ hearing });

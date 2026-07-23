@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { analyzeHearingTranscript } from "@/lib/hearings/analyze";
 import { detectMatchesAgainstNorms, loadNormCatalog, persistDetectedMatches } from "@/lib/hearings/live-match";
+import { syncRecordLifecycle } from "@/lib/hearings/record";
 import { chunksToTranscript, type TranscriptChunk } from "@/lib/hearings/transcript";
 
 /**
@@ -154,6 +155,7 @@ export async function matchFullTranscript({
       }
     }
   });
+  await syncRecordLifecycle(meetingId, "COMPLETED");
 
   return { segments: usable.length, matches, analyzed, warning };
 }

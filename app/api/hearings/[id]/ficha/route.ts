@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { getHearing } from "@/lib/hearings/data";
+import { saveRecordFicha } from "@/lib/hearings/record";
 
 export const dynamic = "force-dynamic";
 
@@ -27,8 +27,8 @@ const bodySchema = z.object({ ficha: fichaSchema });
 
 /**
  * Edicion de la Ficha 1 (datos) desde el detalle de una audiencia ya cargada.
- * Mergea sobre metadata.ficha sin tocar el estado ni el borrador: sirve para
- * corregir la ficha de una audiencia finalizada o en curso por igual.
+ * Persiste en el HearingRecord (expediente unificado) sin tocar el estado ni el
+ * borrador: sirve para una audiencia finalizada o en curso por igual.
  */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!process.env.DATABASE_URL) {
@@ -45,22 +45,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   try {
-    const meeting = await prisma.meeting.findFirst({ where: { id, kind: "PUBLIC_HEARING" }, select: { metadata: true } });
+    const meeting = await prisma.meeting.findFirst({ where: { id, kind: "PUBLIC_HEARING" }, select: { id: true } });
     if (!meeting) return NextResponse.json({ error: "Audiencia no encontrada" }, { status: 404 });
 
-    const previousMetadata =
-      meeting.metadata && typeof meeting.metadata === "object" && !Array.isArray(meeting.metadata)
-        ? (meeting.metadata as Prisma.JsonObject)
-        : {};
-    const previousFicha =
-      previousMetadata.ficha && typeof previousMetadata.ficha === "object" && !Array.isArray(previousMetadata.ficha)
-        ? (previousMetadata.ficha as Prisma.JsonObject)
-        : {};
-
-    await prisma.meeting.update({
-      where: { id },
-      data: { metadata: { ...previousMetadata, ficha: { ...previousFicha, ...parsed.data.ficha } } }
-    });
+    await saveRecordFicha(id, parsed.data.ficha);
 
     const hearing = await getHearing(id);
     return NextResponse.json({ hearing });

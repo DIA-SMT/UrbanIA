@@ -287,8 +287,15 @@ export type HearingDetail = HearingListItem & {
   createdAt: string;
   /** Borrador de transcripcion en curso (autoguardado del vivo), si lo hay. */
   draftTranscript: string | null;
-  /** Ficha estructurada cargada a mano (foto 1). */
+  /** Ficha estructurada cargada a mano (foto 1). Vive en el HearingRecord. */
   ficha: HearingFicha;
+  /**
+   * Conclusiones del acta (foto 2). Las firmadas por el equipo viven en el
+   * HearingRecord; si no las hay, se muestran las del ultimo analisis IA.
+   */
+  conclusions: HearingConclusions | null;
+  /** True si las conclusiones mostradas fueron revisadas/firmadas por el equipo. */
+  conclusionsByTeam: boolean;
   analysis: HearingAnalysisView | null;
   matches: HearingMatchView[];
   participants: HearingParticipantView[];

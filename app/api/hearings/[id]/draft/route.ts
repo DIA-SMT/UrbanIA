@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { saveRecordFicha, syncRecordLifecycle } from "@/lib/hearings/record";
 
 export const dynamic = "force-dynamic";
 
@@ -54,27 +55,30 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       meeting.metadata && typeof meeting.metadata === "object" && !Array.isArray(meeting.metadata)
         ? (meeting.metadata as Prisma.JsonObject)
         : {};
-    const previousFicha =
-      previousMetadata.ficha && typeof previousMetadata.ficha === "object" && !Array.isArray(previousMetadata.ficha)
-        ? (previousMetadata.ficha as Prisma.JsonObject)
-        : {};
     const savedAt = new Date().toISOString();
+    const goesLive = meeting.hearingStatus === "SCHEDULED" || meeting.hearingStatus === null;
 
     await prisma.meeting.update({
       where: { id },
       data: {
         // Una audiencia con borrador guardado queda "en vivo" para poder reanudarla.
-        ...(meeting.hearingStatus === "SCHEDULED" || meeting.hearingStatus === null
-          ? { hearingStatus: "LIVE", status: "PROCESSING" }
-          : {}),
+        ...(goesLive ? { hearingStatus: "LIVE", status: "PROCESSING" } : {}),
         metadata: {
           ...previousMetadata,
           ...(parsed.data.transcript !== undefined ? { draftTranscript: parsed.data.transcript } : {}),
-          ...(parsed.data.ficha !== undefined ? { ficha: { ...previousFicha, ...parsed.data.ficha } } : {}),
           draftSavedAt: savedAt
         }
       }
     });
+
+    // La ficha va directo al expediente (HearingRecord): mismo almacenamiento
+    // que la edicion desde el detalle, sin copia en metadata.
+    if (parsed.data.ficha !== undefined) {
+      await saveRecordFicha(id, parsed.data.ficha);
+    }
+    if (goesLive) {
+      await syncRecordLifecycle(id, "LIVE");
+    }
 
     return NextResponse.json({ savedAt });
   } catch (error) {
