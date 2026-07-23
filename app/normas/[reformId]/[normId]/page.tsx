@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/shell";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
-import { getNorm, getReform } from "@/lib/projects/data";
+import { prisma } from "@/lib/db/prisma";
+import { getNorm, getReform, listAuthorNames } from "@/lib/projects/data";
 import { NormEditor } from "@/components/normas/form/norm-editor";
 
 export const dynamic = "force-dynamic";
@@ -16,16 +17,31 @@ export default async function NormaPage({ params }: { params: Promise<{ reformId
 
   if (!process.env.DATABASE_URL) notFound();
 
-  const [reform, norm] = await Promise.all([getReform(reformId).catch(() => null), getNorm(normId).catch(() => null)]);
+  const session = await getSessionUser();
+
+  const [reform, norm, account, knownAuthors] = await Promise.all([
+    getReform(reformId).catch(() => null),
+    getNorm(normId).catch(() => null),
+    session
+      ? prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } }).catch(() => null)
+      : Promise.resolve(null),
+    listAuthorNames().catch(() => [])
+  ]);
   if (!reform || !norm || norm.reformId !== reform.id) notFound();
 
-  const session = await getSessionUser();
   const canEdit = session ? isStaff(session.role) : false;
   const canDelete = session?.role === "ADMIN";
 
   return (
     <AppShell>
-      <NormEditor reform={{ id: reform.id, code: reform.code, title: reform.title }} norm={norm} canEdit={canEdit} canDelete={canDelete} />
+      <NormEditor
+        reform={{ id: reform.id, code: reform.code, title: reform.title }}
+        norm={norm}
+        canEdit={canEdit}
+        canDelete={canDelete}
+        accountName={account?.name ?? null}
+        knownAuthors={knownAuthors}
+      />
     </AppShell>
   );
 }

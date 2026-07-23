@@ -1,0 +1,12 @@
+-- Quien redacto la norma, dentro de la cuenta que la creo.
+--
+-- Las direcciones municipales entran con una cuenta institucional compartida
+-- (direccionia@smt.gob.ar, "Direccion IA"): createdById dice que CUENTA creo la
+-- norma, pero no que PERSONA la escribio, y todas las normas terminan mostrando
+-- el mismo nombre.
+--
+-- Nullable a proposito: las normas ya redactadas no lo tienen, y la UI cae al
+-- nombre de la cuenta. No reemplaza a createdById, que sigue siendo el registro
+-- autenticado; este campo es texto libre y por lo tanto no sirve como prueba de
+-- autoria, solo como atribucion visible.
+ALTER TABLE "Project" ADD COLUMN "authorName" TEXT;

@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { MunicipalArea, ProjectStatus } from "@prisma/client";
-import { ArrowLeft, FileDown, Loader2, Save, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, FileDown, Loader2, PenLine, Save, Send, Trash2 } from "lucide-react";
+import { useActiveVoter } from "@/components/normas/active-voter";
 import { FormBlock } from "@/components/projects/form/form-ui";
+import { TeamFeedbackBlock } from "@/components/normas/form/team-feedback-block";
 import { IdentificationBlock } from "@/components/normas/form/identification-block";
 import { ObjectBlock } from "@/components/normas/form/object-block";
 import { OldCodeBlock } from "@/components/normas/form/old-code-block";
@@ -14,6 +16,10 @@ import { AnalysisBlock } from "@/components/normas/form/analysis-block";
 import { materiaLabels, normStatusLabels, type NormDetail, type ProjectAnchorView, type ProjectDiagnosisView } from "@/lib/projects/shared";
 
 const MIN_SUMMARY = 40;
+
+function formatUpdatedAt(iso: string) {
+  return new Date(iso).toLocaleString("es-AR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
 
 /**
  * Editor de norma de la Fabrica, en dos pasos de IA:
@@ -26,14 +32,40 @@ export function NormEditor({
   reform,
   norm,
   canEdit,
-  canDelete = false
+  canDelete = false,
+  accountName = null,
+  knownAuthors = []
 }: {
   reform: { id: string; code: string; title: string };
   norm: NormDetail | null;
   canEdit: boolean;
   canDelete?: boolean;
+  /** Cuenta de quien esta redactando. En una norma nueva es el unico respaldo. */
+  accountName?: string | null;
+  /** Gente que ya firmo una norma o devolucion: alimenta el desplegable. */
+  knownAuthors?: string[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  /**
+   * Precarga desde el panel de temas mas pedidos:
+   *   /normas/{reformId}/nueva?materia=PLANEAMIENTO&tema=Usos del suelo
+   * Solo aplica a una norma nueva; sobre una existente los params se ignoran para
+   * no pisar lo que el equipo ya escribio. El texto es un punto de partida editable.
+   */
+  const seeded = useMemo(() => {
+    if (norm) return { areas: null, summary: null };
+    const rawArea = searchParams.get("materia");
+    const topic = searchParams.get("tema");
+    const area = rawArea && rawArea in materiaLabels ? (rawArea as MunicipalArea) : null;
+    return {
+      areas: area ? [area] : null,
+      summary: topic
+        ? `Tema surgido de los aportes ciudadanos: "${topic}". Redactar la norma que regule este aspecto del CPU.`
+        : null
+    };
+  }, [norm, searchParams]);
 
   const [normId, setNormId] = useState<string | null>(norm?.id ?? null);
   const [code, setCode] = useState<string | null>(norm?.code ?? null);
@@ -41,10 +73,13 @@ export function NormEditor({
   const [title, setTitle] = useState(norm?.title ?? "");
   const [articleNumber, setArticleNumber] = useState(norm?.articleNumber ?? "");
   const [status, setStatus] = useState<ProjectStatus>(norm?.status ?? "DRAFT");
-  const [areas, setAreas] = useState<MunicipalArea[]>(norm?.areas ?? []);
-  const [summary, setSummary] = useState(norm?.summary ?? "");
+  const [areas, setAreas] = useState<MunicipalArea[]>(norm?.areas ?? seeded.areas ?? []);
+  const [summary, setSummary] = useState(norm?.summary ?? seeded.summary ?? "");
   const [articleText, setArticleText] = useState(norm?.articleText ?? "");
   const [officialNotes, setOfficialNotes] = useState(norm?.officialNotes ?? "");
+  // Vacio en una norma nueva a proposito: prellenarlo con la cuenta compartida
+  // invitaria a dejarlo asi, que es justo lo que hay que evitar.
+  const [authorName, setAuthorName] = useState(norm?.authorName ?? "");
 
   const [anchors, setAnchors] = useState<ProjectAnchorView[]>(norm?.anchors ?? []);
   const [analyses, setAnalyses] = useState<ProjectDiagnosisView[]>(norm?.diagnoses ?? []);
@@ -63,8 +98,24 @@ export function NormEditor({
   const [error, setError] = useState("");
   const creatingRef = useRef(false);
 
-  const readOnly = !canEdit;
-  const canDraft = title.trim().length > 0 && summary.trim().length >= MIN_SUMMARY;
+  const { voter } = useActiveVoter();
+
+  /**
+   * Editar es del autor, opinar es de todos.
+   *
+   * Una norma existente se abre SIEMPRE en modo lectura: desde el tablero se
+   * entra a leerla y dejar una devolucion, no a tocarla. El boton "Editar" solo
+   * aparece si la identidad activa coincide con quien la redacto. Las normas
+   * viejas sin autor cargado las puede editar cualquiera del equipo (si nadie
+   * pudiera, quedarian clavadas para siempre); al guardarlas toman autor.
+   */
+  const isOwner = !norm?.authorName || (Boolean(voter) && voter === norm.authorName);
+  const [editing, setEditing] = useState(!norm);
+
+  const readOnly = !canEdit || !editing;
+  // El autor entra en la condicion: la norma no se persiste hasta que se sepa
+  // quien la redacta. La cuenta es compartida y no alcanza para identificarlo.
+  const canDraft = title.trim().length > 0 && summary.trim().length >= MIN_SUMMARY && authorName.trim().length > 0;
   const canCompare = canDraft && articleText.trim().length > 0;
 
   const corePayload = useCallback(
@@ -75,9 +126,10 @@ export function NormEditor({
       areas,
       articleNumber: articleNumber.trim() || null,
       articleText: articleText.trim() || null,
-      officialNotes: officialNotes.trim() || null
+      officialNotes: officialNotes.trim() || null,
+      authorName: authorName.trim() || null
     }),
-    [title, summary, status, areas, articleNumber, articleText, officialNotes]
+    [title, summary, status, areas, articleNumber, articleText, officialNotes, authorName]
   );
 
   // Crea el borrador (una sola vez) cuando hay titulo + objeto valido.
@@ -110,14 +162,26 @@ export function NormEditor({
     if (!readOnly && !normId && canDraft) void ensureDraft();
   }, [readOnly, normId, canDraft, ensureDraft]);
 
-  // Autosave (debounce) una vez que existe el borrador.
+  /**
+   * Lo ultimo que se persistio, serializado. El autosave se dispara al entrar en
+   * modo edicion aunque no se haya tocado nada, y cada PATCH pisa updatedAt: sin
+   * esta guardia, abrir y cerrar el editor contaria como "actualizacion" y la
+   * fecha de ultima modificacion dejaria de significar algo.
+   */
+  const lastSavedRef = useRef(JSON.stringify(corePayload()));
+
+  // Autosave (debounce) una vez que existe el borrador. Solo si algo cambio.
   useEffect(() => {
     if (readOnly || !normId) return;
     const timer = setTimeout(() => {
+      const payload = corePayload();
+      const serialized = JSON.stringify(payload);
+      if (serialized === lastSavedRef.current) return;
+      lastSavedRef.current = serialized;
       fetch(`/api/projects/${normId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(corePayload())
+        body: JSON.stringify(payload)
       }).catch(() => undefined);
     }, 900);
     return () => clearTimeout(timer);
@@ -126,14 +190,17 @@ export function NormEditor({
   /**
    * Los pasos de IA leen la norma desde la base: antes de invocarlos hay que
    * persistir lo que el analista tiene en pantalla (el autosave tiene debounce
-   * y puede estar atrasado).
+   * y puede estar atrasado). Sin guardia de cambios: aca el PATCH es el punto de
+   * sincronizacion previo a la IA y conviene que sea incondicional.
    */
   const flushSave = useCallback(
     async (id: string) => {
+      const payload = corePayload();
+      lastSavedRef.current = JSON.stringify(payload);
       await fetch(`/api/projects/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(corePayload())
+        body: JSON.stringify(payload)
       }).catch(() => undefined);
     },
     [corePayload]
@@ -148,7 +215,7 @@ export function NormEditor({
     setFormalizeError("");
     const id = normId ?? (await ensureDraft());
     if (!id) {
-      setFormalizeError("Cargá el título y un objeto de al menos 40 caracteres para formalizar.");
+      setFormalizeError("Cargá el autor, el título y un objeto de al menos 40 caracteres para formalizar.");
       return;
     }
     setFormalizing(true);
@@ -170,7 +237,7 @@ export function NormEditor({
     setComparisonError("");
     const id = normId ?? (await ensureDraft());
     if (!id) {
-      setComparisonError("Cargá el título y un objeto de al menos 40 caracteres.");
+      setComparisonError("Cargá el autor, el título y un objeto de al menos 40 caracteres.");
       return;
     }
     if (!articleText.trim()) {
@@ -224,7 +291,7 @@ export function NormEditor({
     try {
       const id = normId ?? (await ensureDraft());
       if (!id) {
-        setError("Cargá el título y un objeto de al menos 40 caracteres.");
+        setError("Cargá el autor, el título y un objeto de al menos 40 caracteres.");
         return;
       }
       const nextStatus: ProjectStatus = mode === "draft" ? "DRAFT" : status === "DRAFT" ? "IN_REVIEW" : status;
@@ -270,12 +337,45 @@ export function NormEditor({
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
           {materiaPrincipal ? `${materiaPrincipal} · ` : ""}
           {normStatusLabels[status]}
-          {code ? <span className="ml-2 rounded bg-white/[0.06] px-2 py-0.5 font-mono text-xs font-bold text-sky-200">{code}</span> : null}
+          {code ? <span className="ml-2 rounded bg-white/[0.06] px-2 py-0.5 font-mono text-xs font-semibold text-sky-200">{code}</span> : null}
+          {norm?.authorName || norm?.authorAccount ? (
+            <span className="ml-2 text-slate-500">
+              · Creada por {norm.authorName ?? norm.authorAccount}
+              {norm.authorName && norm.authorAccount ? ` (${norm.authorAccount})` : ""}
+            </span>
+          ) : null}
+          {norm ? <span className="ml-2 text-slate-500">· Últ. actualización {formatUpdatedAt(norm.updatedAt)}</span> : null}
         </p>
         {!normId ? (
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
             Escribí el objeto en crudo y formalizalo con IA; después compará la norma contra el CPU 2014 para que la IA detecte y marque los artículos que toca.
           </p>
+        ) : null}
+
+        {/* Modo lectura: desde el tablero se entra a leer y opinar. Editar es un
+            paso explicito y solo del autor; para el resto el boton directamente
+            no existe (una nota "solo X puede editar" era ruido para quien vino a
+            opinar). */}
+        {canEdit && norm && !editing ? (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            {isOwner ? (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-bold text-white"
+              >
+                <PenLine className="h-4 w-4" />
+                Editar norma
+              </button>
+            ) : null}
+            <a
+              href={`/api/projects/${norm.id}/export`}
+              className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-bold text-slate-200"
+            >
+              <FileDown className="h-4 w-4" />
+              Exportar norma
+            </a>
+          </div>
         ) : null}
       </div>
 
@@ -285,11 +385,15 @@ export function NormEditor({
           articleNumber={articleNumber}
           status={status}
           areas={areas}
+          authorName={authorName}
+          accountName={norm?.authorAccount ?? accountName}
+          knownAuthors={knownAuthors}
           disabled={readOnly}
           onTitleChange={setTitle}
           onArticleNumberChange={setArticleNumber}
           onStatusChange={setStatus}
           onToggleArea={toggleArea}
+          onAuthorNameChange={setAuthorName}
         />
       </FormBlock>
 
@@ -347,11 +451,19 @@ export function NormEditor({
         index={5}
         title="Código viejo (CPU 2014)"
         description="Los artículos que la norma toca. La IA los detecta y marca en la comparación; el equipo revisa la relación, quita o agrega a mano."
+        collapsible
+        defaultOpen={anchors.length > 0}
       >
         <OldCodeBlock normId={normId} ensureDraft={ensureDraft} anchors={anchors} disabled={readOnly} onChange={setAnchors} />
       </FormBlock>
 
-      <FormBlock index={6} title="Observaciones del equipo" description="Lo que el análisis IA omitió o lo que quieras dejar asentado.">
+      <FormBlock
+        index={6}
+        title="Observaciones del equipo"
+        description="Lo que el análisis IA omitió o lo que quieras dejar asentado."
+        collapsible
+        defaultOpen={Boolean(officialNotes.trim())}
+      >
         <textarea
           value={officialNotes}
           disabled={readOnly}
@@ -362,7 +474,37 @@ export function NormEditor({
         />
       </FormBlock>
 
-      {canEdit ? (
+      {/* Solo sobre una norma persistida: sobre un borrador sin id no hay nada que opinar.
+          Sin colapsar: si arranca cerrado cuando no hay devoluciones, nadie lo encuentra
+          para dejar la primera. */}
+      {/* accountName en TeamFeedbackBlock es la cuenta de quien MIRA, no la de quien
+          creo la norma: el que deja la devolucion puede ser de otra direccion. */}
+      {normId ? (
+        <div id="opiniones" className="scroll-mt-6">
+        <FormBlock
+          index={7}
+          title="Opiniones del equipo"
+          description="Devoluciones internas y apoyo a la norma. No lo ven los vecinos."
+        >
+          <TeamFeedbackBlock
+            normId={normId}
+            canEdit={canEdit}
+            accountName={accountName}
+            knownAuthors={knownAuthors}
+            initialSupport={{
+              supportCount: norm?.supportCount ?? 0,
+              objectionCount: norm?.objectionCount ?? 0,
+              net: norm?.supportNet ?? 0,
+              voters: norm?.voters ?? []
+            }}
+          />
+        </FormBlock>
+        </div>
+      ) : null}
+
+      {/* La barra de acciones es del modo edicion: en lectura no hay que guardar
+          nada y sus botones solo confundirian. */}
+      {canEdit && editing ? (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-[#07111d]/95 px-4 py-3 backdrop-blur lg:pl-[260px]">
           <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3">
             <div className="min-w-0 text-xs text-slate-400">
@@ -371,7 +513,7 @@ export function NormEditor({
               ) : code ? (
                 <span>Borrador guardado · {code}</span>
               ) : (
-                <span>El borrador se guarda solo al completar título y objeto.</span>
+                <span>El borrador se guarda al completar autor, título y objeto.</span>
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -407,7 +549,7 @@ export function NormEditor({
                 type="button"
                 onClick={() => finalize("final")}
                 disabled={saving || !canDraft}
-                className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-black text-white disabled:opacity-50"
+                className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Guardar norma

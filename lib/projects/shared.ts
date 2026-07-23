@@ -266,9 +266,29 @@ export type ProjectListItem = {
   articleNumber: string | null;
   hasArticleText: boolean;
   createdAt: string;
+  /** Ultima modificacion real del contenido (el autosave no persiste sin cambios). */
+  updatedAt: string;
   budgetTotal: number;
   anchorCount: number;
   latestFeasibility: FeasibilityLevel | null;
+  /** Cuenta que la creo. Null en los registros anteriores a que se guardara el autor. */
+  authorId: string | null;
+  /** Persona que redacto, cargada a mano. Null si no la cargaron. */
+  authorName: string | null;
+  /** La cuenta institucional, que varias personas comparten. Es el respaldo. */
+  authorAccount: string | null;
+  /** Devoluciones internas del equipo sobre la norma. */
+  opinionCount: number;
+  /** Apoyo interno: a favor, en contra y el neto. */
+  supportCount: number;
+  objectionCount: number;
+  supportNet: number;
+  /**
+   * Quienes votaron y que votaron. El voto propio lo resuelve el cliente contra
+   * la identidad activa: se cuenta por nombre declarado, y el servidor no sabe
+   * quien esta trabajando (vive en el sessionStorage del navegador).
+   */
+  voters: { voterName: string; value: number }[];
 };
 
 export type ProjectDetail = ProjectListItem & {
@@ -280,7 +300,6 @@ export type ProjectDetail = ProjectListItem & {
   articleText: string | null;
   reformCode: string | null;
   reformTitle: string | null;
-  updatedAt: string;
   diagnoses: ProjectDiagnosisView[];
   budgetItems: ProjectBudgetItemView[];
   attachments: ProjectAttachmentView[];
@@ -304,6 +323,12 @@ export type ReformListItem = {
   consolidatedCount: number;
   /** Normas cuyo ultimo analisis detecto conflictos relevantes o de fondo. */
   conflictCount: number;
+  /** Quien creo el codigo. Null en los registros anteriores al autor. */
+  authorId: string | null;
+  authorName: string | null;
+  /** La cuenta institucional. En codigos es lo unico que hay: todavia no se carga
+   *  a mano quien redacta un codigo, solo quien redacta cada norma. */
+  authorAccount: string | null;
 };
 
 export type ReformDetail = ReformListItem & {

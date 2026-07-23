@@ -69,7 +69,7 @@ export function AnalysisBlock({
             onClick={onGenerate}
             disabled={!canGenerate}
             title={!canGenerate ? "Formalizá la norma primero" : undefined}
-            className="urban-button mt-5 inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="urban-button mt-5 inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Sparkles className="h-4 w-4" />
             Comparar con el código viejo
@@ -85,7 +85,7 @@ export function AnalysisBlock({
     <div>
       {analyses.length > 1 ? (
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
             <History className="h-3 w-3" />
             Historial
           </span>
@@ -114,7 +114,7 @@ export function AnalysisBlock({
             onClick={onGenerate}
             disabled={!canGenerate}
             title={!canGenerate ? "Formalizá la norma primero" : undefined}
-            className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black text-slate-200 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-200 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Volver a comparar

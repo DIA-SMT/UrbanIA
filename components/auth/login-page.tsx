@@ -10,6 +10,8 @@ type LoginMode = "login" | "register";
 type LoginPageProps = {
   initialError?: string;
   initialMode?: LoginMode;
+  maxBirthDate?: string;
+  minBirthDate?: string;
 };
 
 const errorMessages: Record<string, string> = {
@@ -23,7 +25,7 @@ const errorMessages: Record<string, string> = {
   unavailable: "El acceso no esta disponible por un problema de configuracion del servidor."
 };
 
-export function LoginPage({ initialError, initialMode = "login" }: LoginPageProps) {
+export function LoginPage({ initialError, initialMode = "login", maxBirthDate, minBirthDate }: LoginPageProps) {
   const [mode, setMode] = useState<LoginMode>(initialMode);
   const errorMessage = initialError ? errorMessages[initialError] : null;
 
@@ -106,6 +108,8 @@ export function LoginPage({ initialError, initialMode = "login" }: LoginPageProp
                     name="birthDate"
                     type="date"
                     placeholder=""
+                    max={maxBirthDate}
+                    min={minBirthDate}
                     hint="Para presentar propuestas o reclamos tenes que ser mayor de 18 anios."
                   />
                   <TextField
@@ -167,6 +171,8 @@ function TextField({
   type,
   placeholder,
   inputMode,
+  max,
+  min,
   hint
 }: {
   label: string;
@@ -174,6 +180,8 @@ function TextField({
   type: string;
   placeholder: string;
   inputMode?: "numeric";
+  max?: string;
+  min?: string;
   hint?: string;
 }) {
   return (
@@ -184,7 +192,11 @@ function TextField({
         type={type}
         inputMode={inputMode}
         placeholder={placeholder}
-        className="h-12 w-full rounded-md border border-slate-200 bg-white px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-600"
+        max={max}
+        min={min}
+        className={`h-12 w-full rounded-md border border-slate-200 bg-white px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-600 ${
+          type === "date" ? "urban-date-field pr-3" : ""
+        }`}
       />
       {hint ? <span className="mt-1.5 block text-xs leading-5 text-slate-500">{hint}</span> : null}
     </label>

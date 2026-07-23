@@ -46,7 +46,13 @@ const createSchema = z.object({
   areas: z.array(z.nativeEnum(MunicipalArea)).max(9).optional(),
   articleNumber: z.string().trim().max(20).nullish(),
   articleText: z.string().trim().max(40000).nullish(),
-  officialNotes: z.string().trim().max(8000).nullish()
+  officialNotes: z.string().trim().max(8000).nullish(),
+  /**
+   * Quien redacta, dentro de la cuenta institucional compartida. Obligatorio al
+   * crear: sin esto todas las normas de una direccion quedan firmadas igual.
+   * En el PATCH sigue siendo opcional, porque es una edicion parcial.
+   */
+  authorName: z.string().trim().min(1).max(120)
 });
 
 export async function POST(request: Request) {
@@ -68,7 +74,7 @@ export async function POST(request: Request) {
   const parsed = createSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Datos inválidos", detail: "Revisá el título, el objeto de la norma y el código nuevo al que pertenece." },
+      { error: "Datos inválidos", detail: "Revisá el autor, el título y el objeto de la norma." },
       { status: 400 }
     );
   }
