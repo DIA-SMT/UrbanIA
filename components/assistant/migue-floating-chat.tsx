@@ -429,8 +429,8 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
               <Image
                 src="/migue/migue-assistant-transparent.png"
                 alt=""
-                width={96}
-                height={96}
+                width={256}
+                height={384}
                 className="migue-launcher-image"
               />
             </span>
@@ -623,8 +623,8 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
           <Image
             src="/migue/migue-assistant-transparent.png"
             alt=""
-            width={96}
-            height={96}
+            width={256}
+            height={384}
             className="migue-launcher-image"
           />
         </span>

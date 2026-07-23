@@ -184,18 +184,25 @@ body {
 
 .migue-launcher-image {
   position: absolute;
-  bottom: -0.85rem;
+  /* Primer plano de la cara, para no depender de los colores del traje: en el
+     PNG la cara va del 9% al 28% de la altura, asi que con la imagen a 12rem y
+     este offset el circulo de 3rem muestra ese tramo. El -48% horizontal (y no
+     -50%) compensa que el personaje esta levemente corrido a la izquierda. */
+  bottom: -8.4rem;
   left: 50%;
-  height: 4.2rem;
-  transform: translateX(-50%);
-  object-fit: contain;
+  height: 12rem;
+  width: auto;
+  /* El preflight de Tailwind pone img { max-width: 100% } y el circulo mide
+     3rem: sin esto la imagen queda aplastada a lo ancho. */
+  max-width: none;
+  transform: translateX(-48%);
+  transform-origin: 48% 15%;
   transition: transform 180ms ease;
-  /* Borde de definicion entre el traje y el fondo del circulo. */
   filter: drop-shadow(0 1px 1.5px rgba(7, 42, 78, 0.35));
 }
 
 .migue-launcher:hover .migue-launcher-image {
-  transform: translateX(-50%) scale(1.06);
+  transform: translateX(-48%) scale(1.05);
 }
 
 .migue-launcher-label {
