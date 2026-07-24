@@ -195,7 +195,11 @@ export async function matchFullTranscript({
         transcriptSegments: usable.length,
         matches,
         transcriptTruncated: truncated,
-        ...(truncationNotice ? { ingestWarning: truncationNotice } : {})
+        // Se persiste TODO el aviso, no solo el del recorte: si el resumen
+        // estructurado fallo (p. ej. sin credito, que es lo ultimo que corre),
+        // la audiencia quedaba COMPLETED sin resumen y sin ninguna senal,
+        // porque este valor solo se devolvia y la ingesta batch lo descartaba.
+        ingestWarning: warning
       }
     }
   });
