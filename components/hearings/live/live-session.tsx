@@ -231,9 +231,12 @@ export function LiveSession({
   );
 
   /** Completa con IA los campos VACIOS de la ficha, sin pisar lo cargado a mano. */
-  async function completeFichaWithAi() {
+  // useCallback con dependencias estables (el texto sale del ref, no del
+  // estado): si se recreara en cada render, el React.memo de HearingFields no
+  // serviria de nada, porque esta funcion es una de sus props.
+  const completeFichaWithAi = useCallback(async () => {
     setFichaError("");
-    const text = transcript.trim();
+    const text = transcriptRef.current.trim();
     if (text.length < 40) {
       setFichaError("Dictá o escribí un poco más para que Migue pueda completar.");
       return;
@@ -262,7 +265,7 @@ export function LiveSession({
     } finally {
       setCompleting(false);
     }
-  }
+  }, [meetingId]);
 
   async function saveAndExit() {
     if (exiting) return;

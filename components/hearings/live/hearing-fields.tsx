@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { actorTypeOptions, proposalSourceOptions, type HearingFicha } from "@/lib/hearings/shared";
 
@@ -9,7 +10,7 @@ import { actorTypeOptions, proposalSourceOptions, type HearingFicha } from "@/li
  * IA" (rellena los campos vacíos con lo que Migue detecta del dictado, sin
  * pisar lo escrito). Se autoguarda junto con la transcripción.
  */
-export function HearingFields({
+function HearingFieldsBase({
   value,
   disabled,
   aiAvailable,
@@ -106,6 +107,12 @@ export function HearingFields({
     </section>
   );
 }
+
+/**
+ * Memoizado: son once inputs controlados que no dependen del dictado, y sin
+ * esto se re-evaluaban varias veces por segundo mientras el operador dicta.
+ */
+export const HearingFields = memo(HearingFieldsBase);
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
