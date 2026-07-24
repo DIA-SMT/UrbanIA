@@ -7,7 +7,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import ffmpegPath from "ffmpeg-static";
 import { hasTranscriptionConfig, transcribeAudioFile } from "@/lib/ai/transcription";
 import { parseTranscriptFile, type TranscriptChunk } from "@/lib/hearings/transcript";
@@ -57,17 +57,51 @@ async function ensureYtDlp(): Promise<string> {
   return binaryPath;
 }
 
+/**
+ * Corre un binario SIN bloquear el event loop.
+ *
+ * Antes esto usaba spawnSync, y como la ruta /api/hearings/ingest dispara el
+ * job dentro del proceso de Next, transcodear una audiencia de dos horas
+ * dejaba a TODA la app sin responder: ni otras requests, ni el intervalo del
+ * latido (con lo cual la propia audiencia se marcaba como trabada y el worker
+ * encolaba un segundo job sobre ella).
+ */
+function run(command: string, args: string[], timeoutMs: number, label: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
+    let stderr = "";
+    let stdout = "";
+    let timedOut = false;
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGKILL");
+    }, timeoutMs);
+
+    child.stdout?.on("data", (data) => (stdout += data));
+    child.stderr?.on("data", (data) => (stderr += data));
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      reject(new Error(`No se pudo ejecutar ${label}: ${error.message}`));
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (timedOut) return reject(new Error(`${label} superó el tiempo límite`));
+      if (code === 0) return resolve();
+      const detail = `${stderr}${stdout}`.trim().slice(-400);
+      reject(new Error(`${label} falló (${code}): ${detail || "sin detalle"}`));
+    });
+  });
+}
+
 async function downloadYoutubeAudio(url: string, workDir: string): Promise<string> {
   const ytdlpPath = await ensureYtDlp();
-  const result = spawnSync(
+  await run(
     ytdlpPath,
     ["-f", "bestaudio/best", "--no-playlist", "--no-progress", "-o", path.join(workDir, "audio-original.%(ext)s"), url],
-    { stdio: ["ignore", "pipe", "pipe"], timeout: 30 * 60 * 1000 }
+    30 * 60 * 1000,
+    "yt-dlp"
   );
-  if (result.status !== 0) {
-    const detail = `${result.stderr?.toString() ?? ""}${result.stdout?.toString() ?? ""}`.trim().slice(-400);
-    throw new Error(`yt-dlp falló al descargar el audio: ${detail || "sin detalle"}`);
-  }
   const downloaded = readdirSync(workDir).find((file) => file.startsWith("audio-original."));
   if (!downloaded) throw new Error("yt-dlp no dejó ningún archivo de audio");
   return path.join(workDir, downloaded);
@@ -75,17 +109,18 @@ async function downloadYoutubeAudio(url: string, workDir: string): Promise<strin
 
 /* ------------------------------- ffmpeg ----------------------------------- */
 
-function segmentAudio(inputPath: string, workDir: string): string[] {
+/** Sin timeout, un ffmpeg colgado dejaba el job (y antes, el server) trabado para siempre. */
+const FFMPEG_TIMEOUT_MS = 60 * 60 * 1000;
+
+async function segmentAudio(inputPath: string, workDir: string): Promise<string[]> {
   if (!ffmpegPath) throw new Error("ffmpeg-static no trae binario para esta plataforma");
   const pattern = path.join(workDir, "chunk-%03d.mp3");
-  const result = spawnSync(
+  await run(
     ffmpegPath,
     ["-hide_banner", "-loglevel", "error", "-i", inputPath, "-ac", "1", "-ar", "16000", "-b:a", "48k", "-f", "segment", "-segment_time", String(CHUNK_SECONDS), pattern],
-    { stdio: ["ignore", "pipe", "pipe"] }
+    FFMPEG_TIMEOUT_MS,
+    "ffmpeg"
   );
-  if (result.status !== 0) {
-    throw new Error(`ffmpeg falló: ${result.stderr?.toString().slice(-400) ?? "sin detalle"}`);
-  }
   return readdirSync(workDir)
     .filter((file) => file.startsWith("chunk-") && file.endsWith(".mp3"))
     .sort()
@@ -95,19 +130,15 @@ function segmentAudio(inputPath: string, workDir: string): string[] {
 /* ---------------------------- Whisper (chunks) ---------------------------- */
 
 /** Whisper local (whisper.cpp / faster-whisper) que emite un .srt junto al audio. */
-function transcribeChunkLocal(chunkPath: string, offsetMs: number): TranscriptChunk[] {
+async function transcribeChunkLocal(chunkPath: string, offsetMs: number): Promise<TranscriptChunk[]> {
   const bin = process.env.WHISPER_LOCAL_BIN;
   if (!bin) throw new Error("HEARING_WHISPER_PROVIDER=local requiere WHISPER_LOCAL_BIN");
 
   const model = process.env.WHISPER_LOCAL_MODEL || "";
-  const outDir = path.dirname(chunkPath);
   const args = ["-f", chunkPath, "-l", "es", "-osrt", "-of", chunkPath.replace(/\.mp3$/, "")];
   if (model) args.push("-m", model);
 
-  const result = spawnSync(bin, args, { cwd: outDir, stdio: ["ignore", "pipe", "pipe"], timeout: 60 * 60 * 1000 });
-  if (result.status !== 0) {
-    throw new Error(`Whisper local falló: ${result.stderr?.toString().slice(-300) ?? "sin detalle"}`);
-  }
+  await run(bin, args, 60 * 60 * 1000, "Whisper local");
   const srtPath = chunkPath.replace(/\.mp3$/, ".srt");
   if (!existsSync(srtPath)) throw new Error("Whisper local no generó el .srt esperado");
 
@@ -124,7 +155,7 @@ async function transcribeChunks(chunks: string[]): Promise<TranscriptChunk[]> {
   for (let index = 0; index < chunks.length; index += 1) {
     const offsetMs = index * CHUNK_SECONDS * 1000;
     if (provider === "local") {
-      out.push(...transcribeChunkLocal(chunks[index], offsetMs));
+      out.push(...(await transcribeChunkLocal(chunks[index], offsetMs)));
     } else {
       const segments = await transcribeAudioFile({
         filePath: chunks[index],
@@ -144,7 +175,7 @@ export async function transcribeFromYoutube(url: string): Promise<TranscriptChun
   const workDir = mkdtempSync(path.join(tmpdir(), "urbania-yt-"));
   try {
     const audioPath = await downloadYoutubeAudio(url, workDir);
-    const chunks = segmentAudio(audioPath, workDir);
+    const chunks = await segmentAudio(audioPath, workDir);
     if (!chunks.length) throw new Error("El video no produjo audio segmentable");
     const transcript = await transcribeChunks(chunks);
     if (!transcript.length) throw new Error("Whisper no devolvió texto para este video");
@@ -158,7 +189,7 @@ export async function transcribeFromYoutube(url: string): Promise<TranscriptChun
 export async function transcribeFromFile(filePath: string): Promise<TranscriptChunk[]> {
   const workDir = mkdtempSync(path.join(tmpdir(), "urbania-file-"));
   try {
-    const chunks = segmentAudio(filePath, workDir);
+    const chunks = await segmentAudio(filePath, workDir);
     if (!chunks.length) throw new Error("El archivo no produjo audio segmentable");
     const transcript = await transcribeChunks(chunks);
     if (!transcript.length) throw new Error("Whisper no devolvió texto para este archivo");
