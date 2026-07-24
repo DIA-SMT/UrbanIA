@@ -328,6 +328,16 @@ export function HearingDetail({
         </div>
       ) : null}
 
+      {hearing.ingestWarning ? (
+        <div className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-4">
+          <p className="inline-flex items-center gap-2 text-sm font-black text-amber-100">
+            <TriangleAlert className="h-4 w-4 shrink-0" />
+            Esta acta está incompleta
+          </p>
+          <p className="mt-1.5 text-xs leading-5 text-amber-100/80">{hearing.ingestWarning}</p>
+        </div>
+      ) : null}
+
       {hearing.description ? (
         <Section title="Descripción">
           <p className="text-sm leading-7 text-slate-300">{hearing.description}</p>

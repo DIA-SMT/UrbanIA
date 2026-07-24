@@ -52,12 +52,15 @@ export async function matchFullTranscript({
   meetingId,
   reformId,
   chunks,
-  speakerLabel = "Audiencia (carga batch)"
+  speakerLabel = "Audiencia (carga batch)",
+  truncated = false
 }: {
   meetingId: string;
   reformId: string;
   chunks: TranscriptChunk[];
   speakerLabel?: string;
+  /** La fuente recorto la transcripcion: el acta NO cubre toda la audiencia. */
+  truncated?: boolean;
 }): Promise<BatchMatchResult> {
   const usable = chunks.filter((chunk) => chunk.text.trim().length > 0);
   if (!usable.length) throw new Error("La transcripcion no tiene texto para procesar");
@@ -150,6 +153,15 @@ export async function matchFullTranscript({
     warning = "La transcripción quedó guardada. El cruce con las normas y el resumen se corren cuando la IA esté configurada.";
   }
 
+  // Un acta cortada a la mitad no puede quedar como completa sin decirlo: quien
+  // la firme tiene que saber que el debate sigue mas alla del ultimo timestamp.
+  const truncationNotice = truncated
+    ? "La transcripción se cortó por el límite de tamaño: el acta NO cubre la audiencia completa. Revisá el final del debate en la grabación original."
+    : null;
+  if (truncationNotice) {
+    warning = warning ? `${truncationNotice} ${warning}` : truncationNotice;
+  }
+
   // 4. Cierre: audiencia registrada como finalizada.
   const meeting = await prisma.meeting.findUnique({ where: { id: meetingId }, select: { metadata: true } });
   await prisma.meeting.update({
@@ -161,7 +173,9 @@ export async function matchFullTranscript({
         ...readMetadata(meeting?.metadata),
         finalizedAt: new Date().toISOString(),
         transcriptSegments: usable.length,
-        matches
+        matches,
+        transcriptTruncated: truncated,
+        ...(truncationNotice ? { ingestWarning: truncationNotice } : {})
       }
     }
   });

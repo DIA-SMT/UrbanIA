@@ -76,6 +76,7 @@ function toListItem(meeting: MeetingListPayload): HearingListItem {
     ingestError,
     // Sin error registrado pero sin latido: el job murio con el proceso.
     ingestStalled: processing && !ingestError && isIngestStalled(meeting.metadata, meeting.updatedAt),
+    ingestWarning: readMetaString(meeting.metadata, "ingestWarning"),
     matchCount: meeting._count.normMatches,
     participantCount: meeting._count.participants
   };
@@ -262,6 +263,8 @@ export async function getHearing(id: string): Promise<HearingDetail | null> {
   const processing = resolvedStatus === "PROCESSING";
   const ingestError = processing && typeof metadata.error === "string" && metadata.error.trim() ? metadata.error : null;
   const ingestStalled = processing && !ingestError && isIngestStalled(meeting.metadata, meeting.updatedAt);
+  // Aviso que sobrevive al cierre: el acta quedo COMPLETED pero recortada.
+  const ingestWarning = typeof metadata.ingestWarning === "string" && metadata.ingestWarning.trim() ? metadata.ingestWarning : null;
 
   return {
     id: meeting.id,
@@ -275,6 +278,7 @@ export async function getHearing(id: string): Promise<HearingDetail | null> {
     topic: typeof metadata.topic === "string" && metadata.topic.trim().length > 0 ? metadata.topic : null,
     ingestError,
     ingestStalled,
+    ingestWarning,
     matchCount: meeting._count.normMatches,
     participantCount: meeting._count.participants,
     description: meeting.description,

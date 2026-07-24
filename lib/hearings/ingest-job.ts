@@ -95,21 +95,45 @@ export function isIngestStalled(metadata: Prisma.JsonValue | null, updatedAt: Da
  * raro), cae a la via Whisper original: mejor una transcripcion sin oradores
  * que ninguna.
  */
-async function youtubeChunksWithSpeakers(url: string): Promise<TranscriptChunk[]> {
+/** Un fallo de credito/cuota va a repetirse en Whisper: comparten la API key. */
+function isBillingFailure(message: string): boolean {
+  return /\b402\b|insufficient|balance|credit|quota|payment required/i.test(message);
+}
+
+async function youtubeChunksWithSpeakers(url: string): Promise<{ chunks: TranscriptChunk[]; truncated: boolean }> {
   try {
     const result = await transcribeYoutubeHearing(url);
     const segments = parseTranscriptSegments(result.transcript);
     if (segments.length) {
-      return segments.map((segment) => ({ text: segment.content, atMs: segment.startMs, speaker: segment.speakerLabel }));
+      return {
+        chunks: segments.map((segment) => ({ text: segment.content, atMs: segment.startMs, speaker: segment.speakerLabel })),
+        truncated: result.truncated
+      };
     }
     // Texto sin el formato esperado: se conserva entero como un solo tramo.
     if (result.transcript.trim()) {
-      return [{ text: result.transcript.trim(), atMs: 0 }];
+      return { chunks: [{ text: result.transcript.trim(), atMs: 0 }], truncated: result.truncated };
     }
     throw new Error("La transcripcion con oradores volvio vacia");
   } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+
+    // Reintentar con Whisper vuelve a descargar el video entero: no se hace si
+    // la causa es el credito, porque falla igual y se paga dos veces la bajada.
+    if (isBillingFailure(reason)) {
+      throw new Error(`No hay credito suficiente en OpenRouter para transcribir: ${reason}`);
+    }
+
     console.error("Transcripcion con oradores fallo; se usa la via Whisper", error);
-    return transcribeFromYoutube(url);
+    try {
+      // Whisper no recorta: la transcripcion sale completa, pero sin oradores.
+      return { chunks: await transcribeFromYoutube(url), truncated: false };
+    } catch (fallbackError) {
+      // El motivo original es el util para diagnosticar: el del fallback suele
+      // ser una consecuencia ("Whisper no devolvio texto") que despista.
+      const fallbackReason = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+      throw new Error(`Transcripcion con oradores: ${reason} | Whisper: ${fallbackReason}`);
+    }
   }
 }
 
@@ -135,12 +159,16 @@ export async function runIngestJob(meetingId: string): Promise<void> {
   }, HEARTBEAT_INTERVAL_MS);
 
   try {
-    const chunks = spec.mode === "youtube" ? await youtubeChunksWithSpeakers(spec.url) : await transcribeFromFile(spec.filePath);
+    const source =
+      spec.mode === "youtube"
+        ? await youtubeChunksWithSpeakers(spec.url)
+        : { chunks: await transcribeFromFile(spec.filePath), truncated: false };
     await matchFullTranscript({
       meetingId,
       reformId: meeting.reformId,
-      chunks,
-      speakerLabel: spec.mode === "youtube" ? "Audiencia (YouTube)" : "Audiencia (archivo)"
+      chunks: source.chunks,
+      speakerLabel: spec.mode === "youtube" ? "Audiencia (YouTube)" : "Audiencia (archivo)",
+      truncated: source.truncated
     });
   } catch (error) {
     await markHearingError(meetingId, error instanceof Error ? error.message : "Error desconocido en la ingesta");

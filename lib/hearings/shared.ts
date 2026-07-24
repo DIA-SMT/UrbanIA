@@ -93,6 +93,11 @@ export type HearingListItem = {
   ingestError: string | null;
   /** True si la ingesta quedo en PROCESSING sin latido: el job murio a mitad. */
   ingestStalled: boolean;
+  /**
+   * Aviso que sobrevive al cierre: la audiencia quedo COMPLETED pero con la
+   * transcripcion recortada, asi que el acta no cubre todo el debate.
+   */
+  ingestWarning: string | null;
   matchCount: number;
   participantCount: number;
 };
