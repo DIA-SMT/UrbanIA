@@ -46,14 +46,27 @@ function readMetaObject(metadata: Prisma.JsonValue | null): Prisma.JsonObject {
   return metadata && typeof metadata === "object" && !Array.isArray(metadata) ? (metadata as Prisma.JsonObject) : {};
 }
 
+/**
+ * Escribe SOLO la clave del latido, con jsonb_set atomico en la base.
+ *
+ * Con un read-modify-write del metadata entero (leer, spread, escribir) un
+ * latido en vuelo pisaba lo que acababan de guardar markHearingError o el
+ * cierre de matchFullTranscript: la audiencia quedaba en ERROR pero sin el
+ * campo `error`, o perdia `finalizedAt`. Es decir, el latido borraba
+ * justamente el diagnostico que existe para explicar la falla.
+ */
 async function touchHeartbeat(meetingId: string): Promise<void> {
   try {
-    const meeting = await prisma.meeting.findUnique({ where: { id: meetingId }, select: { metadata: true } });
-    if (!meeting) return;
-    await prisma.meeting.update({
-      where: { id: meetingId },
-      data: { metadata: { ...readMetaObject(meeting.metadata), ingestHeartbeatAt: new Date().toISOString() } }
-    });
+    await prisma.$executeRaw`
+      UPDATE "Meeting"
+      SET "metadata" = jsonb_set(
+        COALESCE("metadata", '{}'::jsonb),
+        '{ingestHeartbeatAt}',
+        to_jsonb(${new Date().toISOString()}::text),
+        true
+      )
+      WHERE "id" = ${meetingId}
+    `;
   } catch {
     // El latido nunca debe tirar el job.
   }

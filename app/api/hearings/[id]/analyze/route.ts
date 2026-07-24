@@ -45,17 +45,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const { draft } = await analyzeHearingTranscript(parsed.data.transcript, { title: meeting.title });
 
-    // Participantes detectados: se re-crean desde el analisis mas reciente.
+    // Participantes detectados: se re-crean desde el analisis mas reciente, en
+    // transaccion para no dejar la audiencia sin participantes si falla el alta.
     if (draft.participants.length) {
-      await prisma.meetingParticipant.deleteMany({ where: { meetingId: id } });
-      await prisma.meetingParticipant.createMany({
-        data: draft.participants.map((participant) => ({
-          meetingId: id,
-          displayName: participant.name,
-          role: participant.role,
-          metadata: { institution: participant.institution, actorType: participant.actorType, intervention: participant.intervention } as Prisma.InputJsonValue
-        }))
-      });
+      await prisma.$transaction([
+        prisma.meetingParticipant.deleteMany({ where: { meetingId: id } }),
+        prisma.meetingParticipant.createMany({
+          data: draft.participants.map((participant) => ({
+            meetingId: id,
+            displayName: participant.name,
+            role: participant.role,
+            metadata: { institution: participant.institution, actorType: participant.actorType, intervention: participant.intervention } as Prisma.InputJsonValue
+          }))
+        })
+      ]);
     }
 
     return NextResponse.json({ conclusions: draftToConclusions(draft) });

@@ -65,16 +65,22 @@ export async function matchFullTranscript({
   // 1. Guardar la transcripcion como segmentos (memoria publica, no se altera).
   // Si la fuente separo voces, cada tramo conserva su orador; si no, todos caen
   // en la etiqueta generica de la audiencia.
-  await prisma.transcriptSegment.deleteMany({ where: { meetingId } });
-  await prisma.transcriptSegment.createMany({
-    data: usable.map((chunk) => ({
-      meetingId,
-      startMs: chunk.atMs ?? 0,
-      endMs: chunk.atMs ?? 0,
-      content: chunk.text,
-      speakerLabel: chunk.speaker?.trim() || speakerLabel
-    }))
-  });
+  //
+  // En transaccion: sin ella, un fallo del createMany (timeout del pool remoto,
+  // payload de miles de segmentos) dejaba la audiencia con CERO segmentos,
+  // porque el deleteMany ya se habia llevado la transcripcion anterior.
+  await prisma.$transaction([
+    prisma.transcriptSegment.deleteMany({ where: { meetingId } }),
+    prisma.transcriptSegment.createMany({
+      data: usable.map((chunk) => ({
+        meetingId,
+        startMs: chunk.atMs ?? 0,
+        endMs: chunk.atMs ?? 0,
+        content: chunk.text,
+        speakerLabel: chunk.speaker?.trim() || speakerLabel
+      }))
+    })
+  ]);
 
   // 2. Macheo por ventanas contra el catalogo del codigo nuevo (una sola carga).
   let matches = 0;
@@ -119,15 +125,19 @@ export async function matchFullTranscript({
       });
 
       if (draft.participants.length) {
-        await prisma.meetingParticipant.deleteMany({ where: { meetingId } });
-        await prisma.meetingParticipant.createMany({
-          data: draft.participants.map((participant) => ({
-            meetingId,
-            displayName: participant.name,
-            role: participant.role,
-            metadata: { institution: participant.institution, actorType: participant.actorType, intervention: participant.intervention }
-          }))
-        });
+        // Mismo criterio que los segmentos: reemplazo atomico, para no quedarse
+        // sin participantes si falla el alta.
+        await prisma.$transaction([
+          prisma.meetingParticipant.deleteMany({ where: { meetingId } }),
+          prisma.meetingParticipant.createMany({
+            data: draft.participants.map((participant) => ({
+              meetingId,
+              displayName: participant.name,
+              role: participant.role,
+              metadata: { institution: participant.institution, actorType: participant.actorType, intervention: participant.intervention }
+            }))
+          })
+        ]);
       }
 
       await prisma.meeting.update({ where: { id: meetingId }, data: { description: draft.summary } });
