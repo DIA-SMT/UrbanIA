@@ -630,6 +630,10 @@ model HearingRecord {
   /// HearingObservedTopic, que las tiene por fila).
   technicalObservation     String?
   citizenObservation       String?
+  /// Importancia que el operador le dio a los temas observados. Vive aca y no
+  /// solo en las filas de HearingObservedTopic porque la ficha tiene un unico
+  /// selector: sin temas cargados no habia donde guardarla y volvia a "Medio".
+  topicsImportance         TopicImportance?
   /// Conclusiones del acta. Son campos propios y no MeetingAnalysis porque las
   /// firma una persona: si vivieran en el analisis, volver a correr el modelo
   /// pisaria lo que un funcionario ya valido.

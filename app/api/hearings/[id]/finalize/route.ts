@@ -47,7 +47,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   try {
-    const meeting = await prisma.meeting.findUnique({ where: { id }, select: { id: true, metadata: true } });
+    // kind acotado: finalize borra los TranscriptSegment del meeting, asi que
+    // apuntarlo a una reunion comun destruiria su acta.
+    const meeting = await prisma.meeting.findFirst({ where: { id, kind: "PUBLIC_HEARING" }, select: { id: true, metadata: true } });
     if (!meeting) return NextResponse.json({ error: "Audiencia no encontrada" }, { status: 404 });
 
     const transcript = parsed.data.transcript;

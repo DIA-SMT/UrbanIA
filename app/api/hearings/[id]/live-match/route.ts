@@ -32,7 +32,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   try {
-    const meeting = await prisma.meeting.findUnique({ where: { id }, select: { id: true, reformId: true, hearingStatus: true } });
+    const meeting = await prisma.meeting.findFirst({ where: { id, kind: "PUBLIC_HEARING" }, select: { id: true, reformId: true, hearingStatus: true } });
     if (!meeting) return NextResponse.json({ error: "Audiencia no encontrada" }, { status: 404 });
     if (!meeting.reformId) {
       return NextResponse.json({ error: "La audiencia no tiene un código nuevo asociado" }, { status: 422 });

@@ -246,15 +246,17 @@ export async function getHearing(id: string): Promise<HearingDetail | null> {
       : {};
   const draftTranscript = typeof metadata.draftTranscript === "string" ? metadata.draftTranscript : null;
 
-  // Expediente unificado: el HearingRecord es la fuente de la ficha, las
-  // conclusiones y los documentos. metadata queda como fallback de lectura para
-  // audiencias previas a la unificacion (o records recien creados vacios).
+  // Expediente unificado: si hay HearingRecord, es LA fuente de la ficha, las
+  // conclusiones y los documentos. metadata solo se lee cuando no hay record
+  // (audiencias previas a la unificacion que nunca se abrieron).
+  //
+  // Antes el fallback se disparaba cuando el record estaba VACIO, no cuando no
+  // existia: vaciar la ficha desde la UI hacia reaparecer los datos legacy, y
+  // borrar el ultimo documento resucitaba la lista vieja. Al crear el record se
+  // siembra con lo legacy (ver ensureHearingRecord), asi que no se pierde nada.
   const record = meeting.hearingRecord;
-  const recordFicha = record ? fichaFromRecord(record) : null;
-  const ficha = recordFicha && Object.values(recordFicha).some((value) => value.trim().length > 0)
-    ? recordFicha
-    : toHearingFicha(metadata.ficha);
-  const documents = record?.documents.length ? documentsFromRecord(record.documents) : readDocuments(metadata.documents);
+  const ficha = record ? fichaFromRecord(record) : toHearingFicha(metadata.ficha);
+  const documents = record ? documentsFromRecord(record.documents) : readDocuments(metadata.documents);
   const recordConclusions = record ? conclusionsFromRecord(record) : null;
   const conclusions = recordConclusions ?? analysisView?.conclusions ?? null;
   const conclusionsByTeam = Boolean(recordConclusions) || (analysisView?.editedByHuman ?? false);
