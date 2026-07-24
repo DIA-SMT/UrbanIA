@@ -60,6 +60,7 @@ export function LiveSession({
   const [savedLabel, setSavedLabel] = useState(resuming ? "Borrador recuperado" : "");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [exiting, setExiting] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [fichaError, setFichaError] = useState("");
 
@@ -170,8 +171,10 @@ export function LiveSession({
   const sendMatchWindow = useCallback(async () => {
     if (sendingRef.current) return;
     const fullText = transcriptRef.current;
-    const window = fullText.slice(-MATCH_WINDOW_CHARS).trim();
-    if (window.length < 20) return;
+    // Nombrada asi y no "window": ese identificador sombrea el global del
+    // navegador dentro de esta funcion.
+    const windowText = fullText.slice(-MATCH_WINDOW_CHARS).trim();
+    if (windowText.length < 20) return;
 
     sendingRef.current = true;
     lastSentLengthRef.current = fullText.length;
@@ -179,7 +182,7 @@ export function LiveSession({
       const response = await fetch(`/api/hearings/${meetingId}/live-match`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ window, atMs: Date.now() - startedAtRef.current })
+        body: JSON.stringify({ window: windowText, atMs: Date.now() - startedAtRef.current })
       });
       if (response.ok) {
         const payload = (await response.json()) as { matches: HearingMatchView[] };
@@ -262,11 +265,16 @@ export function LiveSession({
   }
 
   async function saveAndExit() {
+    if (exiting) return;
+    setExiting(true);
     dictation.stop();
     // Si el servidor rechazo el guardado NO se navega: salir de la pantalla
     // perderia el dictado. El error queda visible y se puede reintentar.
     const saved = await saveDraft({ force: true });
-    if (!saved) return;
+    if (!saved) {
+      setExiting(false);
+      return;
+    }
     router.push(`/audiencias/${meetingId}`);
   }
 
@@ -372,11 +380,11 @@ export function LiveSession({
           <button
             type="button"
             onClick={saveAndExit}
-            disabled={finalizing}
+            disabled={finalizing || exiting}
             className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-bold text-slate-200 disabled:opacity-60"
           >
-            <LogOut className="h-4 w-4" />
-            Guardar y salir
+            {exiting ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+            {exiting ? "Guardando…" : "Guardar y salir"}
           </button>
           <button
             type="button"

@@ -16,45 +16,64 @@ const MIGUE_HISTORY_KEY = "urbania-migue-history";
 /** Alto maximo del campo de consulta, en px: aprox. 6 lineas. */
 const DRAFT_MAX_HEIGHT = 132;
 const MIGUE_POSITION_KEY = "urbania-migue-position";
-// Ancho/alto aproximado del launcher (mobile 4.5rem, desktop 5rem) para encuadrarlo.
-const LAUNCHER_SIZE = 84;
+/**
+ * Medidas de respaldo del launcher, solo hasta que se pueda medir el elemento
+ * real. NO es cuadrado: es una pildora (~137x62 en desktop) y darla por
+ * cuadrada dejaba que el arrastre se pasara del borde derecho ~53 px y que el
+ * arco de tirada arrancara desplazado de donde el dedo lo solto.
+ */
+const LAUNCHER_FALLBACK = { w: 137, h: 62 };
 const EDGE_MARGIN = 8;
 
 type MigueSide = "left" | "right";
 type MigueDock = { side: MigueSide; y: number };
+type LauncherSize = { w: number; h: number };
+
+/**
+ * Ancho util de la ventana. clientWidth y no innerWidth: innerWidth incluye la
+ * barra de scroll, pero el CSS `right` se ancla al area de contenido, y esa
+ * diferencia (~15 px) descuadraba la posicion de reposo contra la del arrastre.
+ */
+function viewportWidth(): number {
+  return document.documentElement.clientWidth || window.innerWidth;
+}
+
+function viewportHeight(): number {
+  return document.documentElement.clientHeight || window.innerHeight;
+}
 
 /** Mantiene el launcher siempre dentro de la pantalla (durante el arrastre libre). */
-function clampToViewport(x: number, y: number): { x: number; y: number } {
-  const maxX = Math.max(EDGE_MARGIN, window.innerWidth - LAUNCHER_SIZE - EDGE_MARGIN);
-  const maxY = Math.max(EDGE_MARGIN, window.innerHeight - LAUNCHER_SIZE - EDGE_MARGIN);
+function clampToViewport(x: number, y: number, size: LauncherSize): { x: number; y: number } {
+  const maxX = Math.max(EDGE_MARGIN, viewportWidth() - size.w - EDGE_MARGIN);
+  const maxY = Math.max(EDGE_MARGIN, viewportHeight() - size.h - EDGE_MARGIN);
   return { x: Math.min(Math.max(x, EDGE_MARGIN), maxX), y: Math.min(Math.max(y, EDGE_MARGIN), maxY) };
 }
 
 /** X (top-left) del launcher pegado a un borde lateral. */
-function dockX(side: MigueSide): number {
-  return side === "left" ? EDGE_MARGIN : Math.max(EDGE_MARGIN, window.innerWidth - LAUNCHER_SIZE - EDGE_MARGIN);
+function dockX(side: MigueSide, size: LauncherSize): number {
+  return side === "left" ? EDGE_MARGIN : Math.max(EDGE_MARGIN, viewportWidth() - size.w - EDGE_MARGIN);
 }
 
 /** Mantiene la altura dentro de la pantalla. */
-function clampY(y: number): number {
-  const maxY = Math.max(EDGE_MARGIN, window.innerHeight - LAUNCHER_SIZE - EDGE_MARGIN);
+function clampY(y: number, size: LauncherSize): number {
+  const maxY = Math.max(EDGE_MARGIN, viewportHeight() - size.h - EDGE_MARGIN);
   return Math.min(Math.max(y, EDGE_MARGIN), maxY);
 }
 
 /** Direccion de apertura del panel: hacia el centro segun borde y mitad vertical. */
-function sideClass(side: MigueSide, y: number): string {
-  const onTop = y + LAUNCHER_SIZE / 2 < window.innerHeight / 2;
+function sideClass(side: MigueSide, y: number, size: LauncherSize): string {
+  const onTop = y + size.h / 2 < viewportHeight() / 2;
   return `${onTop ? "flex-col-reverse" : "flex-col"} ${side === "left" ? "items-start" : "items-end"}`;
 }
 
 /** Ancla el contenedor por el borde lateral + la mitad vertical mas cercana. */
-function dockStyleFor(side: MigueSide, y: number): React.CSSProperties {
+function dockStyleFor(side: MigueSide, y: number, size: LauncherSize): React.CSSProperties {
   const style: React.CSSProperties = {};
   if (side === "left") style.left = EDGE_MARGIN;
   else style.right = EDGE_MARGIN;
-  const onTop = y + LAUNCHER_SIZE / 2 < window.innerHeight / 2;
+  const onTop = y + size.h / 2 < viewportHeight() / 2;
   if (onTop) style.top = y;
-  else style.bottom = Math.max(EDGE_MARGIN, window.innerHeight - y - LAUNCHER_SIZE);
+  else style.bottom = Math.max(EDGE_MARGIN, viewportHeight() - y - size.h);
   return style;
 }
 
@@ -112,6 +131,21 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
   const draftRef = useRef<HTMLTextAreaElement>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  /** Cambia al borrar el historial: descarta respuestas de consultas viejas. */
+  const conversationRef = useRef(0);
+
+  /**
+   * Medida real del launcher, leida del DOM. El tamano cambia entre mobile y
+   * desktop (y con el texto), asi que hardcodearlo descuadraba el encuadre.
+   * Se mide el boton, no el contenedor: con el panel abierto el contenedor
+   * pasa a medir todo el chat.
+   */
+  const sizeRef = useRef<LauncherSize>(LAUNCHER_FALLBACK);
+  function launcherSize(): LauncherSize {
+    const el = launcherRef.current;
+    if (el?.offsetWidth) sizeRef.current = { w: el.offsetWidth, h: el.offsetHeight };
+    return sizeRef.current;
+  }
   const dragRef = useRef<{ pointerId: number; grabX: number; grabY: number; startX: number; startY: number; moved: boolean } | null>(null);
   // Velocidad horizontal suavizada, para detectar la "tirada" (fling) al soltar.
   const velRef = useRef<{ x: number; t: number }>({ x: 0, t: 0 });
@@ -135,23 +169,27 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
 
   // Restaura el borde/altura guardados (migrando el formato viejo {x,y}) y re-encuadra al resize.
   useEffect(() => {
+    const size = launcherSize();
+    const defaultDock = (): MigueDock => ({ side: "right", y: clampY(viewportHeight() - size.h - 24, size) });
+
     let initial: MigueDock;
     try {
       const parsed = JSON.parse(window.localStorage.getItem(MIGUE_POSITION_KEY) ?? "null");
       if (parsed && (parsed.side === "left" || parsed.side === "right") && typeof parsed.y === "number") {
-        initial = { side: parsed.side, y: clampY(parsed.y) };
+        initial = { side: parsed.side, y: clampY(parsed.y, size) };
       } else if (parsed && typeof parsed.x === "number" && typeof parsed.y === "number") {
-        initial = { side: parsed.x + LAUNCHER_SIZE / 2 < window.innerWidth / 2 ? "left" : "right", y: clampY(parsed.y) };
+        initial = { side: parsed.x + size.w / 2 < viewportWidth() / 2 ? "left" : "right", y: clampY(parsed.y, size) };
       } else {
-        initial = { side: "right", y: clampY(window.innerHeight - LAUNCHER_SIZE - 24) };
+        initial = defaultDock();
       }
     } catch {
-      initial = { side: "right", y: clampY(window.innerHeight - LAUNCHER_SIZE - 24) };
+      initial = defaultDock();
     }
     setDock(initial);
 
     function onResize() {
-      setDock((current) => (current ? { side: current.side, y: clampY(current.y) } : current));
+      const current = launcherSize();
+      setDock((dockNow) => (dockNow ? { side: dockNow.side, y: clampY(dockNow.y, current) } : dockNow));
     }
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -211,7 +249,7 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
       const vx = (event.clientX - velRef.current.x) / dt;
       vxRef.current = 0.55 * vx + 0.45 * vxRef.current;
       velRef.current = { x: event.clientX, t: now };
-      setDrag(clampToViewport(event.clientX - dragState.grabX, event.clientY - dragState.grabY));
+      setDrag(clampToViewport(event.clientX - dragState.grabX, event.clientY - dragState.grabY, launcherSize()));
     }
   }
 
@@ -232,19 +270,37 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
 
     // Borde de destino: si hubo envion horizontal (fling) manda esa direccion;
     // si no, el lado de la mitad donde se solto. Asi cruza al tirarlo o vuelve.
-    const cur = clampToViewport(event.clientX - dragState.grabX, event.clientY - dragState.grabY);
-    const center = cur.x + LAUNCHER_SIZE / 2;
+    const size = launcherSize();
+    const cur = clampToViewport(event.clientX - dragState.grabX, event.clientY - dragState.grabY, size);
+    const center = cur.x + size.w / 2;
     const vx = vxRef.current;
-    const side: MigueSide = Math.abs(vx) > 0.45 ? (vx > 0 ? "right" : "left") : center < window.innerWidth / 2 ? "left" : "right";
-    const y = clampY(cur.y);
+    const side: MigueSide = Math.abs(vx) > 0.45 ? (vx > 0 ? "right" : "left") : center < viewportWidth() / 2 ? "left" : "right";
+    const y = clampY(cur.y, size);
     const next: MigueDock = { side, y };
 
     // Offset desde donde se solto hasta el borde: el arco arranca ahi y termina pegado.
-    throwRef.current = { offX: cur.x - dockX(side), offY: cur.y - y };
+    throwRef.current = { offX: cur.x - dockX(side, size), offY: cur.y - y };
     setDock(next);
     setDrag(null);
     setThrowSeq((seq) => seq + 1);
     persistDock(next);
+  }
+
+  /**
+   * El navegador puede quedarse con el puntero a mitad de arrastre (gesto de
+   * sistema desde el borde —justo donde vive Migue—, scroll tactil, menu
+   * contextual). Sin esto no corria pointerup: el launcher quedaba flotando en
+   * coordenadas libres, sin volver a su borde y sin persistir, y al rotar el
+   * telefono se iba fuera de pantalla.
+   */
+  function onLauncherPointerCancel(event: React.PointerEvent<HTMLButtonElement>) {
+    const dragState = dragRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setDrag(null);
+    // Vuelve al ultimo borde conocido; si aun no hay, al de por defecto.
+    const size = launcherSize();
+    setDock((current) => current ?? { side: "right", y: clampY(viewportHeight() - size.h - 24, size) });
   }
 
   useEffect(() => {
@@ -318,6 +374,12 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
     }
 
     event.preventDefault();
+    // El boton de enviar ya esta deshabilitado mientras carga; Enter tenia que
+    // respetar lo mismo o se mandaban dos consultas y la respuesta de la
+    // primera desaparecia al resolver la segunda.
+    if (status === "loading") {
+      return;
+    }
     void askMigue();
   }
 
@@ -328,6 +390,9 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
   }
 
   function clearHistory() {
+    // Invalida la consulta en vuelo: sin esto, su respuesta llegaba y volvia a
+    // pintar (y a persistir) toda la conversacion que se acababa de borrar.
+    conversationRef.current += 1;
     setMessages([]);
     setStatus("idle");
     memoryRef.current = [];
@@ -343,15 +408,19 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
     event?.preventDefault();
     const nextQuestion = (prompt ?? draftQuestion).trim();
 
-    if (nextQuestion.length < 3) {
+    if (nextQuestion.length < 3 || status === "loading") {
       return;
     }
 
+    const attachment = files.attachment;
     const nextMessages: ChatMessage[] = [
       ...messages,
-      { role: "user", content: nextQuestion, attachmentName: files.attachment?.name }
+      { role: "user", content: nextQuestion, attachmentName: attachment?.name }
     ];
 
+    // Si el historial se borra (o se manda otra consulta) mientras esta corre,
+    // el token cambia y su respuesta se descarta en vez de pisar lo nuevo.
+    const token = conversationRef.current;
     setMessages(nextMessages);
     setDraftQuestion("");
     setStatus("loading");
@@ -363,8 +432,8 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
         body: JSON.stringify({
           question: nextQuestion,
           history: buildHistoryWithMemory(messages),
-          attachment: files.attachment
-            ? { name: files.attachment.name, text: files.attachment.text, truncated: files.attachment.truncated }
+          attachment: attachment
+            ? { name: attachment.name, text: attachment.text, truncated: attachment.truncated }
             : undefined,
           // mode y role los resuelve el servidor desde la sesion: mandarlos desde
           // aca no tendria efecto (ver resolveAssistantAccess).
@@ -382,6 +451,7 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
         throw new Error(payload?.detail || payload?.error || "Migue no pudo responder ahora.");
       }
 
+      if (token !== conversationRef.current) return;
       setMessages([
         ...nextMessages,
         {
@@ -393,7 +463,11 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
         }
       ]);
       setStatus("idle");
+      // El adjunto ya viajo con esta consulta: si no se limpia, su texto se
+      // reenvia en todas las preguntas siguientes y el clip queda pegado.
+      if (attachment) files.clear();
     } catch (error) {
+      if (token !== conversationRef.current) return;
       setMessages([
         ...nextMessages,
         {
@@ -409,12 +483,14 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
   let dockClass: string;
   let dockStyle: React.CSSProperties;
   if (drag) {
-    const side: MigueSide = drag.x + LAUNCHER_SIZE / 2 < window.innerWidth / 2 ? "left" : "right";
-    dockClass = sideClass(side, drag.y);
+    const size = sizeRef.current;
+    const side: MigueSide = drag.x + size.w / 2 < viewportWidth() / 2 ? "left" : "right";
+    dockClass = sideClass(side, drag.y, size);
     dockStyle = { left: drag.x, top: drag.y };
   } else if (dock) {
-    dockClass = sideClass(dock.side, dock.y);
-    dockStyle = dockStyleFor(dock.side, dock.y);
+    const size = sizeRef.current;
+    dockClass = sideClass(dock.side, dock.y, size);
+    dockStyle = dockStyleFor(dock.side, dock.y, size);
   } else {
     dockClass = "bottom-24 right-4 md:right-6 lg:bottom-6 flex-col items-end";
     dockStyle = {};
@@ -614,6 +690,7 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
         onPointerDown={onLauncherPointerDown}
         onPointerMove={onLauncherPointerMove}
         onPointerUp={onLauncherPointerUp}
+        onPointerCancel={onLauncherPointerCancel}
         style={{ touchAction: "none", cursor: dragging ? "grabbing" : "grab" }}
         className={`urban-button migue-launcher group ${dragging ? "select-none" : ""}`}
         aria-label={isOpen ? "Cerrar chat de Migue" : "Abrir chat de Migue. Manten presionado para moverlo."}

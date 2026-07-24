@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, FileText, Loader2, Music, Upload, Youtube } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, Music, TriangleAlert, Upload, Youtube } from "lucide-react";
 import type { ReformOption } from "@/lib/hearings/shared";
 
 type Mode = "transcript" | "youtube" | "audio";
@@ -46,9 +46,13 @@ export function UploadHearing({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [processingError, setProcessingError] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Polling del estado para YouTube/audio hasta que la audiencia quede finalizada.
+  // Polling del estado para YouTube/audio hasta que la audiencia quede
+  // finalizada O falle. Antes solo se miraba COMPLETED, asi que una ingesta
+  // fallida dejaba el spinner girando para siempre, sin mostrar el motivo ni
+  // el boton de reintentar que ya existe en el detalle.
   useEffect(() => {
     if (!processingId) return;
     pollRef.current = setInterval(async () => {
@@ -56,8 +60,19 @@ export function UploadHearing({
         const response = await fetch(`/api/hearings/${processingId}`);
         if (!response.ok) return;
         const payload = await response.json();
-        if (payload.hearing?.hearingStatus === "COMPLETED") {
+        const hearing = payload.hearing;
+        if (!hearing) return;
+
+        if (hearing.hearingStatus === "COMPLETED") {
           router.push(`/audiencias/${processingId}`);
+          return;
+        }
+        if (hearing.ingestError || hearing.ingestStalled) {
+          setProcessingError(
+            hearing.ingestError ||
+              "El procesamiento se interrumpió: el servidor se detuvo mientras trabajaba. Se puede retomar desde el detalle."
+          );
+          if (pollRef.current) clearInterval(pollRef.current);
         }
       } catch {
         // Reintenta en el proximo tick.
@@ -125,14 +140,41 @@ export function UploadHearing({
       <div className="space-y-4">
         <BackLink />
         <section className="urban-card mx-auto max-w-2xl rounded-lg p-6 text-center lg:p-10">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#1f89f6]" />
-          <h1 className="mt-4 text-2xl font-black text-white">Procesando la audiencia…</h1>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-400">
-            Se está bajando y transcribiendo el audio, y cruzando el debate contra las mininormas del código nuevo. Puede demorar según la duración. Podés cerrar esta pantalla: la audiencia aparece en el registro cuando termina.
-          </p>
-          <Link href="/audiencias" className="urban-button mt-6 inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-black text-slate-200">
-            Ir al registro
-          </Link>
+          {processingError ? (
+            <>
+              <TriangleAlert className="mx-auto h-8 w-8 text-amber-300" />
+              <h1 className="mt-4 text-2xl font-black text-white">No se pudo procesar la audiencia</h1>
+              <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-amber-100/90">{processingError}</p>
+              <p className="mx-auto mt-2 max-w-md text-xs leading-6 text-slate-500">
+                La audiencia quedó creada: desde su detalle podés ver el motivo y volver a lanzar el procesamiento.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+                <Link
+                  href={`/audiencias/${processingId}`}
+                  className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-black text-white"
+                >
+                  Ir al detalle y reintentar
+                </Link>
+                <Link
+                  href="/audiencias"
+                  className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-black text-slate-200"
+                >
+                  Ir al registro
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#1f89f6]" />
+              <h1 className="mt-4 text-2xl font-black text-white">Procesando la audiencia…</h1>
+              <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-400">
+                Se está bajando y transcribiendo el audio, y cruzando el debate contra las mininormas del código nuevo. Puede demorar según la duración. Podés cerrar esta pantalla: la audiencia aparece en el registro cuando termina.
+              </p>
+              <Link href="/audiencias" className="urban-button mt-6 inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-black text-slate-200">
+                Ir al registro
+              </Link>
+            </>
+          )}
         </section>
       </div>
     );
