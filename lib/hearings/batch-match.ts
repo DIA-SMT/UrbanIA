@@ -4,7 +4,12 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { analyzeHearingTranscript } from "@/lib/hearings/analyze";
-import { detectMatchesAgainstNorms, loadNormCatalog, persistDetectedMatches } from "@/lib/hearings/live-match";
+import {
+  detectMatchesAgainstNorms,
+  loadFragmentKeys,
+  loadNormCatalog,
+  persistDetectedMatchesBatch
+} from "@/lib/hearings/live-match";
 import { syncRecordLifecycle } from "@/lib/hearings/record";
 import { chunksToTranscript, type TranscriptChunk } from "@/lib/hearings/transcript";
 
@@ -19,6 +24,8 @@ import { chunksToTranscript, type TranscriptChunk } from "@/lib/hearings/transcr
  */
 
 const WINDOW_CHARS = 1800;
+/** Ventanas que se machean a la vez. Mismo tope que la transcripcion por tramos. */
+const MATCH_PARALLEL = 4;
 
 /** Agrupa tramos consecutivos en ventanas de ~WINDOW_CHARS, con su atMs. */
 function buildWindows(chunks: TranscriptChunk[]): Array<{ text: string; atMs: number | null }> {
@@ -86,14 +93,27 @@ export async function matchFullTranscript({
   ]);
 
   // 2. Macheo por ventanas contra el catalogo del codigo nuevo (una sola carga).
+  //
+  // Las ventanas son independientes entre si, asi que las llamadas al modelo
+  // van de a lotes en paralelo (mismo criterio que la transcripcion por tramos).
+  // Una audiencia larga da ~33 ventanas: en serie eran ~33 idas y vueltas al
+  // modelo, una atras de otra. El dedupe usa un Set que vive toda la corrida en
+  // vez de re-consultar los cruces en cada ventana, y las altas van por lote.
   let matches = 0;
   if (hasOpenRouterConfig()) {
     const catalog = await loadNormCatalog(reformId);
-    if (catalog.length) {
-      for (const window of buildWindows(usable)) {
-        const detected = await detectMatchesAgainstNorms(catalog, window.text);
-        const created = await persistDetectedMatches(meetingId, detected, window.atMs);
-        matches += created.length;
+    const windows = buildWindows(usable);
+    if (catalog.length && windows.length) {
+      const seen = await loadFragmentKeys(meetingId);
+
+      for (let index = 0; index < windows.length; index += MATCH_PARALLEL) {
+        const batch = windows.slice(index, index + MATCH_PARALLEL);
+        const detected = await Promise.all(batch.map((window) => detectMatchesAgainstNorms(catalog, window.text)));
+        // La persistencia va secuencial dentro del lote: es barata y mantiene
+        // el Set de dedupe coherente sin carreras entre ventanas.
+        for (let position = 0; position < batch.length; position += 1) {
+          matches += await persistDetectedMatchesBatch(meetingId, detected[position], batch[position].atMs, seen);
+        }
       }
     }
   }

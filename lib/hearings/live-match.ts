@@ -1,7 +1,7 @@
 // Sin "server-only": este modulo tambien lo importa el worker CLI de ingesta
 // (scripts/ingest-youtube-hearings.ts), que corre con tsx fuera de Next.
 import { z } from "zod";
-import type { HearingMatchStance } from "@prisma/client";
+import { Prisma, type HearingMatchStance } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { askUrbanAssistant, hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import type { HearingMatchView } from "@/lib/hearings/shared";
@@ -164,6 +164,47 @@ export async function detectMatchesAgainstNorms(norms: NormCatalogEntry[], windo
 export function fragmentKey(projectId: string, fragment: string): string {
   const normalized = fragment.toLowerCase().replace(/\s+/g, " ").trim().slice(0, 64);
   return `${projectId}:${normalized}`;
+}
+
+/** Claves ya persistidas de una audiencia, para deduplicar sin volver a consultar. */
+export async function loadFragmentKeys(meetingId: string): Promise<Set<string>> {
+  const existing = await prisma.hearingNormMatch.findMany({
+    where: { meetingId },
+    select: { projectId: true, fragment: true }
+  });
+  return new Set(existing.map((match) => fragmentKey(match.projectId, match.fragment)));
+}
+
+/**
+ * Version para la ingesta batch: dedupe contra un Set en memoria que vive toda
+ * la corrida y alta en un solo createMany. La del modo en vivo consulta la base
+ * y crea fila por fila porque necesita devolver los ids para el panel; en batch
+ * solo interesa cuantos se crearon, y hacerlo asi evita una consulta completa
+ * de cruces y hasta ocho inserts sueltos POR VENTANA.
+ */
+export async function persistDetectedMatchesBatch(
+  meetingId: string,
+  detected: LiveMatch[],
+  atMs: number | null,
+  seen: Set<string>
+): Promise<number> {
+  const fresh: Prisma.HearingNormMatchCreateManyInput[] = [];
+  for (const match of detected) {
+    const key = fragmentKey(match.normId, match.fragment);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    fresh.push({
+      meetingId,
+      projectId: match.normId,
+      fragment: match.fragment,
+      stance: match.stance,
+      confidence: match.confidence,
+      atMs
+    });
+  }
+  if (!fresh.length) return 0;
+  const result = await prisma.hearingNormMatch.createMany({ data: fresh });
+  return result.count;
 }
 
 /**

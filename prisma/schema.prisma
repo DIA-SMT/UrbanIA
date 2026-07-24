@@ -448,6 +448,11 @@ model Meeting {
   hearingRecord      HearingRecord?
 
   @@index([reformId])
+  /// El registro de audiencias filtra por kind y ordena por fecha; los conteos
+  /// del board agrupan por kind + estado. Sin estos indices ambas consultas
+  /// escanean la tabla entera de reuniones.
+  @@index([kind, occurredAt(sort: Desc)])
+  @@index([kind, hearingStatus])
 }
 
 /// Cruce en vivo audiencia <-> mininorma: que norma del codigo nuevo se esta

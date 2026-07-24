@@ -506,8 +506,12 @@ const reformInclude = {
 
 type ReformPayload = Prisma.NormativeReformGetPayload<{ include: typeof reformInclude }>;
 
-async function toReformListItem(reform: ReformPayload): Promise<ReformListItem> {
-  const latest = await latestFeasibilityByNorm(reform.norms.map((norm) => norm.id));
+/**
+ * `latest` viene precargado por el llamador: resolverlo aca adentro hacia una
+ * consulta de diagnosticos POR REFORMA (N+1). Ahora se pide una sola vez para
+ * todas las normas de todas las reformas del listado.
+ */
+function toReformListItem(reform: ReformPayload, latest: Map<string, string>): ReformListItem {
   const conflictCount = reform.norms.filter((norm) =>
     (CONFLICT_LEVELS as readonly string[]).includes(latest.get(norm.id) ?? "")
   ).length;
@@ -539,7 +543,22 @@ export async function listReforms(filters: ReformFilters = {}): Promise<ReformLi
     include: reformInclude
   });
 
-  return Promise.all(reforms.map(toReformListItem));
+  // Un unico barrido de diagnosticos para TODAS las normas del listado.
+  const latest = await latestFeasibilityByNorm(reforms.flatMap((reform) => reform.norms.map((norm) => norm.id)));
+  return reforms.map((reform) => toReformListItem(reform, latest));
+}
+
+/**
+ * Solo id, code y title de cada codigo nuevo, para poblar selects. listReforms
+ * trae ademas las normas, el autor y el diagnostico de cada una: pedirlo entero
+ * para armar un desplegable de tres campos es carisimo.
+ */
+export async function listReformOptions(): Promise<Array<{ id: string; code: string; title: string }>> {
+  return prisma.normativeReform.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 100,
+    select: { id: true, code: true, title: true }
+  });
 }
 
 /** Detalle de un codigo nuevo con sus normas. */
@@ -550,9 +569,12 @@ export async function getReform(id: string): Promise<ReformDetail | null> {
   });
   if (!reform) return null;
 
-  const [listItem, norms] = await Promise.all([toReformListItem(reform), listNorms(reform.id, {})]);
+  const [latest, norms] = await Promise.all([
+    latestFeasibilityByNorm(reform.norms.map((norm) => norm.id)),
+    listNorms(reform.id, {})
+  ]);
 
-  return { ...listItem, updatedAt: reform.updatedAt.toISOString(), norms };
+  return { ...toReformListItem(reform, latest), updatedAt: reform.updatedAt.toISOString(), norms };
 }
 
 export type CreateReformInput = { title: string; description?: string | null; createdById?: string | null };

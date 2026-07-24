@@ -101,20 +101,24 @@ export async function listHearings(filters: HearingFilters = {}): Promise<Hearin
 }
 
 export async function getHearingCounts(): Promise<HearingCounts> {
-  // Se resuelve el estado en memoria (no groupBy sobre la columna cruda) para
-  // contar tambien las audiencias de flujos previos con hearingStatus nulo,
-  // que igual aparecen en la lista con su estado derivado.
-  const meetings = await prisma.meeting.findMany({
+  // groupBy por las DOS columnas y resolucion en memoria: agrupar solo por
+  // hearingStatus perderia las audiencias de flujos previos que lo tienen nulo
+  // y derivan su estado de status. Antes se traia una fila por audiencia (sin
+  // take) para contar tres numeros; asi vuelven a lo sumo unas pocas
+  // combinaciones, y el conteo lo hace la base.
+  const groups = await prisma.meeting.groupBy({
+    by: ["hearingStatus", "status"],
     where: { kind: "PUBLIC_HEARING" },
-    select: { hearingStatus: true, status: true }
+    _count: { _all: true }
   });
 
   const counts: HearingCounts = { upcoming: 0, processing: 0, completed: 0 };
-  for (const meeting of meetings) {
-    const status = resolveHearingStatus(meeting.hearingStatus, meeting.status);
-    if (status === "SCHEDULED") counts.upcoming += 1;
-    else if (status === "LIVE" || status === "PROCESSING") counts.processing += 1;
-    else if (status === "COMPLETED") counts.completed += 1;
+  for (const group of groups) {
+    const status = resolveHearingStatus(group.hearingStatus, group.status);
+    const total = group._count._all;
+    if (status === "SCHEDULED") counts.upcoming += total;
+    else if (status === "LIVE" || status === "PROCESSING") counts.processing += total;
+    else if (status === "COMPLETED") counts.completed += total;
   }
   return counts;
 }
