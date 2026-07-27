@@ -11,7 +11,6 @@ import { runIngestJob } from "@/lib/hearings/ingest-job";
 import { parseTranscriptFile } from "@/lib/hearings/transcript";
 import { extractPdfText, sanitizePdfText } from "@/lib/pdf/extract-text";
 import { attachHearingDocument } from "@/lib/hearings/attach-document";
-import { ingestHearingReport } from "@/lib/knowledge/ingest-hearing-report";
 import { hasSupabaseStorage } from "@/lib/storage/supabase";
 
 export const dynamic = "force-dynamic";
@@ -134,18 +133,15 @@ export async function POST(request: Request) {
 
         const result = await matchFullTranscript({ meetingId: meeting.id, reformId, chunks });
 
-        // Adjuntar el PDF y aprender de él, sin demorar la respuesta. Son DOS
-        // pasos independientes a proposito: guardar el archivo puede fallar por
-        // configuracion del bucket (RLS sin service role key) y eso no debe
-        // impedir que Migue aprenda del texto, que es el objetivo principal.
-        after(async () => {
-          let documentId = `hearing-pdf:${meeting.id}`;
-          let sourceUrl: string | null = null;
-
-          if (hasSupabaseStorage()) {
+        // matchFullTranscript ya ingesta la transcripción al conocimiento (Migue
+        // aprende del texto del PDF). Acá solo se guarda el PDF como archivo
+        // adjunto descargable, best-effort: si el bucket falla (RLS sin service
+        // role key), no importa, el aprendizaje ya está cubierto.
+        if (hasSupabaseStorage()) {
+          after(async () => {
             try {
               const uploader = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
-              const attached = await attachHearingDocument({
+              await attachHearingDocument({
                 meetingId: meeting.id,
                 fileName: file.name,
                 contentType: file.type || "application/pdf",
@@ -153,28 +149,11 @@ export async function POST(request: Request) {
                 fileSize: file.size,
                 uploadedByName: uploader?.name ?? null
               });
-              documentId = attached.documentId;
-              sourceUrl = attached.url;
             } catch (error) {
               console.error(`[adjuntos] No se pudo guardar el PDF "${file.name}" en el bucket:`, error);
             }
-          }
-
-          try {
-            const ingested = await ingestHearingReport({
-              hearingId: meeting.id,
-              documentId,
-              title: file.name,
-              text,
-              mimeType: file.type || "application/pdf",
-              sourceUrl,
-              hearingTitle: title
-            });
-            console.log(`[conocimiento] PDF "${file.name}" indexado: ${ingested.chunks} fragmentos.`);
-          } catch (error) {
-            console.error(`[conocimiento] No se pudo indexar el PDF "${file.name}":`, error);
-          }
-        });
+          });
+        }
 
         return NextResponse.json({ meetingId: meeting.id, status: "completed", result }, { status: 201 });
       }
