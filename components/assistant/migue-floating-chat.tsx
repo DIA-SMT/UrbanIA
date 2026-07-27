@@ -77,6 +77,26 @@ function dockStyleFor(side: MigueSide, y: number, size: LauncherSize): React.CSS
   return style;
 }
 
+// Separacion entre el launcher y el panel (gap-3 del contenedor).
+const PANEL_GAP = 12;
+
+/**
+ * Alto maximo del panel segun el espacio REAL disponible desde el launcher hasta
+ * el borde opuesto del viewport. El panel se abre hacia abajo si el launcher esta
+ * en la mitad superior, hacia arriba si esta en la inferior. Sin esto, un max-h
+ * fijo asume anclaje abajo y el panel se corta cuando el launcher esta arrastrado
+ * arriba (el input queda fuera de pantalla). Se topea en el maximo estetico
+ * original (~100dvh - 10rem) para que no se estire de mas en pantallas altas.
+ */
+function panelMaxHeight(y: number, size: LauncherSize): number {
+  const onTop = y + size.h / 2 < viewportHeight() / 2;
+  const available = onTop
+    ? viewportHeight() - (y + size.h + PANEL_GAP) - EDGE_MARGIN
+    : y - PANEL_GAP - EDGE_MARGIN;
+  const ideal = viewportHeight() - 160;
+  return Math.max(0, Math.min(ideal, available));
+}
+
 type LiveAssistantAnswer = {
   answer: string;
   model: string;
@@ -264,6 +284,9 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
     dragRef.current = null;
 
     if (!dragState.moved) {
+      // Fue un tap, no un arrastre: alterna el chat. setDrag(null) defensivo por
+      // si un drag quedo colgado de una cancelacion previa sin pointerup.
+      setDrag(null);
       setIsOpen((value) => !value);
       return;
     }
@@ -290,17 +313,24 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
    * El navegador puede quedarse con el puntero a mitad de arrastre (gesto de
    * sistema desde el borde —justo donde vive Migue—, scroll tactil, menu
    * contextual). Sin esto no corria pointerup: el launcher quedaba flotando en
-   * coordenadas libres, sin volver a su borde y sin persistir, y al rotar el
-   * telefono se iba fuera de pantalla.
+   * coordenadas libres, sin volver a su borde y sin persistir, y al abrir el
+   * panel se salia de pantalla. Se asienta al borde de donde quedo el arrastre.
    */
   function onLauncherPointerCancel(event: React.PointerEvent<HTMLButtonElement>) {
     const dragState = dragRef.current;
     if (!dragState || dragState.pointerId !== event.pointerId) return;
     dragRef.current = null;
-    setDrag(null);
-    // Vuelve al ultimo borde conocido; si aun no hay, al de por defecto.
     const size = launcherSize();
-    setDock((current) => current ?? { side: "right", y: clampY(viewportHeight() - size.h - 24, size) });
+    if (drag) {
+      const side: MigueSide = drag.x + size.w / 2 < viewportWidth() / 2 ? "left" : "right";
+      const next: MigueDock = { side, y: clampY(drag.y, size) };
+      setDock(next);
+      persistDock(next);
+    } else {
+      // Sin arrastre activo: al ultimo borde conocido, o el de por defecto.
+      setDock((current) => current ?? { side: "right", y: clampY(viewportHeight() - size.h - 24, size) });
+    }
+    setDrag(null);
   }
 
   useEffect(() => {
@@ -482,31 +512,44 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
   // Mientras se arrastra sigue el puntero; en reposo queda pegado a su borde lateral.
   let dockClass: string;
   let dockStyle: React.CSSProperties;
-  if (drag) {
-    const size = sizeRef.current;
+  // Ancla vertical del launcher, para acotar el alto del panel al espacio real.
+  let anchorY: number | null = null;
+  const size = sizeRef.current;
+  // El posicionamiento libre por coordenadas solo aplica con el panel CERRADO
+  // (mientras se arrastra). Con el panel abierto se ancla siempre a un borde, asi
+  // un drag colgado no puede dejar el panel corriendose fuera de pantalla.
+  if (drag && !isOpen) {
     const side: MigueSide = drag.x + size.w / 2 < viewportWidth() / 2 ? "left" : "right";
     dockClass = sideClass(side, drag.y, size);
     dockStyle = { left: drag.x, top: drag.y };
+    anchorY = drag.y;
   } else if (dock) {
-    const size = sizeRef.current;
     dockClass = sideClass(dock.side, dock.y, size);
     dockStyle = dockStyleFor(dock.side, dock.y, size);
+    anchorY = dock.y;
   } else {
     dockClass = "bottom-24 right-4 md:right-6 lg:bottom-6 flex-col items-end";
     dockStyle = {};
   }
 
+  // Antes de hidratar (anchorY null) cae al max-h de la clase, que sirve para el
+  // anclaje por defecto abajo a la derecha.
+  const panelStyle: React.CSSProperties = anchorY !== null ? { maxHeight: panelMaxHeight(anchorY, size) } : {};
+
   return (
     <div ref={containerRef} className={`migue-theme-${appearance} fixed z-[80] flex gap-3 ${dockClass}`} style={dockStyle}>
       {isOpen ? (
-        <section className="flex max-h-[calc(100dvh-10rem)] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(2,6,23,0.35)] dark:border-white/10 dark:bg-[#0d1b2a]">
+        <section
+          style={panelStyle}
+          className="flex max-h-[calc(100dvh-10rem)] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(2,6,23,0.35)] dark:border-white/10 dark:bg-[#0d1b2a]"
+        >
           <div className="flex shrink-0 items-center gap-3 bg-gradient-to-br from-[#35aeea] via-[#1f89f6] to-[#0d6fe0] p-4">
             <span className="migue-launcher-avatar">
               <Image
-                src="/migue/migue-assistant-transparent.png"
+                src="/migue/migue-cara.png"
                 alt=""
-                width={96}
-                height={96}
+                width={256}
+                height={256}
                 className="migue-launcher-image"
               />
             </span>
@@ -691,6 +734,7 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
         onPointerMove={onLauncherPointerMove}
         onPointerUp={onLauncherPointerUp}
         onPointerCancel={onLauncherPointerCancel}
+        onLostPointerCapture={onLauncherPointerCancel}
         style={{ touchAction: "none", cursor: dragging ? "grabbing" : "grab" }}
         className={`urban-button migue-launcher group ${dragging ? "select-none" : ""}`}
         aria-label={isOpen ? "Cerrar chat de Migue" : "Abrir chat de Migue. Manten presionado para moverlo."}
@@ -698,10 +742,10 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
       >
         <span className="migue-launcher-avatar">
           <Image
-            src="/migue/migue-assistant-transparent.png"
+            src="/migue/migue-cara.png"
             alt=""
-            width={96}
-            height={96}
+            width={256}
+            height={256}
             className="migue-launcher-image"
           />
         </span>

@@ -16,6 +16,13 @@ export type ThemeMode = "dark" | "light";
 const THEME_KEY = "urbania-portal-theme";
 
 function applyTheme(theme: ThemeMode) {
+  // Hay que togglear TAMBIEN "dark": las variantes dark: de Tailwind miran esa
+  // clase del <html> (darkMode: "class"), y la gestion interna la setea con otra
+  // clave de storage. Si el portal solo maneja urban-light, un "dark" heredado
+  // queda pegado y conviven ambas clases: los componentes con isLight se ven
+  // claros pero los que usan dark: (el chat de Migue) se renderizan oscuros, con
+  // los overrides !important de urban-light lavandoles los inputs por encima.
+  document.documentElement.classList.toggle("dark", theme === "dark");
   document.documentElement.classList.toggle("urban-light", theme === "light");
   document.documentElement.style.colorScheme = theme;
 }
@@ -29,7 +36,9 @@ export function usePortalTheme() {
     applyTheme(saved);
 
     return () => {
-      document.documentElement.classList.remove("urban-light");
+      // Limpia ambas clases: la proxima superficie (shell interno, login) aplica
+      // su propio tema al montar. Dejar "dark" aca reintroduce la mezcla.
+      document.documentElement.classList.remove("urban-light", "dark");
       document.documentElement.style.colorScheme = "light";
     };
   }, []);
