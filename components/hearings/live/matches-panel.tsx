@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { ExternalLink, Scale, Sparkles } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { stanceLabels, stanceStyles, type HearingMatchView } from "@/lib/hearings/shared";
@@ -27,7 +27,7 @@ type NormGroup = {
  * el debate, con postura, confianza y el fragmento que lo disparo. Sugerencias
  * de Migue para el equipo; no deciden nada.
  */
-export function MatchesPanel({
+function MatchesPanelBase({
   matches,
   reformId,
   aiAvailable
@@ -133,3 +133,11 @@ export function MatchesPanel({
     </section>
   );
 }
+
+/**
+ * Memoizado: durante el dictado el estado del texto interino cambia varias
+ * veces por segundo y re-renderiza la sesion en vivo entera. Este panel no
+ * depende de eso — solo de los cruces ya detectados — asi que no tiene por que
+ * redibujarse a esa frecuencia.
+ */
+export const MatchesPanel = memo(MatchesPanelBase);

@@ -1,14 +1,19 @@
 // NO es "server-only" a proposito: lo usa la ingesta batch (ingest-job.ts) que
 // corre en el worker CLI con tsx fuera de Next, donde importar "server-only"
 // tira. Mismo criterio que transcribe.ts.
-// Depende de binarios del SISTEMA (yt-dlp, ffmpeg, ffprobe) en el PATH.
+//
+// Los binarios NO se toman del PATH: yt-dlp se autodescarga y ffmpeg viene
+// embebido (lib/hearings/binaries.ts). Antes se invocaban por nombre y en
+// cualquier maquina sin ellos instalados esta via fallaba entera con ENOENT y
+// caia al fallback de Whisper, que transcribe pero NO separa oradores: el
+// equipo perdia la identificacion de quien dijo cada cosa sin enterarse.
 
-import { spawn } from "node:child_process";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { askUrbanAssistant } from "@/lib/ai/openrouter";
+import { ensureFfmpeg, ensureYtDlp, probeDurationSec, run } from "@/lib/hearings/binaries";
 import { canonicalYoutubeUrl } from "@/lib/hearings/youtube-url";
 
 export { canonicalYoutubeUrl };
@@ -42,31 +47,6 @@ export type SpeakerBinding = {
   evidence: string | null;
 };
 
-function run(cmd: string, args: string[], timeoutMs: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    // shell: false (default). Los argumentos van como array y no se interpolan.
-    const child = spawn(cmd, args, { shell: false });
-    let stdout = "";
-    let stderr = "";
-
-    const timer = setTimeout(() => {
-      child.kill("SIGKILL");
-      reject(new Error(`${cmd} supero el tiempo limite`));
-    }, timeoutMs);
-
-    child.stdout.on("data", (d) => (stdout += d));
-    child.stderr.on("data", (d) => (stderr += d));
-    child.on("error", (err) => {
-      clearTimeout(timer);
-      reject(new Error(`No se pudo ejecutar ${cmd}: ${err.message}`));
-    });
-    child.on("close", (code) => {
-      clearTimeout(timer);
-      code === 0 ? resolve(stdout) : reject(new Error(`${cmd} fallo (${code}): ${stderr.slice(-400)}`));
-    });
-  });
-}
-
 /**
  * Descarga la pista de audio. Fija el formato m4a (140) a proposito: dejar que
  * yt-dlp elija con `bestaudio` lo lleva al webm, que devuelve HTTP 403 de forma
@@ -74,14 +54,19 @@ function run(cmd: string, args: string[], timeoutMs: number): Promise<string> {
  */
 async function downloadAudio(url: string, dir: string): Promise<string> {
   const out = join(dir, "audio.m4a");
-  await run("yt-dlp", ["-f", "140", "--no-playlist", "-o", out, url], 300_000);
+  await run(await ensureYtDlp(), ["-f", "140", "--no-playlist", "-o", out, url], 300_000, "yt-dlp");
   return out;
 }
 
 async function fetchVideoTitle(url: string): Promise<string> {
   try {
-    const out = await run("yt-dlp", ["--skip-download", "--no-playlist", "--print", "%(title)s", url], 60_000);
-    return out.trim().slice(0, 200) || "Audiencia transcripta de YouTube";
+    const { stdout } = await run(
+      await ensureYtDlp(),
+      ["--skip-download", "--no-playlist", "--print", "%(title)s", url],
+      60_000,
+      "yt-dlp"
+    );
+    return stdout.trim().slice(0, 200) || "Audiencia transcripta de YouTube";
   } catch {
     // El titulo es cosmetico: si no sale, la transcripcion sigue igual.
     return "Audiencia transcripta de YouTube";
@@ -91,23 +76,15 @@ async function fetchVideoTitle(url: string): Promise<string> {
 async function toChunks(input: string, dir: string): Promise<string[]> {
   // 16 kHz mono: lo que esperan los motores de voz, y una fraccion del tamano.
   await run(
-    "ffmpeg",
+    ensureFfmpeg(),
     ["-y", "-v", "error", "-i", input, "-ac", "1", "-ar", "16000", "-c:a", "libmp3lame", "-q:a", "6",
      "-f", "segment", "-segment_time", String(CHUNK_SECONDS), join(dir, "chunk-%03d.mp3")],
-    300_000
+    300_000,
+    "ffmpeg"
   );
 
   const files = (await readdir(dir)).filter((f) => /^chunk-\d+\.mp3$/.test(f)).sort();
   return files.map((f) => join(dir, f));
-}
-
-async function probeDuration(input: string): Promise<number> {
-  const out = await run(
-    "ffprobe",
-    ["-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", input],
-    30_000
-  );
-  return Math.round(Number.parseFloat(out.trim()) || 0);
 }
 
 const asrPrompt = (offsetMin: number) => `Transcribi este tramo de una audiencia publica del Concejo Deliberante de San Miguel de Tucuman sobre el Codigo de Planeamiento Urbano.
@@ -228,7 +205,7 @@ export async function transcribeYoutubeHearing(rawUrl: string): Promise<Transcri
 
   try {
     const [audio, videoTitle] = await Promise.all([downloadAudio(url, dir), fetchVideoTitle(url)]);
-    const durationSec = await probeDuration(audio);
+    const durationSec = await probeDurationSec(audio);
     const files = await toChunks(audio, dir);
 
     if (!files.length) {
