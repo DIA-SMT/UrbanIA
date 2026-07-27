@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/shell";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { getHearing } from "@/lib/hearings/data";
 import { HearingDetail } from "@/components/hearings/hearing-detail";
 
@@ -20,7 +21,7 @@ export default async function HearingDetailPage({ params }: { params: Promise<{ 
 
   return (
     <AppShell>
-      <HearingDetail hearing={hearing} canEdit={canEdit} canDelete={canDelete} />
+      <HearingDetail hearing={hearing} canEdit={canEdit} canDelete={canDelete} aiAvailable={hasOpenRouterConfig()} />
     </AppShell>
   );
 }
