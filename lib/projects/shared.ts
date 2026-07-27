@@ -236,6 +236,10 @@ export type ProjectAttachmentView = {
   excerpt: string | null;
   meetingId: string | null;
   createdAt: string;
+  /** Link publico al archivo, si el adjunto tiene uno guardado. */
+  url: string | null;
+  /** Paginas del documento de origen que respaldan la norma. */
+  sourcePages: number[];
 };
 
 export type ProjectAnchorView = {

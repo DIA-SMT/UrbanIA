@@ -9,6 +9,7 @@ import { useActiveVoter } from "@/components/normas/active-voter";
 import { FormBlock } from "@/components/projects/form/form-ui";
 import { TeamFeedbackBlock } from "@/components/normas/form/team-feedback-block";
 import { IdentificationBlock } from "@/components/normas/form/identification-block";
+import { OriginBlock } from "@/components/normas/form/origin-block";
 import { ObjectBlock } from "@/components/normas/form/object-block";
 import { OldCodeBlock } from "@/components/normas/form/old-code-block";
 import { ArticleTextBlock } from "@/components/normas/form/article-text-block";
@@ -378,6 +379,8 @@ export function NormEditor({
           </div>
         ) : null}
       </div>
+
+      {norm?.attachments?.length ? <OriginBlock attachments={norm.attachments} /> : null}
 
       <FormBlock index={1} title="Identificación" description="Título, número tentativo dentro del código nuevo, materia y estado.">
         <IdentificationBlock

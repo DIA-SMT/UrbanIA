@@ -6,14 +6,25 @@ import type { ProjectAttachmentView } from "@/lib/projects/shared";
 
 export const dynamic = "force-dynamic";
 
-function toView(attachment: { id: string; kind: string; name: string; excerpt: string | null; meetingId: string | null; createdAt: Date }): ProjectAttachmentView {
+function toView(attachment: {
+  id: string;
+  kind: string;
+  name: string;
+  excerpt: string | null;
+  meetingId: string | null;
+  createdAt: Date;
+  url?: string | null;
+  sourcePages?: number[];
+}): ProjectAttachmentView {
   return {
     id: attachment.id,
     kind: attachment.kind,
     name: attachment.name,
     excerpt: attachment.excerpt,
     meetingId: attachment.meetingId,
-    createdAt: attachment.createdAt.toISOString()
+    createdAt: attachment.createdAt.toISOString(),
+    url: attachment.url ?? null,
+    sourcePages: attachment.sourcePages ?? []
   };
 }
 

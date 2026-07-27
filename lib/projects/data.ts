@@ -168,7 +168,9 @@ function toAttachmentView(attachment: ProjectDetailPayload["attachments"][number
     name: attachment.name,
     excerpt: attachment.excerpt,
     meetingId: attachment.meetingId,
-    createdAt: attachment.createdAt.toISOString()
+    createdAt: attachment.createdAt.toISOString(),
+    url: attachment.url,
+    sourcePages: attachment.sourcePages
   };
 }
 
