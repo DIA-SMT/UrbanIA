@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, FileText, Loader2, Music, TriangleAlert, Upload, Youtube } from "lucide-react";
+import { ArrowLeft, File, FileText, Loader2, Music, TriangleAlert, Upload, Youtube } from "lucide-react";
 import type { ReformOption } from "@/lib/hearings/shared";
 
-type Mode = "transcript" | "youtube" | "audio";
+type Mode = "transcript" | "pdf" | "youtube" | "audio";
 
 const MODES: Array<{ id: Mode; label: string; icon: typeof FileText; hint: string }> = [
   { id: "transcript", label: "Subir transcripción", icon: FileText, hint: "TXT, VTT o SRT. El camino más rápido y confiable: se procesa al instante." },
+  { id: "pdf", label: "PDF", icon: File, hint: "Informe o transcripción en PDF. Se lee el texto, se cruza con las normas y Migue lo aprende." },
   { id: "youtube", label: "YouTube", icon: Youtube, hint: "Link del video. Se baja el audio y se transcribe; puede demorar según la duración." },
   { id: "audio", label: "Subir audio/video", icon: Music, hint: "Archivo de audio o video. Se transcribe con Whisper; puede demorar según la duración." }
 ];
@@ -42,6 +43,7 @@ export function UploadHearing({
   const [transcriptContent, setTranscriptContent] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -98,20 +100,27 @@ export function UploadHearing({
     title.trim().length > 0 &&
     reformId.length > 0 &&
     !submitting &&
-    (mode === "transcript" ? transcriptContent.trim().length >= 20 : mode === "youtube" ? youtubeUrl.trim().length > 10 : audioFile !== null);
+    (mode === "transcript"
+      ? transcriptContent.trim().length >= 20
+      : mode === "pdf"
+        ? pdfFile !== null
+        : mode === "youtube"
+          ? youtubeUrl.trim().length > 10
+          : audioFile !== null);
 
   async function submit() {
     setError("");
     setSubmitting(true);
     try {
       let response: Response;
-      if (mode === "audio") {
+      if (mode === "audio" || mode === "pdf") {
         const form = new FormData();
         form.set("title", title.trim());
         if (occurredAt) form.set("occurredAt", new Date(occurredAt).toISOString());
         form.set("reformId", reformId);
         if (description.trim()) form.set("description", description.trim());
-        if (audioFile) form.set("file", audioFile);
+        const file = mode === "pdf" ? pdfFile : audioFile;
+        if (file) form.set("file", file);
         response = await fetch("/api/hearings/ingest", { method: "POST", body: form });
       } else {
         const body =
@@ -258,6 +267,13 @@ export function UploadHearing({
             {mode === "youtube" ? (
               <input value={youtubeUrl} onChange={(event) => setYoutubeUrl(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." className="h-11 w-full rounded-md border border-white/10 bg-slate-950/60 px-3 font-mono text-sm text-slate-100 outline-none transition placeholder:font-sans placeholder:text-slate-600 focus:border-sky-300/50" />
             ) : null}
+            {mode === "pdf" ? (
+              <div>
+                <input type="file" accept=".pdf,application/pdf" onChange={(event) => setPdfFile(event.target.files?.[0] ?? null)} className="block w-full text-sm text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-civic-blue file:px-4 file:py-2 file:text-sm file:font-black file:text-white" />
+                {pdfFile ? <p className="mt-2 text-xs font-bold text-slate-400">{pdfFile.name}</p> : null}
+                <p className="mt-2 text-xs leading-5 text-slate-500">Se lee el texto del PDF, se cruza con las mininormas del código nuevo y queda en el conocimiento de Migue. Necesita PDF con texto seleccionable (no escaneos).</p>
+              </div>
+            ) : null}
             {mode === "audio" ? (
               <input type="file" accept="audio/*,video/*" onChange={(event) => setAudioFile(event.target.files?.[0] ?? null)} className="block w-full text-sm text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-civic-blue file:px-4 file:py-2 file:text-sm file:font-black file:text-white" />
             ) : null}
@@ -266,7 +282,7 @@ export function UploadHearing({
 
         {!dbAvailable ? <Notice>Sin conexión a la base no se puede cargar la audiencia.</Notice> : null}
         {dbAvailable && !aiAvailable ? <Notice>La IA no está configurada: la transcripción queda guardada, pero el cruce con las normas y el resumen se posponen.</Notice> : null}
-        {mode !== "transcript" && !audioAvailable ? <Notice>La transcripción de audio (yt-dlp/Whisper) no está disponible en este entorno. Usá &quot;Subir transcripción&quot;, que funciona siempre.</Notice> : null}
+        {(mode === "youtube" || mode === "audio") && !audioAvailable ? <Notice>La transcripción de audio (yt-dlp/Whisper) no está disponible en este entorno. Usá &quot;Subir transcripción&quot; o &quot;PDF&quot;, que funcionan siempre.</Notice> : null}
         {error ? <p className="mt-4 text-xs font-bold text-amber-200">{error}</p> : null}
 
         <button type="button" onClick={submit} disabled={!canSubmit} className="urban-button mt-6 inline-flex items-center gap-2 rounded-md bg-civic-blue px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50">
