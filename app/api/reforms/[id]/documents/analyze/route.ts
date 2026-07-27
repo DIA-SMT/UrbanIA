@@ -19,23 +19,75 @@ const MIN_USEFUL_CHARS = 200;
 
 const bodySchema = z.object({ storagePath: z.string().trim().min(1).max(400) });
 
+const DOCUMENT_KINDS = [
+  "PROPUESTA_NORMATIVA",
+  "DIAGNOSTICO_TECNICO",
+  "PRESENTACION_INSTITUCIONAL",
+  "PONENCIA_ACADEMICA",
+  "OTRO"
+] as const;
+
+/**
+ * Normaliza el FORMATO de un valor de enum, sin adivinar el significado.
+ *
+ * Solo mayusculas, acentos y separadores: "presentación institucional" ->
+ * "PRESENTACION_INSTITUCIONAL". Si despues de eso no coincide con ninguno de
+ * los valores validos, se devuelve null y el llamador decide el fallback: NO
+ * se intenta inferir a que categoria se parecia el texto libre, porque eso
+ * seria interpretar por el modelo.
+ */
+function normalizeEnumValue<T extends string>(raw: unknown, allowed: readonly T[]): T | null {
+  if (typeof raw !== "string") return null;
+  const normalized = raw
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, "_");
+  return allowed.find((value) => value === normalized) ?? null;
+}
+
+/*
+ * Tolerancia deliberada y ASIMETRICA.
+ *
+ * Los campos de clasificacion (documentKind, areas, confidence) los revisa una
+ * persona en la pantalla siguiente, y ya estan como desplegables editables: que
+ * el modelo devuelva una etiqueta rara no justifica tirar a la basura un
+ * analisis que costo plata y un minuto de espera. Se normaliza el formato y, si
+ * aun asi no coincide, se cae a un default seguro.
+ *
+ * Lo que NO se afloja: title, summary y evidenceQuote siguen siendo
+ * obligatorios y la cita se sigue verificando contra el texto real. La
+ * tolerancia es para lo cosmetico, nunca para la evidencia.
+ */
 const proposalSchema = z.object({
   title: z.string().trim().min(1).max(200),
   summary: z.string().trim().min(1).max(4000),
-  areas: z.array(z.nativeEnum(MunicipalArea)).max(9).default([]),
-  sourcePages: z.array(z.number().int().positive()).max(40).default([]),
+  areas: z.preprocess(
+    (raw) =>
+      Array.isArray(raw)
+        ? raw.map((item) => normalizeEnumValue(item, Object.values(MunicipalArea))).filter(Boolean)
+        : [],
+    z.array(z.nativeEnum(MunicipalArea)).max(9)
+  ),
+  sourcePages: z.preprocess(
+    (raw) => (Array.isArray(raw) ? raw.filter((page) => Number.isInteger(page) && Number(page) > 0) : []),
+    z.array(z.number().int().positive()).max(40)
+  ),
   evidenceQuote: z.string().trim().min(1).max(1200),
-  confidence: z.enum(["alta", "media", "baja"])
+  // Default "baja" y no "media": ante la duda, la propuesta arranca DESCARTADA
+  // en la revision y aceptarla tiene que ser un acto deliberado.
+  confidence: z.preprocess(
+    (raw) => normalizeEnumValue(raw, ["ALTA", "MEDIA", "BAJA"] as const)?.toLowerCase() ?? "baja",
+    z.enum(["alta", "media", "baja"])
+  )
 });
 
 const analysisSchema = z.object({
-  documentKind: z.enum([
-    "PROPUESTA_NORMATIVA",
-    "DIAGNOSTICO_TECNICO",
-    "PRESENTACION_INSTITUCIONAL",
-    "PONENCIA_ACADEMICA",
-    "OTRO"
-  ]),
+  documentKind: z.preprocess(
+    (raw) => normalizeEnumValue(raw, DOCUMENT_KINDS) ?? "OTRO",
+    z.enum(DOCUMENT_KINDS)
+  ),
   documentSummary: z.string().trim().min(1).max(2000),
   organization: z.string().trim().max(200).nullish(),
   authors: z.array(z.string().trim().max(160)).max(20).default([]),
@@ -69,9 +121,16 @@ const SYSTEM_PROMPT = [
   "",
   "7. `confidence`: usa 'baja' cuando la propuesta se apoya en texto fragmentario, en una sola linea suelta o en algo que podria ser un titulo de diapositiva sin desarrollo. 'alta' solo cuando el documento desarrolla la regla con claridad.",
   "",
-  "8. `areas` son las areas municipales involucradas, de esta lista exacta: PLANEAMIENTO, OBRAS_PUBLICAS, AMBIENTE, MOVILIDAD, ESPACIO_PUBLICO, DESARROLLO_SOCIAL, HACIENDA, LEGAL, OTRA.",
+  "8. `areas` son las areas municipales involucradas. Usa EXACTAMENTE estos valores, en mayusculas y con guion bajo: PLANEAMIENTO, OBRAS_PUBLICAS, AMBIENTE, MOVILIDAD, ESPACIO_PUBLICO, DESARROLLO_SOCIAL, HACIENDA, LEGAL, OTRA.",
   "",
-  "9. En `warnings` poné lo que la persona deberia saber: paginas ilegibles, tablas que no se entienden, secciones que parecen tener contenido pero salieron vacias (mapas, planos, graficos).",
+  "9. `documentKind` tiene que ser EXACTAMENTE uno de estos cinco valores, tal cual, en mayusculas y con guion bajo. No inventes una etiqueta descriptiva ni traduzcas:",
+  "   - PROPUESTA_NORMATIVA: propone reglas concretas para el codigo.",
+  "   - DIAGNOSTICO_TECNICO: analiza la situacion (datos, relevamientos, problemas) sin proponer articulado.",
+  "   - PRESENTACION_INSTITUCIONAL: encuadre del proceso, agenda, quienes participan, como es la audiencia.",
+  "   - PONENCIA_ACADEMICA: argumento metodologico o conceptual sobre como deberia hacerse la reforma.",
+  "   - OTRO: cualquier otra cosa.",
+  "",
+  "10. En `warnings` poné lo que la persona deberia saber: paginas ilegibles, tablas que no se entienden, secciones que parecen tener contenido pero salieron vacias (mapas, planos, graficos).",
   "",
   "Devolves EXCLUSIVAMENTE un objeto JSON valido con esta forma:",
   '{"documentKind":"...","documentSummary":"...","organization":"..."|null,"authors":["..."],"proposals":[{"title":"...","summary":"...","areas":["..."],"sourcePages":[1],"evidenceQuote":"...","confidence":"alta|media|baja"}],"warnings":["..."]}'
