@@ -23,11 +23,6 @@ import { AppShell } from "@/components/shell";
 import { MarkdownText } from "@/components/assistant/markdown-text";
 import { ALL_TOPICS, isClassified, isOutOfScope, UNCLASSIFIED_AXIS } from "@/lib/citizen/contributions";
 
-// Estado derivado del flujo municipal: recibido → en evaluación → aprobado como proyecto.
-type AporteState = "Recibido" | "En evaluación" | "Proyecto aprobado";
-
-const PROJECT_STATUSES = ["APPROVED", "IN_PROGRESS", "COMPLETED"];
-
 type CitizenContribution = {
   id: string;
   kind: "Propuesta" | "Reclamo" | "Aporte";
@@ -54,16 +49,6 @@ type CitizenContribution = {
     createdAt: string;
   } | null;
 };
-
-function deriveState(contribution: CitizenContribution): AporteState {
-  if (contribution.proposal && PROJECT_STATUSES.includes(contribution.proposal.status)) {
-    return "Proyecto aprobado";
-  }
-  if (contribution.status === "UNDER_REVIEW") {
-    return "En evaluación";
-  }
-  return "Recibido";
-}
 
 function formatContributionDate(value: string) {
   return new Intl.DateTimeFormat("es-AR", {
@@ -164,7 +149,7 @@ export function CitizenParticipation() {
 
       setCitizenContributions((current) => current.filter((item) => item.id !== contribution.id));
     } catch (error) {
-      setWorkflowErrors((prev) => ({
+      setDraftErrors((prev) => ({
         ...prev,
         [contribution.id]: error instanceof Error ? error.message : "No pudimos eliminar el aporte."
       }));
@@ -312,16 +297,14 @@ export function CitizenParticipation() {
   const contributionStats = useMemo(() => {
     const byAxis: Record<string, number> = {};
     let review = 0;
-    let evaluation = 0;
     let outOfScope = 0;
     for (const contribution of citizenContributions) {
       const key = contributionAxisKey(contribution);
       byAxis[key] = (byAxis[key] ?? 0) + 1;
       if (aporteNeedsReview(contribution)) review += 1;
-      if (contribution.status === "UNDER_REVIEW") evaluation += 1;
       if (axisScope(contribution.axis) === "out") outOfScope += 1;
     }
-    return { total: citizenContributions.length, review, evaluation, outOfScope, byAxis };
+    return { total: citizenContributions.length, review, outOfScope, byAxis };
   }, [citizenContributions]);
 
   // Vista "Por eje": grupos no vacíos en el orden definido (CPU primero, fuera al final).
@@ -350,40 +333,6 @@ export function CitizenParticipation() {
     return visibleContributions.map((contribution) => ({ type: "row", contribution }));
   }, [aporteView, contributionGroups, visibleContributions]);
 
-  // Flujo por aporte: qué fila está procesando (su id) y los errores por aporte,
-  // para que la acción de ciclo de vida viva en el detalle expandible de cada uno.
-  const [workflowBusy, setWorkflowBusy] = useState<string | null>(null);
-  const [workflowErrors, setWorkflowErrors] = useState<Record<string, string>>({});
-
-  async function sendToReview(contribution: CitizenContribution) {
-    if (deriveState(contribution) !== "Recibido" || workflowBusy) {
-      return;
-    }
-    setWorkflowBusy(contribution.id);
-    setWorkflowErrors((prev) => ({ ...prev, [contribution.id]: "" }));
-    try {
-      const response = await fetch(`/api/citizen-contributions/${contribution.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "UNDER_REVIEW" })
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.error ?? "No pudimos enviar el aporte a evaluación.");
-      }
-      setCitizenContributions((current) =>
-        current.map((item) => (item.id === contribution.id ? { ...item, status: "UNDER_REVIEW" } : item))
-      );
-    } catch (error) {
-      setWorkflowErrors((prev) => ({
-        ...prev,
-        [contribution.id]: error instanceof Error ? error.message : "No pudimos enviar el aporte a evaluación."
-      }));
-    } finally {
-      setWorkflowBusy(null);
-    }
-  }
-
   return (
     <AppShell>
       <section className="urban-card urban-lift overflow-hidden rounded-lg">
@@ -408,17 +357,11 @@ export function CitizenParticipation() {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            {[
-              ["Aportes recibidos", citizenContributions.length.toString()],
-              ["En evaluación", citizenContributions.filter((contribution) => deriveState(contribution) === "En evaluación").length.toString()],
-              ["Aprobados como proyecto", citizenContributions.filter((contribution) => deriveState(contribution) === "Proyecto aprobado").length.toString()]
-            ].map(([label, value]) => (
-              <div key={label} className="urban-lift rounded-md border border-white/10 bg-slate-950/50 p-4">
-                <p className="text-2xl font-black text-civic-sky">{value}</p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-              </div>
-            ))}
+          <div className="grid gap-3">
+            <div className="urban-lift rounded-md border border-white/10 bg-slate-950/50 p-4">
+              <p className="text-2xl font-black text-civic-sky">{citizenContributions.length}</p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Aportes recibidos</p>
+            </div>
           </div>
         </div>
       </section>
@@ -436,10 +379,9 @@ export function CitizenParticipation() {
         </div>
 
         {isLoadingContributions ? null : (
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mb-4 grid grid-cols-3 gap-3">
             <StatCard value={contributionStats.total} label="Aportes" tone="sky" />
             <StatCard value={contributionStats.review} label="Eje por revisar" tone="amber" />
-            <StatCard value={contributionStats.evaluation} label="En evaluación" tone="violet" />
             <StatCard value={contributionStats.outOfScope} label="Fuera del CPU" tone="slate" />
           </div>
         )}
@@ -639,56 +581,6 @@ export function CitizenParticipation() {
                     <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-400">{contribution.proposal.description}</p>
                   </div>
                 ) : null}
-
-                {/* Ciclo de vida del aporte: Recibido → En evaluación → Proyecto
-                    aprobado. Antes vivía en una sección aparte que repetía la lista
-                    entera; ahora acompaña al aporte que se está trabajando. */}
-                {(() => {
-                  const lifecycle = deriveState(contribution);
-                  const busy = workflowBusy === contribution.id;
-                  return (
-                    <div className="mt-3 rounded-md border border-white/10 bg-white/[0.03] p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">Ciclo de vida</p>
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
-                            lifecycle === "Proyecto aprobado"
-                              ? "bg-emerald-300/15 text-emerald-100"
-                              : lifecycle === "En evaluación"
-                                ? "bg-sky-400/15 text-sky-100"
-                                : "bg-white/[0.06] text-slate-300"
-                          }`}
-                        >
-                          {lifecycle}
-                        </span>
-                      </div>
-                      {/* Solo "Enviar a evaluación": marca el aporte como UNDER_REVIEW en la
-                          base y lo cuenta en el resumen. Se sacó "Aprobar como proyecto"
-                          porque la sección Proyectos se reconvirtió en Fábrica de Normas y
-                          su destino (/proyectos) ya no existe. */}
-                      {lifecycle === "Recibido" ? (
-                        <button
-                          type="button"
-                          onClick={() => sendToReview(contribution)}
-                          disabled={workflowBusy !== null}
-                          className="mt-3 inline-flex items-center gap-2 rounded-md bg-civic-blue px-3 py-2 text-xs font-black text-white transition hover:bg-[#0f7ae8] disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                          Enviar a evaluación
-                        </button>
-                      ) : (
-                        <p className="mt-2 text-xs leading-5 text-slate-400">
-                          {lifecycle === "En evaluación"
-                            ? "El aporte está en evaluación municipal."
-                            : "El aporte fue aprobado."}
-                        </p>
-                      )}
-                      {workflowErrors[contribution.id] ? (
-                        <p className="mt-2 text-[11px] font-bold leading-5 text-amber-200">{workflowErrors[contribution.id]}</p>
-                      ) : null}
-                    </div>
-                  );
-                })()}
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
