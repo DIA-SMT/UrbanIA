@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { readSessionToken, sessionCookieName } from "@/lib/auth/session";
+import { canAccessAdmin, readSessionToken, sessionCookieName } from "@/lib/auth/session";
 import { CONTRIBUTION_BLOCK_MESSAGE, moderateContribution } from "@/lib/moderation";
 import { analyzeAggression } from "@/lib/ai/moderation-intent";
 import { UNCLASSIFIED_AXIS } from "@/lib/citizen/contributions";
@@ -33,9 +33,20 @@ const dbToKind: Record<CitizenContributionKind, z.infer<typeof contributionSchem
   CONTRIBUTION: "Aporte"
 };
 
+/**
+ * Bandeja interna de aportes: devuelve nombre, DNI y email del vecino, asi que
+ * exige sesion municipal. La version agregada y anonima para el tablero publico
+ * vive en /api/citizen-contributions/topics, que aplica el mismo criterio.
+ */
 export async function GET() {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ contributions: [], isLive: false });
+  }
+
+  const store = await cookies();
+  const session = await readSessionToken(store.get(sessionCookieName)?.value);
+  if (!session || !canAccessAdmin(session.role)) {
+    return NextResponse.json({ error: "Necesitas una sesion municipal para ver los aportes." }, { status: 401 });
   }
 
   try {

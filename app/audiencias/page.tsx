@@ -1,7 +1,7 @@
 import { AppShell } from "@/components/shell";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { getHearingCounts, listHearings } from "@/lib/hearings/data";
-import { listReforms } from "@/lib/projects/data";
+import { listReformOptions } from "@/lib/projects/data";
 import { HearingsBoard } from "@/components/hearings/hearings-board";
 import type { HearingCounts, HearingListItem } from "@/lib/hearings/shared";
 
@@ -15,10 +15,17 @@ export default async function AudienciasPage() {
 
   if (process.env.DATABASE_URL) {
     try {
-      const [hearingList, hearingCounts, reformList] = await Promise.all([listHearings(), getHearingCounts(), listReforms()]);
+      // listReformOptions y no listReforms: el board solo llena un select con
+      // id/code/title, y el listado completo arrastra normas, autor y el
+      // diagnostico de cada norma.
+      const [hearingList, hearingCounts, reformList] = await Promise.all([
+        listHearings(),
+        getHearingCounts(),
+        listReformOptions()
+      ]);
       hearings = hearingList;
       counts = hearingCounts;
-      reforms = reformList.map((reform) => ({ id: reform.id, code: reform.code, title: reform.title }));
+      reforms = reformList;
       isLive = true;
     } catch (error) {
       console.error("No se pudo cargar el registro de audiencias", error);

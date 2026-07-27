@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, Loader2, LogOut, Square } from "lucide-react";
+import { ArrowLeft, Check, Loader2, LogOut, Square, TriangleAlert } from "lucide-react";
 import { TranscriptCanvas } from "@/components/hearings/live/transcript-canvas";
 import { MatchesPanel } from "@/components/hearings/live/matches-panel";
 import { HearingFields } from "@/components/hearings/live/hearing-fields";
@@ -59,6 +59,8 @@ export function LiveSession({
   const [finalizeError, setFinalizeError] = useState("");
   const [savedLabel, setSavedLabel] = useState(resuming ? "Borrador recuperado" : "");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [exiting, setExiting] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [fichaError, setFichaError] = useState("");
 
@@ -76,6 +78,7 @@ export function LiveSession({
   const fichaRef = useRef(ficha);
   fichaRef.current = ficha;
   const lastSavedRef = useRef("");
+  const savingRef = useRef(false);
 
   const appendFinalText = useCallback((text: string) => {
     setTranscript((current) => current + text);
@@ -103,29 +106,46 @@ export function LiveSession({
     return () => clearInterval(interval);
   }, []);
 
-  /** Guarda el borrador (transcripcion + ficha). keepalive para que salga al cerrar. */
+  /**
+   * Guarda el borrador (transcripcion + ficha). keepalive para que salga al
+   * cerrar. Devuelve si el servidor CONFIRMO el guardado: la firma se marca
+   * solo en ese caso, para que un rechazo (sesion vencida, payload invalido,
+   * error de base) no quede mostrando "Guardado" mientras se pierde el dictado.
+   */
   const saveDraft = useCallback(
-    async (options: { force?: boolean; keepalive?: boolean } = {}) => {
+    async (options: { force?: boolean; keepalive?: boolean } = {}): Promise<boolean> => {
       const text = transcriptRef.current;
       const currentFicha = fichaRef.current;
       const signature = `${text} ${JSON.stringify(currentFicha)}`;
-      if (!options.force && signature === lastSavedRef.current) return;
+      if (!options.force && signature === lastSavedRef.current) return true;
       // Nada que guardar todavia: ni transcripcion ni ficha con contenido.
-      if (text.trim().length === 0 && !Object.values(currentFicha).some((v) => v.trim().length > 0)) return;
-      lastSavedRef.current = signature;
+      if (text.trim().length === 0 && !Object.values(currentFicha).some((v) => v.trim().length > 0)) return true;
+      // Un solo POST a la vez: antes lo cubria marcar la firma por adelantado.
+      if (savingRef.current) return false;
+      savingRef.current = true;
       setSaving(true);
       try {
-        await fetch(`/api/hearings/${meetingId}/draft`, {
+        const response = await fetch(`/api/hearings/${meetingId}/draft`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ transcript: text, ficha: currentFicha }),
           keepalive: options.keepalive ?? false
         });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null);
+          throw new Error(payload?.detail || payload?.error || `El servidor rechazó el guardado (${response.status}).`);
+        }
+        lastSavedRef.current = signature;
         const now = new Date();
         setSavedLabel(`Guardado ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
-      } catch {
-        // El autoguardado es best-effort: el proximo intento reintenta.
+        setSaveError("");
+        return true;
+      } catch (error) {
+        // Sin marcar la firma: el proximo ciclo reintenta con el mismo contenido.
+        setSaveError(error instanceof Error ? error.message : "No se pudo guardar el borrador.");
+        return false;
       } finally {
+        savingRef.current = false;
         setSaving(false);
       }
     },
@@ -151,8 +171,10 @@ export function LiveSession({
   const sendMatchWindow = useCallback(async () => {
     if (sendingRef.current) return;
     const fullText = transcriptRef.current;
-    const window = fullText.slice(-MATCH_WINDOW_CHARS).trim();
-    if (window.length < 20) return;
+    // Nombrada asi y no "window": ese identificador sombrea el global del
+    // navegador dentro de esta funcion.
+    const windowText = fullText.slice(-MATCH_WINDOW_CHARS).trim();
+    if (windowText.length < 20) return;
 
     sendingRef.current = true;
     lastSentLengthRef.current = fullText.length;
@@ -160,7 +182,7 @@ export function LiveSession({
       const response = await fetch(`/api/hearings/${meetingId}/live-match`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ window, atMs: Date.now() - startedAtRef.current })
+        body: JSON.stringify({ window: windowText, atMs: Date.now() - startedAtRef.current })
       });
       if (response.ok) {
         const payload = (await response.json()) as { matches: HearingMatchView[] };
@@ -209,9 +231,12 @@ export function LiveSession({
   );
 
   /** Completa con IA los campos VACIOS de la ficha, sin pisar lo cargado a mano. */
-  async function completeFichaWithAi() {
+  // useCallback con dependencias estables (el texto sale del ref, no del
+  // estado): si se recreara en cada render, el React.memo de HearingFields no
+  // serviria de nada, porque esta funcion es una de sus props.
+  const completeFichaWithAi = useCallback(async () => {
     setFichaError("");
-    const text = transcript.trim();
+    const text = transcriptRef.current.trim();
     if (text.length < 40) {
       setFichaError("Dictá o escribí un poco más para que Migue pueda completar.");
       return;
@@ -240,11 +265,19 @@ export function LiveSession({
     } finally {
       setCompleting(false);
     }
-  }
+  }, [meetingId]);
 
   async function saveAndExit() {
+    if (exiting) return;
+    setExiting(true);
     dictation.stop();
-    await saveDraft({ force: true });
+    // Si el servidor rechazo el guardado NO se navega: salir de la pantalla
+    // perderia el dictado. El error queda visible y se puede reintentar.
+    const saved = await saveDraft({ force: true });
+    if (!saved) {
+      setExiting(false);
+      return;
+    }
     router.push(`/audiencias/${meetingId}`);
   }
 
@@ -333,8 +366,14 @@ export function LiveSession({
           <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-sky-300">
             Audiencia en vivo
             <span className="inline-flex items-center gap-1 text-[11px] font-bold normal-case tracking-normal text-slate-500">
-              {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : savedLabel ? <Check className="h-3 w-3 text-emerald-300" /> : null}
-              {saving ? "Guardando…" : savedLabel}
+              {saving ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : saveError ? (
+                <TriangleAlert className="h-3 w-3 text-amber-300" />
+              ) : savedLabel ? (
+                <Check className="h-3 w-3 text-emerald-300" />
+              ) : null}
+              {saving ? "Guardando…" : saveError ? <span className="text-amber-200">Sin guardar</span> : savedLabel}
             </span>
           </p>
           <h1 className="mt-1 truncate text-2xl font-black leading-tight text-white">{title}</h1>
@@ -344,11 +383,11 @@ export function LiveSession({
           <button
             type="button"
             onClick={saveAndExit}
-            disabled={finalizing}
+            disabled={finalizing || exiting}
             className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-bold text-slate-200 disabled:opacity-60"
           >
-            <LogOut className="h-4 w-4" />
-            Guardar y salir
+            {exiting ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+            {exiting ? "Guardando…" : "Guardar y salir"}
           </button>
           <button
             type="button"
@@ -361,6 +400,18 @@ export function LiveSession({
           </button>
         </div>
       </div>
+
+      {saveError ? (
+        <div className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-3">
+          <p className="inline-flex items-center gap-2 text-sm font-black text-amber-100">
+            <TriangleAlert className="h-4 w-4 shrink-0" />
+            El dictado no se está guardando
+          </p>
+          <p className="mt-1 text-xs leading-5 text-amber-100/80">
+            {saveError} No cierres esta pantalla: se sigue reintentando cada minuto y el texto está intacto acá. Si la sesión venció, entrá con tu cuenta en otra pestaña y volvé.
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
         <TranscriptCanvas

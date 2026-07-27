@@ -4,7 +4,12 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { analyzeHearingTranscript } from "@/lib/hearings/analyze";
-import { detectMatchesAgainstNorms, loadNormCatalog, persistDetectedMatches } from "@/lib/hearings/live-match";
+import {
+  detectMatchesAgainstNorms,
+  loadFragmentKeys,
+  loadNormCatalog,
+  persistDetectedMatchesBatch
+} from "@/lib/hearings/live-match";
 import { syncRecordLifecycle } from "@/lib/hearings/record";
 import { chunksToTranscript, type TranscriptChunk } from "@/lib/hearings/transcript";
 
@@ -19,6 +24,8 @@ import { chunksToTranscript, type TranscriptChunk } from "@/lib/hearings/transcr
  */
 
 const WINDOW_CHARS = 1800;
+/** Ventanas que se machean a la vez. Mismo tope que la transcripcion por tramos. */
+const MATCH_PARALLEL = 4;
 
 /** Agrupa tramos consecutivos en ventanas de ~WINDOW_CHARS, con su atMs. */
 function buildWindows(chunks: TranscriptChunk[]): Array<{ text: string; atMs: number | null }> {
@@ -52,12 +59,15 @@ export async function matchFullTranscript({
   meetingId,
   reformId,
   chunks,
-  speakerLabel = "Audiencia (carga batch)"
+  speakerLabel = "Audiencia (carga batch)",
+  truncated = false
 }: {
   meetingId: string;
   reformId: string;
   chunks: TranscriptChunk[];
   speakerLabel?: string;
+  /** La fuente recorto la transcripcion: el acta NO cubre toda la audiencia. */
+  truncated?: boolean;
 }): Promise<BatchMatchResult> {
   const usable = chunks.filter((chunk) => chunk.text.trim().length > 0);
   if (!usable.length) throw new Error("La transcripcion no tiene texto para procesar");
@@ -65,26 +75,45 @@ export async function matchFullTranscript({
   // 1. Guardar la transcripcion como segmentos (memoria publica, no se altera).
   // Si la fuente separo voces, cada tramo conserva su orador; si no, todos caen
   // en la etiqueta generica de la audiencia.
-  await prisma.transcriptSegment.deleteMany({ where: { meetingId } });
-  await prisma.transcriptSegment.createMany({
-    data: usable.map((chunk) => ({
-      meetingId,
-      startMs: chunk.atMs ?? 0,
-      endMs: chunk.atMs ?? 0,
-      content: chunk.text,
-      speakerLabel: chunk.speaker?.trim() || speakerLabel
-    }))
-  });
+  //
+  // En transaccion: sin ella, un fallo del createMany (timeout del pool remoto,
+  // payload de miles de segmentos) dejaba la audiencia con CERO segmentos,
+  // porque el deleteMany ya se habia llevado la transcripcion anterior.
+  await prisma.$transaction([
+    prisma.transcriptSegment.deleteMany({ where: { meetingId } }),
+    prisma.transcriptSegment.createMany({
+      data: usable.map((chunk) => ({
+        meetingId,
+        startMs: chunk.atMs ?? 0,
+        endMs: chunk.atMs ?? 0,
+        content: chunk.text,
+        speakerLabel: chunk.speaker?.trim() || speakerLabel
+      }))
+    })
+  ]);
 
   // 2. Macheo por ventanas contra el catalogo del codigo nuevo (una sola carga).
+  //
+  // Las ventanas son independientes entre si, asi que las llamadas al modelo
+  // van de a lotes en paralelo (mismo criterio que la transcripcion por tramos).
+  // Una audiencia larga da ~33 ventanas: en serie eran ~33 idas y vueltas al
+  // modelo, una atras de otra. El dedupe usa un Set que vive toda la corrida en
+  // vez de re-consultar los cruces en cada ventana, y las altas van por lote.
   let matches = 0;
   if (hasOpenRouterConfig()) {
     const catalog = await loadNormCatalog(reformId);
-    if (catalog.length) {
-      for (const window of buildWindows(usable)) {
-        const detected = await detectMatchesAgainstNorms(catalog, window.text);
-        const created = await persistDetectedMatches(meetingId, detected, window.atMs);
-        matches += created.length;
+    const windows = buildWindows(usable);
+    if (catalog.length && windows.length) {
+      const seen = await loadFragmentKeys(meetingId);
+
+      for (let index = 0; index < windows.length; index += MATCH_PARALLEL) {
+        const batch = windows.slice(index, index + MATCH_PARALLEL);
+        const detected = await Promise.all(batch.map((window) => detectMatchesAgainstNorms(catalog, window.text)));
+        // La persistencia va secuencial dentro del lote: es barata y mantiene
+        // el Set de dedupe coherente sin carreras entre ventanas.
+        for (let position = 0; position < batch.length; position += 1) {
+          matches += await persistDetectedMatchesBatch(meetingId, detected[position], batch[position].atMs, seen);
+        }
       }
     }
   }
@@ -119,15 +148,19 @@ export async function matchFullTranscript({
       });
 
       if (draft.participants.length) {
-        await prisma.meetingParticipant.deleteMany({ where: { meetingId } });
-        await prisma.meetingParticipant.createMany({
-          data: draft.participants.map((participant) => ({
-            meetingId,
-            displayName: participant.name,
-            role: participant.role,
-            metadata: { institution: participant.institution, actorType: participant.actorType, intervention: participant.intervention }
-          }))
-        });
+        // Mismo criterio que los segmentos: reemplazo atomico, para no quedarse
+        // sin participantes si falla el alta.
+        await prisma.$transaction([
+          prisma.meetingParticipant.deleteMany({ where: { meetingId } }),
+          prisma.meetingParticipant.createMany({
+            data: draft.participants.map((participant) => ({
+              meetingId,
+              displayName: participant.name,
+              role: participant.role,
+              metadata: { institution: participant.institution, actorType: participant.actorType, intervention: participant.intervention }
+            }))
+          })
+        ]);
       }
 
       await prisma.meeting.update({ where: { id: meetingId }, data: { description: draft.summary } });
@@ -138,6 +171,15 @@ export async function matchFullTranscript({
     }
   } else {
     warning = "La transcripción quedó guardada. El cruce con las normas y el resumen se corren cuando la IA esté configurada.";
+  }
+
+  // Un acta cortada a la mitad no puede quedar como completa sin decirlo: quien
+  // la firme tiene que saber que el debate sigue mas alla del ultimo timestamp.
+  const truncationNotice = truncated
+    ? "La transcripción se cortó por el límite de tamaño: el acta NO cubre la audiencia completa. Revisá el final del debate en la grabación original."
+    : null;
+  if (truncationNotice) {
+    warning = warning ? `${truncationNotice} ${warning}` : truncationNotice;
   }
 
   // 4. Cierre: audiencia registrada como finalizada.
@@ -151,7 +193,13 @@ export async function matchFullTranscript({
         ...readMetadata(meeting?.metadata),
         finalizedAt: new Date().toISOString(),
         transcriptSegments: usable.length,
-        matches
+        matches,
+        transcriptTruncated: truncated,
+        // Se persiste TODO el aviso, no solo el del recorte: si el resumen
+        // estructurado fallo (p. ej. sin credito, que es lo ultimo que corre),
+        // la audiencia quedaba COMPLETED sin resumen y sin ninguna senal,
+        // porque este valor solo se devolvia y la ingesta batch lo descartaba.
+        ingestWarning: warning
       }
     }
   });

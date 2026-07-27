@@ -10,6 +10,7 @@ import {
   lifecycleFromStatus,
   syncRecordLifecycle
 } from "@/lib/hearings/record";
+import { isIngestStalled } from "@/lib/hearings/ingest-job";
 import type {
   HearingActionItemView,
   HearingAnalysisView,
@@ -59,16 +60,23 @@ function readMetaString(metadata: Prisma.JsonValue | null, key: string): string 
 }
 
 function toListItem(meeting: MeetingListPayload): HearingListItem {
+  const resolved = resolveHearingStatus(meeting.hearingStatus, meeting.status);
+  const processing = resolved === "PROCESSING";
+  const ingestError = processing ? readMetaString(meeting.metadata, "error") : null;
   return {
     id: meeting.id,
     title: meeting.title,
     occurredAt: meeting.occurredAt ? meeting.occurredAt.toISOString() : null,
-    hearingStatus: resolveHearingStatus(meeting.hearingStatus, meeting.status),
+    hearingStatus: resolved,
     location: meeting.location,
     reformId: meeting.reformId,
     reformCode: meeting.reform?.code ?? null,
     reformTitle: meeting.reform?.title ?? null,
     topic: readMetaString(meeting.metadata, "topic"),
+    ingestError,
+    // Sin error registrado pero sin latido: el job murio con el proceso.
+    ingestStalled: processing && !ingestError && isIngestStalled(meeting.metadata, meeting.updatedAt),
+    ingestWarning: readMetaString(meeting.metadata, "ingestWarning"),
     matchCount: meeting._count.normMatches,
     participantCount: meeting._count.participants
   };
@@ -93,20 +101,24 @@ export async function listHearings(filters: HearingFilters = {}): Promise<Hearin
 }
 
 export async function getHearingCounts(): Promise<HearingCounts> {
-  // Se resuelve el estado en memoria (no groupBy sobre la columna cruda) para
-  // contar tambien las audiencias de flujos previos con hearingStatus nulo,
-  // que igual aparecen en la lista con su estado derivado.
-  const meetings = await prisma.meeting.findMany({
+  // groupBy por las DOS columnas y resolucion en memoria: agrupar solo por
+  // hearingStatus perderia las audiencias de flujos previos que lo tienen nulo
+  // y derivan su estado de status. Antes se traia una fila por audiencia (sin
+  // take) para contar tres numeros; asi vuelven a lo sumo unas pocas
+  // combinaciones, y el conteo lo hace la base.
+  const groups = await prisma.meeting.groupBy({
+    by: ["hearingStatus", "status"],
     where: { kind: "PUBLIC_HEARING" },
-    select: { hearingStatus: true, status: true }
+    _count: { _all: true }
   });
 
   const counts: HearingCounts = { upcoming: 0, processing: 0, completed: 0 };
-  for (const meeting of meetings) {
-    const status = resolveHearingStatus(meeting.hearingStatus, meeting.status);
-    if (status === "SCHEDULED") counts.upcoming += 1;
-    else if (status === "LIVE" || status === "PROCESSING") counts.processing += 1;
-    else if (status === "COMPLETED") counts.completed += 1;
+  for (const group of groups) {
+    const status = resolveHearingStatus(group.hearingStatus, group.status);
+    const total = group._count._all;
+    if (status === "SCHEDULED") counts.upcoming += total;
+    else if (status === "LIVE" || status === "PROCESSING") counts.processing += total;
+    else if (status === "COMPLETED") counts.completed += total;
   }
   return counts;
 }
@@ -238,29 +250,41 @@ export async function getHearing(id: string): Promise<HearingDetail | null> {
       : {};
   const draftTranscript = typeof metadata.draftTranscript === "string" ? metadata.draftTranscript : null;
 
-  // Expediente unificado: el HearingRecord es la fuente de la ficha, las
-  // conclusiones y los documentos. metadata queda como fallback de lectura para
-  // audiencias previas a la unificacion (o records recien creados vacios).
+  // Expediente unificado: si hay HearingRecord, es LA fuente de la ficha, las
+  // conclusiones y los documentos. metadata solo se lee cuando no hay record
+  // (audiencias previas a la unificacion que nunca se abrieron).
+  //
+  // Antes el fallback se disparaba cuando el record estaba VACIO, no cuando no
+  // existia: vaciar la ficha desde la UI hacia reaparecer los datos legacy, y
+  // borrar el ultimo documento resucitaba la lista vieja. Al crear el record se
+  // siembra con lo legacy (ver ensureHearingRecord), asi que no se pierde nada.
   const record = meeting.hearingRecord;
-  const recordFicha = record ? fichaFromRecord(record) : null;
-  const ficha = recordFicha && Object.values(recordFicha).some((value) => value.trim().length > 0)
-    ? recordFicha
-    : toHearingFicha(metadata.ficha);
-  const documents = record?.documents.length ? documentsFromRecord(record.documents) : readDocuments(metadata.documents);
+  const ficha = record ? fichaFromRecord(record) : toHearingFicha(metadata.ficha);
+  const documents = record ? documentsFromRecord(record.documents) : readDocuments(metadata.documents);
   const recordConclusions = record ? conclusionsFromRecord(record) : null;
   const conclusions = recordConclusions ?? analysisView?.conclusions ?? null;
   const conclusionsByTeam = Boolean(recordConclusions) || (analysisView?.editedByHuman ?? false);
+
+  const resolvedStatus = resolveHearingStatus(meeting.hearingStatus, meeting.status);
+  const processing = resolvedStatus === "PROCESSING";
+  const ingestError = processing && typeof metadata.error === "string" && metadata.error.trim() ? metadata.error : null;
+  const ingestStalled = processing && !ingestError && isIngestStalled(meeting.metadata, meeting.updatedAt);
+  // Aviso que sobrevive al cierre: el acta quedo COMPLETED pero recortada.
+  const ingestWarning = typeof metadata.ingestWarning === "string" && metadata.ingestWarning.trim() ? metadata.ingestWarning : null;
 
   return {
     id: meeting.id,
     title: meeting.title,
     occurredAt: meeting.occurredAt ? meeting.occurredAt.toISOString() : null,
-    hearingStatus: resolveHearingStatus(meeting.hearingStatus, meeting.status),
+    hearingStatus: resolvedStatus,
     location: meeting.location,
     reformId: meeting.reformId,
     reformCode: meeting.reform?.code ?? null,
     reformTitle: meeting.reform?.title ?? null,
     topic: typeof metadata.topic === "string" && metadata.topic.trim().length > 0 ? metadata.topic : null,
+    ingestError,
+    ingestStalled,
+    ingestWarning,
     matchCount: meeting._count.normMatches,
     participantCount: meeting._count.participants,
     description: meeting.description,

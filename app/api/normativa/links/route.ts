@@ -2,6 +2,19 @@ import { NextResponse } from "next/server";
 import { NormativeRelationshipType } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
+import { getSessionUser, isStaff } from "@/lib/auth/api";
+
+/**
+ * Anclar o desanclar un articulo del Codigo es trabajo del equipo: los anclajes
+ * alimentan el diagnostico de impacto, asi que una relacion falsa (o borrada)
+ * ensucia el analisis. La lectura (GET) queda abierta: es normativa publica.
+ */
+async function requireStaff(): Promise<NextResponse | null> {
+  const session = await getSessionUser();
+  if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  return null;
+}
 
 const schema = z.object({
   articleId: z.string().min(1).max(160),
@@ -14,6 +27,9 @@ const schema = z.object({
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const denied = await requireStaff();
+  if (denied) return denied;
+
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Relación inválida", detail: "Revisá el artículo, origen y tipo de relación." }, { status: 400 });
   try {
@@ -67,6 +83,9 @@ export async function DELETE(request: Request) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
+  const denied = await requireStaff();
+  if (denied) return denied;
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) {

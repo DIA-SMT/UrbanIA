@@ -18,6 +18,7 @@ import {
   type HearingRecord
 } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { toHearingFicha } from "@/lib/hearings/shared";
 import type { HearingConclusions, HearingDocumentView, HearingFicha } from "@/lib/hearings/shared";
 
 /* ------------------------------ Conversiones ------------------------------ */
@@ -115,7 +116,13 @@ export function conclusionsFromRecord(record: HearingRecordWithChildren): Hearin
     decisions: record.decisions ?? "",
     proposalStatusAfter: record.proposalStatusAfter ?? "",
     observedTopics: listToCsv(topics.map((topic) => topic.topic)),
-    importance: topics.length ? IMPORTANCE_FROM_ENUM[topics[0].importance] : "Medio",
+    // La columna manda; las filas son el respaldo para actas previas a que
+    // existiera (y "Medio" el ultimo recurso).
+    importance: record.topicsImportance
+      ? IMPORTANCE_FROM_ENUM[record.topicsImportance]
+      : topics.length
+        ? IMPORTANCE_FROM_ENUM[topics[0].importance]
+        : "Medio",
     technicalObservation: record.technicalObservation ?? "",
     citizenObservation: record.citizenObservation ?? ""
   };
@@ -162,13 +169,33 @@ export async function ensureHearingRecord(meetingId: string): Promise<string> {
     : {};
   const topic = typeof metadata.topic === "string" ? metadata.topic : "";
 
+  // Ficha legacy (metadata.ficha) de audiencias previas a la unificacion: se
+  // siembra al crear el expediente, asi el record queda como unica fuente y la
+  // lectura no necesita volver a mirar metadata nunca mas.
+  const legacy = toHearingFicha(metadata.ficha);
+  const hasLegacy = Object.values(legacy).some((value) => value.trim().length > 0);
+
   const created = await prisma.hearingRecord.create({
     data: {
       meetingId,
       lifecycle: lifecycleFromStatus(meeting.hearingStatus ?? "SCHEDULED"),
-      mainTopic: topic,
+      mainTopic: legacy.mainTopic || topic,
       recordNumber: "",
-      recordTitle: meeting.title
+      recordTitle: meeting.title,
+      ...(hasLegacy
+        ? {
+            secondaryTopics: csvToList(legacy.secondaryTopics),
+            relatedProposal: legacy.relatedProposal || null,
+            proposalSource: legacy.proposalSource || null,
+            promotingArea: legacy.author || null,
+            relatedArticles: csvToList(legacy.relatedArticles),
+            participantsText: legacy.participants || null,
+            institution: legacy.institution || null,
+            participantRole: legacy.role || null,
+            actorType: legacy.actorType || null,
+            intervention: legacy.intervention || null
+          }
+        : {})
     },
     select: { id: true }
   });
@@ -221,7 +248,10 @@ export async function saveRecordConclusions(meetingId: string, conclusions: Hear
         decisions: conclusions.decisions || null,
         proposalStatusAfter: conclusions.proposalStatusAfter || null,
         technicalObservation: conclusions.technicalObservation || null,
-        citizenObservation: conclusions.citizenObservation || null
+        citizenObservation: conclusions.citizenObservation || null,
+        // En columna propia: sin temas cargados, las filas de abajo no existen
+        // y la importancia elegida se perdia.
+        topicsImportance: importance
       }
     }),
     prisma.hearingObservedTopic.deleteMany({ where: { hearingRecordId: recordId } }),

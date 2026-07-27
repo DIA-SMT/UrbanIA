@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Anchor, CalendarDays, MapPin, MessageSquareText, Scale, Users } from "lucide-react";
+import { Anchor, CalendarDays, MapPin, MessageSquareText, Scale, TriangleAlert, Users } from "lucide-react";
 import { hearingStatusLabels, hearingStatusStyles, type HearingListItem } from "@/lib/hearings/shared";
 
 function formatDate(iso: string | null): string {
@@ -24,6 +24,13 @@ export function HearingCard({ hearing }: { hearing: HearingListItem }) {
       </div>
 
       <h3 className="mt-3 text-base font-black leading-6 text-white">{hearing.title}</h3>
+
+      {hearing.ingestError || hearing.ingestStalled ? (
+        <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-amber-300/25 bg-amber-300/10 px-2 py-1 text-[11px] font-bold text-amber-100">
+          <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
+          {hearing.ingestError ? "El procesamiento falló" : "El procesamiento se interrumpió"}
+        </p>
+      ) : null}
 
       {hearing.reformCode ? (
         <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-slate-400">
