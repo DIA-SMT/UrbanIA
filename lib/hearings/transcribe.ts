@@ -4,12 +4,12 @@
 // Whisper local): son dependencias del entorno del JOB, no del build de Next.
 // Documentadas en components/hearings/README.md.
 
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { spawn } from "node:child_process";
 import ffmpegPath from "ffmpeg-static";
 import { hasTranscriptionConfig, transcribeAudioFile } from "@/lib/ai/transcription";
+import { ensureFfmpeg, ensureYtDlp, run } from "@/lib/hearings/binaries";
 import { parseTranscriptFile, type TranscriptChunk } from "@/lib/hearings/transcript";
 
 const CHUNK_SECONDS = 1200; // 20 min/chunk: mp3 mono 48k ≈ 7 MB, bajo el limite de 25 MB de Whisper
@@ -32,68 +32,6 @@ export function hasAudioTranscription(): boolean {
 
 /* ------------------------------- yt-dlp ----------------------------------- */
 
-const YTDLP_RELEASES = "https://github.com/yt-dlp/yt-dlp/releases/latest/download";
-
-function ytdlpAssetName(): string {
-  if (process.platform === "win32") return "yt-dlp.exe";
-  if (process.platform === "darwin") return "yt-dlp_macos";
-  return "yt-dlp_linux";
-}
-
-async function ensureYtDlp(): Promise<string> {
-  const custom = process.env.YTDLP_PATH;
-  if (custom && existsSync(custom)) return custom;
-
-  const cacheDir = path.join(process.cwd(), "node_modules", ".cache", "urbania");
-  const binaryPath = path.join(cacheDir, ytdlpAssetName());
-  if (existsSync(binaryPath)) return binaryPath;
-
-  mkdirSync(cacheDir, { recursive: true });
-  const response = await fetch(`${YTDLP_RELEASES}/${ytdlpAssetName()}`);
-  if (!response.ok) {
-    throw new Error(`No se pudo descargar yt-dlp (HTTP ${response.status}). Instalalo a mano y seteá YTDLP_PATH.`);
-  }
-  writeFileSync(binaryPath, Buffer.from(await response.arrayBuffer()), { mode: 0o755 });
-  return binaryPath;
-}
-
-/**
- * Corre un binario SIN bloquear el event loop.
- *
- * Antes esto usaba spawnSync, y como la ruta /api/hearings/ingest dispara el
- * job dentro del proceso de Next, transcodear una audiencia de dos horas
- * dejaba a TODA la app sin responder: ni otras requests, ni el intervalo del
- * latido (con lo cual la propia audiencia se marcaba como trabada y el worker
- * encolaba un segundo job sobre ella).
- */
-function run(command: string, args: string[], timeoutMs: number, label: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
-    let stderr = "";
-    let stdout = "";
-    let timedOut = false;
-
-    const timer = setTimeout(() => {
-      timedOut = true;
-      child.kill("SIGKILL");
-    }, timeoutMs);
-
-    child.stdout?.on("data", (data) => (stdout += data));
-    child.stderr?.on("data", (data) => (stderr += data));
-    child.on("error", (error) => {
-      clearTimeout(timer);
-      reject(new Error(`No se pudo ejecutar ${label}: ${error.message}`));
-    });
-    child.on("close", (code) => {
-      clearTimeout(timer);
-      if (timedOut) return reject(new Error(`${label} superó el tiempo límite`));
-      if (code === 0) return resolve();
-      const detail = `${stderr}${stdout}`.trim().slice(-400);
-      reject(new Error(`${label} falló (${code}): ${detail || "sin detalle"}`));
-    });
-  });
-}
-
 async function downloadYoutubeAudio(url: string, workDir: string): Promise<string> {
   const ytdlpPath = await ensureYtDlp();
   await run(
@@ -113,10 +51,9 @@ async function downloadYoutubeAudio(url: string, workDir: string): Promise<strin
 const FFMPEG_TIMEOUT_MS = 60 * 60 * 1000;
 
 async function segmentAudio(inputPath: string, workDir: string): Promise<string[]> {
-  if (!ffmpegPath) throw new Error("ffmpeg-static no trae binario para esta plataforma");
   const pattern = path.join(workDir, "chunk-%03d.mp3");
   await run(
-    ffmpegPath,
+    ensureFfmpeg(),
     ["-hide_banner", "-loglevel", "error", "-i", inputPath, "-ac", "1", "-ar", "16000", "-b:a", "48k", "-f", "segment", "-segment_time", String(CHUNK_SECONDS), pattern],
     FFMPEG_TIMEOUT_MS,
     "ffmpeg"
