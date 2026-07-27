@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { getNorm, updateNorm } from "@/lib/projects/data";
+import { removeNormDocument } from "@/lib/storage/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,29 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
   const { id } = await params;
   try {
+    // Archivos del bucket que quedarian huerfanos al borrar la norma. Un mismo
+    // PDF puede respaldar VARIAS normas (y ademas seguir listado como
+    // antecedente de la reforma), asi que el objeto solo se borra si nadie mas
+    // lo apunta. Sin esto, borrar una norma se lleva el PDF de las otras.
+    const attachments = await prisma.projectAttachment.findMany({
+      where: { projectId: id, storagePath: { not: null } },
+      select: { storagePath: true }
+    });
+    const paths = [...new Set(attachments.map((a) => a.storagePath).filter((p): p is string => Boolean(p)))];
+
+    for (const storagePath of paths) {
+      const [otrasNormas, comoAntecedente] = await Promise.all([
+        prisma.projectAttachment.count({ where: { storagePath, projectId: { not: id } } }),
+        prisma.reformDocument.count({ where: { storagePath } })
+      ]);
+      if (otrasNormas > 0 || comoAntecedente > 0) continue;
+
+      // Best-effort: que el bucket falle no puede impedir borrar la norma.
+      await removeNormDocument(storagePath).catch((error) =>
+        console.error("No se pudo borrar el objeto del bucket", error)
+      );
+    }
+
     await prisma.project.delete({ where: { id } });
     // Los anclajes normativos usan sourceType/sourceId (no FK): se limpian aparte.
     await prisma.normativeLink.deleteMany({ where: { sourceType: "project", sourceId: id } });

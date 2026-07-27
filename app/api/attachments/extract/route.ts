@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { extractPdfText, sanitizeText } from "@/lib/pdf/extract-text";
 import { checkRateLimit, clientKeyFromRequest } from "@/lib/rate-limit";
 
 /**
@@ -17,46 +18,9 @@ const RATE_LIMIT = { limit: 6, windowMs: 60_000 };
 
 const ALLOWED_EXTENSIONS = [".pdf", ".txt"] as const;
 
-type PdfTextContent = { items: unknown[] };
-type PdfPage = { getTextContent(): Promise<PdfTextContent> };
-type PdfDocument = { numPages: number; getPage(pageNumber: number): Promise<PdfPage> };
-type PdfTextItem = { str?: unknown };
-
-async function extractPdfText(buffer: Uint8Array): Promise<{ text: string; pages: number; readPages: number }> {
-  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  const pdf = (await getDocument({ data: buffer, useSystemFonts: true }).promise) as unknown as PdfDocument;
-  const readPages = Math.min(pdf.numPages, MAX_PDF_PAGES);
-  const parts: string[] = [];
-  let totalChars = 0;
-
-  for (let pageNumber = 1; pageNumber <= readPages && totalChars < MAX_TEXT_CHARS * 2; pageNumber += 1) {
-    const page = await pdf.getPage(pageNumber);
-    const content = await page.getTextContent();
-    const pageText = (content.items as PdfTextItem[])
-      .map((item) => (typeof item.str === "string" ? item.str : ""))
-      .join(" ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (pageText) {
-      parts.push(`[Página ${pageNumber}] ${pageText}`);
-      totalChars += pageText.length;
-    }
-  }
-
-  return { text: parts.join("\n\n"), pages: pdf.numPages, readPages };
-}
-
-/** Elimina caracteres de control (salvo saltos de línea y tabs) que ensucian el prompt. */
-function sanitizeText(value: string): string {
-  let clean = "";
-  for (const char of value) {
-    const code = char.charCodeAt(0);
-    if (code >= 32 || code === 10 || code === 9) {
-      clean += char;
-    }
-  }
-  return clean.trim();
-}
+// La extraccion vive en lib/pdf/extract-text.ts: la comparte el importador de
+// la Fabrica de Normas, que usa limites mucho mas altos. Los de esta ruta no
+// cambian.
 
 export async function POST(request: Request) {
   const rate = checkRateLimit(clientKeyFromRequest(request, "attachment-extract"), RATE_LIMIT);
@@ -110,16 +74,20 @@ export async function POST(request: Request) {
   try {
     const buffer = new Uint8Array(await file.arrayBuffer());
 
-    let rawText = "";
     const notes: string[] = [];
+    let cleanText = "";
+    // La lib ya sanea y recorta el PDF, asi que devuelve ella si hubo recorte;
+    // para .txt se hace aca, igual que siempre.
+    let truncated = false;
 
     if (extension === ".pdf") {
-      const extracted = await extractPdfText(buffer);
-      rawText = extracted.text;
+      const extracted = await extractPdfText(buffer, { maxPages: MAX_PDF_PAGES, maxChars: MAX_TEXT_CHARS });
+      cleanText = extracted.text;
+      truncated = extracted.truncated;
       if (extracted.pages > extracted.readPages) {
         notes.push(`Se leyeron las primeras ${extracted.readPages} de ${extracted.pages} páginas.`);
       }
-      if (!rawText.trim()) {
+      if (!cleanText.trim()) {
         return NextResponse.json(
           {
             error: "PDF sin capa de texto",
@@ -129,11 +97,11 @@ export async function POST(request: Request) {
         );
       }
     } else {
-      rawText = new TextDecoder("utf-8").decode(buffer);
+      const raw = sanitizeText(new TextDecoder("utf-8").decode(buffer));
+      truncated = raw.length > MAX_TEXT_CHARS;
+      cleanText = truncated ? raw.slice(0, MAX_TEXT_CHARS) : raw;
     }
 
-    const cleanText = sanitizeText(rawText);
-    const truncated = cleanText.length > MAX_TEXT_CHARS;
     if (truncated) {
       notes.push(`El texto se recortó a ${MAX_TEXT_CHARS.toLocaleString("es-AR")} caracteres para no saturar el análisis.`);
     }
@@ -141,10 +109,10 @@ export async function POST(request: Request) {
     return NextResponse.json({
       name,
       sizeBytes: file.size,
-      chars: Math.min(cleanText.length, MAX_TEXT_CHARS),
+      chars: cleanText.length,
       truncated,
       notes,
-      text: truncated ? cleanText.slice(0, MAX_TEXT_CHARS) : cleanText
+      text: cleanText
     });
   } catch (error) {
     console.error("Attachment extraction error", error);
