@@ -43,7 +43,21 @@ function connectionLimit(): number {
 }
 
 function runtimeDatabaseUrl(value: string) {
-  const url = new URL(value);
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    // Este `new URL` corre al IMPORTAR el modulo, no al consultar. Con un
+    // DATABASE_URL mal pegado (las comillas de .env.local incluidas, un espacio
+    // al final) el build moria con un `TypeError: Invalid URL` seguido de
+    // "Failed to collect page data for /api/assistant" —la primera ruta que
+    // importa prisma, alfabeticamente— sin nombrar jamas la variable. Se pierde
+    // media hora buscando en el lugar equivocado; paso.
+    throw new Error(
+      "DATABASE_URL no es una URL valida. Suele ser que el valor quedo pegado con las comillas de .env.local, " +
+        "o con un espacio o un salto de linea al final. Revisala en las variables de entorno del deploy."
+    );
+  }
 
   if (!url.searchParams.has("connection_limit")) {
     url.searchParams.set("connection_limit", String(connectionLimit()));
