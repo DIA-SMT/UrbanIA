@@ -3,7 +3,6 @@ import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { removeNormDocument } from "@/lib/storage/supabase";
 
-export const dynamic = "force-dynamic";
 
 /**
  * Borra un antecedente de la reforma.
@@ -13,15 +12,13 @@ export const dynamic = "force-dynamic";
  * esas normas sin su evidencia de origen, que es justamente lo que este
  * modulo existe para conservar.
  */
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string; docId: string }> }) {
+export async function handleDocumentDelete(_request: Request, id: string, docId: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-
-  const { id, docId } = await params;
 
   try {
     const document = await prisma.reformDocument.findFirst({

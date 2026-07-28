@@ -43,7 +43,7 @@ export function ReformDocuments({
     setError("");
     setDeletingId(document.id);
     try {
-      const response = await fetch(`/api/reforms/${reformId}/documents/${document.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/reforms/${reformId}?docId=${document.id}`, { method: "DELETE" });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.detail || payload?.error || "No se pudo eliminar el documento.");

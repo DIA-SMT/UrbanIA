@@ -3,18 +3,15 @@ import { prisma } from "@/lib/db/prisma";
 import { getReform } from "@/lib/projects/data";
 import { reformToPrintHtml } from "@/lib/projects/export";
 
-export const dynamic = "force-dynamic";
 
 /**
  * Codigo nuevo consolidado en formato PDF: devuelve HTML imprimible que
  * dispara el dialogo de impresion del navegador ("Guardar como PDF").
  */
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function handleReformExport(_request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
-
-  const { id } = await params;
   const reform = await getReform(id).catch(() => null);
   if (!reform) {
     return NextResponse.json({ error: "Código nuevo no encontrado" }, { status: 404 });

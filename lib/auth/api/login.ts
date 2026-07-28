@@ -3,11 +3,7 @@ import { verifyPassword } from "@/lib/auth/password";
 import { canAccessAdmin, createSessionToken, sessionCookieName } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 
-export function GET(request: Request) {
-  return NextResponse.redirect(new URL("/ingresar", request.url), 303);
-}
-
-export async function POST(request: Request) {
+export async function handleLogin(request: Request) {
   try {
     const formData = await request.formData();
     const email = String(formData.get("email") || "").trim().toLowerCase();

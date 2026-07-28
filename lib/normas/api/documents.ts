@@ -13,12 +13,10 @@ import {
   hasNormsStorage
 } from "@/lib/storage/supabase";
 
-export const dynamic = "force-dynamic";
 /**
  * Cubre el paso mas lento de los tres (analizar un PDF con el modelo). 60 s es
  * ademas el techo del plan Hobby de Vercel.
  */
-export const maxDuration = 60;
 
 /**
  * Las tres acciones del importador viven en ESTA ruta, discriminadas por
@@ -124,15 +122,13 @@ function buildOfficialNotes(input: {
  * guarda igual. La mayoria de los PDFs de la audiencia son encuadres
  * institucionales o ponencias, y su valor es quedar registrados.
  */
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function handleDocumentsPost(request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-
-  const { id } = await params;
   const body = await request.json().catch(() => null);
   const action = (body && typeof body === "object" && "action" in body ? body.action : "confirm") ?? "confirm";
 
@@ -321,11 +317,10 @@ async function handleConfirm(body: unknown, id: string, userId: string) {
 }
 
 /** Antecedentes ya cargados de la reforma, con cuántas normas salieron de cada uno. */
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function handleDocumentsList(_request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ documents: [] });
   }
-  const { id } = await params;
 
   const documents = await prisma.reformDocument.findMany({
     where: { reformId: id },

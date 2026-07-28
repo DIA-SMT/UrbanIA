@@ -4,10 +4,6 @@ import { hashPassword } from "@/lib/auth/password";
 import { createSessionToken, sessionCookieName } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 
-export function GET(request: Request) {
-  return NextResponse.redirect(new URL("/ingresar?mode=register", request.url), 303);
-}
-
 /** Edad cumplida a hoy. Devuelve null si la fecha no es válida o es futura. */
 function ageFrom(birthDate: Date): number | null {
   const now = new Date();
@@ -26,7 +22,7 @@ function ageFrom(birthDate: Date): number | null {
   return age;
 }
 
-export async function POST(request: Request) {
+export async function handleRegister(request: Request) {
   try {
     const formData = await request.formData();
     const name = String(formData.get("name") || "").trim();

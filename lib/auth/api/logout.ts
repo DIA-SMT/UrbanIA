@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { sessionCookieName } from "@/lib/auth/session";
 
-export async function POST() {
+export async function handleLogout() {
   const response = NextResponse.json({ ok: true });
   response.cookies.set(sessionCookieName, "", {
     httpOnly: true,

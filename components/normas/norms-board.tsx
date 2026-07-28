@@ -102,7 +102,7 @@ export function NormsBoard({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <a
-                href={`/api/reforms/${reform.id}/export`}
+                href={`/api/reforms/${reform.id}?action=export`}
                 className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-slate-200"
               >
                 <FileDown className="h-4 w-4" />

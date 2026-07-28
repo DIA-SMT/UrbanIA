@@ -39,7 +39,7 @@ export function ContributionForm() {
 
     async function loadSession() {
       try {
-        const response = await fetch("/api/auth/me", { cache: "no-store" });
+        const response = await fetch("/api/auth?action=me", { cache: "no-store" });
         const data = (await response.json()) as { user?: { name: string } | null };
         if (isMounted) {
           setCurrentUser(data.user ?? null);

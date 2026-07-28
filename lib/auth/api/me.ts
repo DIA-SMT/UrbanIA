@@ -3,9 +3,8 @@ import { cookies } from "next/headers";
 import { readSessionToken, sessionCookieName } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 
-export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function handleMe() {
   try {
     const store = await cookies();
     const session = await readSessionToken(store.get(sessionCookieName)?.value);

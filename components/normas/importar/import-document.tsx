@@ -145,7 +145,7 @@ export function ImportDocument({
 
       // Los tres pasos van a la MISMA ruta con distinto `action`: el plan Hobby
       // de Vercel admite 12 funciones serverless y cada route.ts cuenta una.
-      const urlResponse = await fetch(`/api/reforms/${reformId}/documents`, {
+      const urlResponse = await fetch(`/api/reforms/${reformId}?action=documents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -168,7 +168,7 @@ export function ImportDocument({
       // se muestran como dos pasos porque es lo que la persona percibe.
       setTimeout(() => setPhase((current) => (current === "extrayendo" ? "analizando" : current)), 1200);
 
-      const analyzeResponse = await fetch(`/api/reforms/${reformId}/documents`, {
+      const analyzeResponse = await fetch(`/api/reforms/${reformId}?action=documents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "analyze", storagePath: urlPayload.storagePath })
@@ -234,7 +234,7 @@ export function ImportDocument({
     setCreatingLabel(accepted.length ? `Creando 1 de ${accepted.length}…` : "Guardando el antecedente…");
 
     try {
-      const response = await fetch(`/api/reforms/${reformId}/documents`, {
+      const response = await fetch(`/api/reforms/${reformId}?action=documents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
