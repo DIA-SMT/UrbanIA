@@ -5,7 +5,6 @@ import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { saveRecordConclusions, syncRecordLifecycle } from "@/lib/hearings/record";
 
-export const dynamic = "force-dynamic";
 
 const conclusionsSchema = z.object({
   summary: z.string().max(8000),
@@ -32,15 +31,13 @@ const bodySchema = z.object({
  * unificado; no re-corre la IA: eso lo hizo /analyze) y deja la audiencia en
  * COMPLETED. Sin conclusiones, guarda solo la transcripcion (fallback sin IA).
  */
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function handleFinalize(request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-
-  const { id } = await params;
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Transcripción inválida", detail: "La transcripción debe tener al menos 20 caracteres." }, { status: 400 });

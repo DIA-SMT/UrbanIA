@@ -6,14 +6,12 @@ import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { analyzeHearingTranscript } from "@/lib/hearings/analyze";
 import { getHearing } from "@/lib/hearings/data";
 
-export const dynamic = "force-dynamic";
 /**
  * El analisis de una audiencia larga tarda; 60 s es el techo del plan Hobby de
  * Vercel (estaba en 120, que ahi ni siquiera es aplicable). Si una audiencia muy
  * larga no llega a completarse, el boton "Generar analisis" del detalle se puede
  * volver a tocar: trabaja sobre la transcripcion ya guardada y no re-transcribe.
  */
-export const maxDuration = 60;
 
 /**
  * Genera (o regenera) el resumen estructurado de una audiencia YA transcripta.
@@ -27,7 +25,7 @@ export const maxDuration = 60;
  * Trabaja sobre los TranscriptSegment ya persistidos: no vuelve a descargar ni
  * a transcribir nada.
  */
-export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function handleGenerateAnalysis(_request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
@@ -41,8 +39,6 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       { status: 503 }
     );
   }
-
-  const { id } = await params;
 
   try {
     const meeting = await prisma.meeting.findFirst({

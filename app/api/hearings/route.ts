@@ -2,9 +2,12 @@ import { HearingStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { handleIngest } from "@/lib/hearings/api/ingest";
 import { createHearing, getHearingCounts, listHearings, type HearingFilters } from "@/lib/hearings/data";
 
 export const dynamic = "force-dynamic";
+/** La ingesta sincronica de una transcripcion larga no entra en el default. */
+export const maxDuration = 60;
 
 export async function GET(request: Request) {
   if (!process.env.DATABASE_URL) {
@@ -37,7 +40,19 @@ const createSchema = z.object({
   description: z.string().trim().max(8000).nullish()
 });
 
+/**
+ * Registrar una audiencia nueva, o cargar una ya ocurrida (`?action=ingest`).
+ *
+ * Las dos operaciones comparten ruta porque en el plan Hobby de Vercel un
+ * deploy admite 12 funciones serverless y cada route.ts cuenta como una. La
+ * accion viaja en la query y NO en el cuerpo a proposito: la ingesta acepta
+ * multipart (audio, PDF) y leer el body aca para decidir lo dejaria consumido.
+ */
 export async function POST(request: Request) {
+  if (new URL(request.url).searchParams.get("action") === "ingest") {
+    return handleIngest(request);
+  }
+
   if (!process.env.DATABASE_URL) {
     return NextResponse.json(
       { error: "Base de datos no disponible", detail: "El registro de audiencias requiere conexión a la base." },

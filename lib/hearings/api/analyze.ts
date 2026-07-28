@@ -6,7 +6,6 @@ import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { analyzeHearingTranscript, draftToConclusions } from "@/lib/hearings/analyze";
 
-export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
   transcript: z.string().trim().min(20).max(200000)
@@ -18,7 +17,7 @@ const bodySchema = z.object({
  * Persiste los participantes detectados (no editables en la ficha 2). No cierra
  * la audiencia: eso lo hace /finalize con las conclusiones ya revisadas.
  */
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function handleAnalyze(request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
@@ -32,8 +31,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       { status: 503 }
     );
   }
-
-  const { id } = await params;
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Transcripción inválida", detail: "Dictá o escribí un poco más antes de cerrar." }, { status: 400 });

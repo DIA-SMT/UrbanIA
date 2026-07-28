@@ -6,22 +6,18 @@ import { getHearing } from "@/lib/hearings/data";
 import { removeHearingDocument } from "@/lib/storage/supabase";
 import { removeHearingReportKnowledge } from "@/lib/knowledge/ingest-hearing-report";
 
-export const dynamic = "force-dynamic";
-
 /**
  * Elimina un documento adjunto del expediente: borra el objeto del bucket de
  * Supabase Storage y la fila HearingDocument. Mantiene un fallback para los
  * documentos previos a la unificacion que quedaron en metadata.documents.
  */
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string; docId: string }> }) {
+export async function handleDocumentDelete(id: string, docId: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-
-  const { id, docId } = await params;
 
   try {
     const meeting = await prisma.meeting.findFirst({ where: { id, kind: "PUBLIC_HEARING" }, select: { metadata: true } });

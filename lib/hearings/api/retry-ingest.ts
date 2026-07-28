@@ -4,7 +4,6 @@ import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { isIngestStalled, readIngestSpec, runIngestJob } from "@/lib/hearings/ingest-job";
 
-export const dynamic = "force-dynamic";
 
 /**
  * Reintenta la ingesta batch de una audiencia que fallo o quedo trabada
@@ -12,15 +11,13 @@ export const dynamic = "force-dynamic";
  * dev server). Limpia el error y vuelve a disparar el job con la misma fuente
  * guardada en metadata.ingest.
  */
-export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function handleRetryIngest(_request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-
-  const { id } = await params;
 
   try {
     const meeting = await prisma.meeting.findFirst({

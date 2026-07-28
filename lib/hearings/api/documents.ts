@@ -10,7 +10,6 @@ import { ingestHearingReport } from "@/lib/knowledge/ingest-hearing-report";
 /** Formatos con texto que se pueden indexar para el conocimiento de Migue. */
 const INGESTABLE_EXTENSIONS = [".pdf", ".txt"];
 
-export const dynamic = "force-dynamic";
 
 const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
 const ALLOWED_EXTENSIONS = [".pdf", ".txt", ".doc", ".docx", ".odt", ".jpg", ".jpeg", ".png", ".webp", ".xls", ".xlsx", ".csv"];
@@ -20,7 +19,7 @@ const ALLOWED_EXTENSIONS = [".pdf", ".txt", ".doc", ".docx", ".odt", ".jpg", ".j
  * Storage y lo registra como HearingDocument del expediente (link, peso, tipo,
  * quien lo subio). Devuelve la audiencia actualizada.
  */
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function handleDocumentUpload(request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
@@ -33,8 +32,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-
-  const { id } = await params;
 
   let file: File | null = null;
   try {

@@ -5,7 +5,6 @@ import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { extractFichaFromTranscript } from "@/lib/hearings/ficha-extract";
 
-export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
   transcript: z.string().trim().min(40).max(200000)
@@ -16,7 +15,7 @@ const bodySchema = z.object({
  * persiste (el cliente mergea sobre lo que el operador ya escribio y el
  * autoguardado lo guarda). La IA orienta; el operador corrige.
  */
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function handleCompleteFicha(request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
@@ -30,8 +29,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       { status: 503 }
     );
   }
-
-  const { id } = await params;
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos inválidos", detail: "Dictá o escribí un poco más para que Migue pueda completar." }, { status: 400 });

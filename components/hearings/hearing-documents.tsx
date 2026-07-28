@@ -38,7 +38,7 @@ export function HearingDocuments({
     try {
       const body = new FormData();
       body.append("file", file);
-      const response = await fetch(`/api/hearings/${hearingId}/documents`, { method: "POST", body });
+      const response = await fetch(`/api/hearings/${hearingId}?action=documents`, { method: "POST", body });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.detail || payload?.error || "No se pudo subir el documento.");
@@ -57,7 +57,7 @@ export function HearingDocuments({
     setError("");
     setDeletingId(documentId);
     try {
-      const response = await fetch(`/api/hearings/${hearingId}/documents/${documentId}`, { method: "DELETE" });
+      const response = await fetch(`/api/hearings/${hearingId}?docId=${documentId}`, { method: "DELETE" });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.detail || payload?.error || "No se pudo eliminar el documento.");

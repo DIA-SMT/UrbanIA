@@ -5,7 +5,6 @@ import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { saveRecordFicha, syncRecordLifecycle } from "@/lib/hearings/record";
 
-export const dynamic = "force-dynamic";
 
 const fichaSchema = z
   .object({
@@ -33,15 +32,13 @@ const bodySchema = z.object({
  * en curso en metadata.draftTranscript sin finalizar, para poder salir y volver
  * a editarla. Los cruces ya se persisten aparte (live-match).
  */
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function handleDraft(request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-
-  const { id } = await params;
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });

@@ -5,7 +5,6 @@ import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { getHearing } from "@/lib/hearings/data";
 import { saveRecordConclusions } from "@/lib/hearings/record";
 
-export const dynamic = "force-dynamic";
 
 const conclusionsSchema = z.object({
   summary: z.string().max(8000),
@@ -29,15 +28,13 @@ const bodySchema = z.object({ conclusions: conclusionsSchema });
  * firmadas por una persona, en columnas propias que re-correr la IA no pisa.
  * A diferencia de /finalize, no cierra la audiencia.
  */
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function handleConclusions(request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-
-  const { id } = await params;
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });

@@ -13,7 +13,6 @@ import { extractPdfText, sanitizePdfText } from "@/lib/pdf/extract-text";
 import { attachHearingDocument } from "@/lib/hearings/attach-document";
 import { hasSupabaseStorage } from "@/lib/storage/supabase";
 
-export const dynamic = "force-dynamic";
 
 const YOUTUBE_URL_PATTERN = /^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|live\/|shorts\/)[\w-]{6,}|youtu\.be\/[\w-]{6,})/;
 
@@ -72,7 +71,7 @@ async function createHearing(input: {
   });
 }
 
-export async function POST(request: Request) {
+export async function handleIngest(request: Request) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json(
       { error: "Base de datos no disponible", detail: "La carga de audiencias requiere conexión a la base." },

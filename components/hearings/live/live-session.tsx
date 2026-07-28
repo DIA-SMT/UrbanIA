@@ -125,7 +125,7 @@ export function LiveSession({
       savingRef.current = true;
       setSaving(true);
       try {
-        const response = await fetch(`/api/hearings/${meetingId}/draft`, {
+        const response = await fetch(`/api/hearings/${meetingId}?action=draft`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ transcript: text, ficha: currentFicha }),
@@ -179,7 +179,7 @@ export function LiveSession({
     sendingRef.current = true;
     lastSentLengthRef.current = fullText.length;
     try {
-      const response = await fetch(`/api/hearings/${meetingId}/live-match`, {
+      const response = await fetch(`/api/hearings/${meetingId}?action=live-match`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ window: windowText, atMs: Date.now() - startedAtRef.current })
@@ -243,7 +243,7 @@ export function LiveSession({
     }
     setCompleting(true);
     try {
-      const response = await fetch(`/api/hearings/${meetingId}/complete-ficha`, {
+      const response = await fetch(`/api/hearings/${meetingId}?action=complete-ficha`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ transcript: text })
@@ -285,7 +285,7 @@ export function LiveSession({
   const saveFinal = useCallback(
     async (reviewed: HearingConclusions | null) => {
       const fullText = transcriptRef.current.trim();
-      const response = await fetch(`/api/hearings/${meetingId}/finalize`, {
+      const response = await fetch(`/api/hearings/${meetingId}?action=finalize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ transcript: fullText, ...(reviewed ? { conclusions: reviewed } : {}) })
@@ -320,7 +320,7 @@ export function LiveSession({
         router.push(`/audiencias/${meetingId}`);
         return;
       }
-      const response = await fetch(`/api/hearings/${meetingId}/analyze`, {
+      const response = await fetch(`/api/hearings/${meetingId}?action=analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ transcript: fullText })

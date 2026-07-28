@@ -5,7 +5,6 @@ import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { matchTranscriptWindow, persistDetectedMatches } from "@/lib/hearings/live-match";
 import { syncRecordLifecycle } from "@/lib/hearings/record";
 
-export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
   window: z.string().trim().min(20).max(4000),
@@ -17,15 +16,13 @@ const bodySchema = z.object({
  * que debate esta audiencia, y persiste los cruces nuevos. Sugerencias para el
  * equipo; no deciden nada.
  */
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function handleLiveMatch(request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-
-  const { id } = await params;
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
