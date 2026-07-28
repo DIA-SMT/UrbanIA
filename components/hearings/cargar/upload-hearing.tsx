@@ -121,13 +121,13 @@ export function UploadHearing({
         if (description.trim()) form.set("description", description.trim());
         const file = mode === "pdf" ? pdfFile : audioFile;
         if (file) form.set("file", file);
-        response = await fetch("/api/hearings/ingest", { method: "POST", body: form });
+        response = await fetch("/api/hearings?action=ingest", { method: "POST", body: form });
       } else {
         const body =
           mode === "transcript"
             ? { mode, title: title.trim(), occurredAt: occurredAt ? new Date(occurredAt).toISOString() : null, reformId, description: description.trim() || null, fileName: transcriptName || "transcripcion.txt", content: transcriptContent }
             : { mode, title: title.trim(), occurredAt: occurredAt ? new Date(occurredAt).toISOString() : null, reformId, description: description.trim() || null, url: youtubeUrl.trim() };
-        response = await fetch("/api/hearings/ingest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        response = await fetch("/api/hearings?action=ingest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       }
 
       const payload = await response.json();

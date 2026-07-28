@@ -4,11 +4,12 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { MunicipalArea, ProjectStatus, ReformStatus } from "@prisma/client";
-import { Anchor, ArrowLeft, FileDown, FileStack, FileText, MessageSquare, Plus } from "lucide-react";
+import { Anchor, ArrowLeft, FileDown, FileStack, FileText, FileUp, MessageSquare, Plus } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AuthorLine, FilterBar, FilterChip, FilterGroup, MetricStrip } from "@/components/ui/board-ui";
 import { SupportControls } from "@/components/normas/support-controls";
 import { ActiveVoterBar } from "@/components/normas/active-voter";
+import { ReformDocuments } from "@/components/normas/reform-documents";
 import {
   conflictLevelLabels,
   conflictLevelStyles,
@@ -18,7 +19,8 @@ import {
   normVisibleStatuses,
   reformStatusLabels,
   type NormListItem,
-  type ReformDetail
+  type ReformDetail,
+  type ReformDocumentView
 } from "@/lib/projects/shared";
 
 type StatusFilter = ProjectStatus | "ALL";
@@ -28,12 +30,15 @@ type MateriaFilter = MunicipalArea | "ALL";
 export function NormsBoard({
   reform,
   canEdit,
-  knownAuthors = []
+  knownAuthors = [],
+  documents = []
 }: {
   reform: ReformDetail;
   canEdit: boolean;
   /** Alimenta el selector de identidad: sin nombre elegido no se puede votar. */
   knownAuthors?: string[];
+  /** PDFs aportados a la reforma, hayan producido normas o no. */
+  documents?: ReformDocumentView[];
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<StatusFilter>("ALL");
@@ -97,20 +102,29 @@ export function NormsBoard({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <a
-                href={`/api/reforms/${reform.id}/export`}
+                href={`/api/reforms/${reform.id}?action=export`}
                 className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-slate-200"
               >
                 <FileDown className="h-4 w-4" />
                 Exportar código
               </a>
               {canEdit ? (
-                <Link
-                  href={`/normas/${reform.id}/nueva`}
-                  className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-bold text-white"
-                >
-                  <Plus className="h-4 w-4" />
-                  Nueva norma
-                </Link>
+                <>
+                  <Link
+                    href={`/normas/${reform.id}/importar`}
+                    className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-slate-200"
+                  >
+                    <FileUp className="h-4 w-4" />
+                    Importar PDF
+                  </Link>
+                  <Link
+                    href={`/normas/${reform.id}/nueva`}
+                    className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-bold text-white"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nueva norma
+                  </Link>
+                </>
               ) : null}
             </div>
           </div>
@@ -180,6 +194,8 @@ export function NormsBoard({
           />
         )}
       </section>
+
+      <ReformDocuments reformId={reform.id} documents={documents} canEdit={canEdit} />
     </div>
   );
 }

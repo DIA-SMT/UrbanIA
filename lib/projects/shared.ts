@@ -236,6 +236,10 @@ export type ProjectAttachmentView = {
   excerpt: string | null;
   meetingId: string | null;
   createdAt: string;
+  /** Link publico al archivo, si el adjunto tiene uno guardado. */
+  url: string | null;
+  /** Paginas del documento de origen que respaldan la norma. */
+  sourcePages: number[];
 };
 
 export type ProjectAnchorView = {
@@ -334,4 +338,23 @@ export type ReformListItem = {
 export type ReformDetail = ReformListItem & {
   updatedAt: string;
   norms: NormListItem[];
+};
+
+/**
+ * Documento aportado a la reforma (PDF de una agrupacion, colegio, universidad
+ * u ONG). Vive aca y no en data.ts porque lo consume un componente cliente, y
+ * data.ts es server-only.
+ */
+export type ReformDocumentView = {
+  id: string;
+  name: string;
+  url: string | null;
+  storagePath: string | null;
+  sizeBytes: number | null;
+  pageCount: number | null;
+  summary: string | null;
+  documentKind: string | null;
+  uploadedAt: string;
+  /** Cuantas normas salieron de este PDF. 0 = quedo solo como antecedente. */
+  normCount: number;
 };

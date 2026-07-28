@@ -20,6 +20,7 @@ import type {
   ProjectDiagnosisView,
   ProjectListItem,
   ReformDetail,
+  ReformDocumentView,
   ReformListItem
 } from "@/lib/projects/shared";
 
@@ -167,7 +168,9 @@ function toAttachmentView(attachment: ProjectDetailPayload["attachments"][number
     name: attachment.name,
     excerpt: attachment.excerpt,
     meetingId: attachment.meetingId,
-    createdAt: attachment.createdAt.toISOString()
+    createdAt: attachment.createdAt.toISOString(),
+    url: attachment.url,
+    sourcePages: attachment.sourcePages
   };
 }
 
@@ -419,6 +422,12 @@ export type CreateNormInput = {
   createdById?: string | null;
   /** Persona que redacta, dentro de la cuenta compartida. */
   authorName?: string | null;
+  /**
+   * De donde sale la norma. Default TECHNICAL_TEAM, que es como se comportaba
+   * antes de que existiera este campo. El importador de PDFs pasa CITIZEN:
+   * la propuesta la trajo una agrupacion, no el equipo tecnico.
+   */
+  source?: ProposalSource;
 };
 
 async function nextNormCode(tx: Prisma.TransactionClient): Promise<string> {
@@ -446,7 +455,7 @@ export async function createNorm(input: CreateNormInput): Promise<NormDetail> {
             title: input.title,
             summary: input.summary,
             status: input.status ?? "DRAFT",
-            source: "TECHNICAL_TEAM",
+            source: input.source ?? "TECHNICAL_TEAM",
             areas: input.areas ?? [],
             reformId: input.reformId,
             articleNumber: input.articleNumber ?? null,
@@ -546,6 +555,44 @@ export async function listReforms(filters: ReformFilters = {}): Promise<ReformLi
   // Un unico barrido de diagnosticos para TODAS las normas del listado.
   const latest = await latestFeasibilityByNorm(reforms.flatMap((reform) => reform.norms.map((norm) => norm.id)));
   return reforms.map((reform) => toReformListItem(reform, latest));
+}
+
+/**
+ * Documentos aportados a la reforma (antecedentes), con cuantas normas salio
+ * de cada uno. Los PDFs que no produjeron ninguna norma tambien estan aca: son
+ * la mayoria, y su valor es quedar registrados.
+ */
+export async function listReformDocuments(reformId: string): Promise<ReformDocumentView[]> {
+  const documents = await prisma.reformDocument.findMany({
+    where: { reformId },
+    orderBy: { uploadedAt: "desc" },
+    take: 200
+  });
+
+  // Las normas apuntan al mismo objeto del bucket que el antecedente, asi que
+  // el conteo va por storagePath.
+  const paths = documents.map((document) => document.storagePath).filter((path): path is string => Boolean(path));
+  const grouped = paths.length
+    ? await prisma.projectAttachment.groupBy({
+        by: ["storagePath"],
+        where: { storagePath: { in: paths } },
+        _count: { _all: true }
+      })
+    : [];
+  const countByPath = new Map(grouped.map((row) => [row.storagePath, row._count._all]));
+
+  return documents.map((document) => ({
+    id: document.id,
+    name: document.name,
+    url: document.url,
+    storagePath: document.storagePath,
+    sizeBytes: document.sizeBytes,
+    pageCount: document.pageCount,
+    summary: document.summary,
+    documentKind: document.documentKind,
+    uploadedAt: document.uploadedAt.toISOString(),
+    normCount: document.storagePath ? (countByPath.get(document.storagePath) ?? 0) : 0
+  }));
 }
 
 /**

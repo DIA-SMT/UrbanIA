@@ -68,7 +68,7 @@ export function CodeExplorer({ chapters, documentTitle, ordinanceNumber, version
     const ticket = ++requestRef.current;
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/normativa/articulos?q=${encodeURIComponent(trimmed)}`, { cache: "no-store" });
+        const response = await fetch(`/api/normativa?action=articulos&q=${encodeURIComponent(trimmed)}`, { cache: "no-store" });
         const data = (await response.json()) as { results?: SearchHit[] };
 
         // Descarta respuestas de búsquedas viejas que llegan tarde.
@@ -95,7 +95,7 @@ export function CodeExplorer({ chapters, documentTitle, ordinanceNumber, version
     setArticle(null);
 
     try {
-      const response = await fetch(`/api/normativa/articulos?number=${encodeURIComponent(number)}`, { cache: "no-store" });
+      const response = await fetch(`/api/normativa?action=articulos&number=${encodeURIComponent(number)}`, { cache: "no-store" });
       const data = (await response.json()) as { article?: OpenArticle; error?: string };
 
       if (!response.ok || !data.article) {

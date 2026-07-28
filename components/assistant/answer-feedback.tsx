@@ -36,7 +36,7 @@ export function AnswerFeedback({ question, answer, sourceReference, model, initi
   async function submit(nextRating: FeedbackRating, extra: { reason?: string | null; comment?: string } = {}) {
     setSending(true);
     try {
-      await fetch("/api/assistant/feedback", {
+      await fetch("/api/assistant?action=feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

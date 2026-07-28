@@ -64,7 +64,7 @@ export function LoginPage({ initialError, initialMode = "login", maxBirthDate, m
               <h1 className="text-2xl font-black leading-tight text-slate-950">Ingresar</h1>
               {errorMessage ? <AuthErrorMessage message={errorMessage} /> : null}
 
-              <form action="/api/auth/login" method="post" className="mt-6 space-y-4">
+              <form action="/api/auth?action=login" method="post" className="mt-6 space-y-4">
                 <TextField label="Correo electronico" name="email" type="email" placeholder="nombre@correo.com" />
                 <TextField label="Contrasena" name="password" type="password" placeholder="Ingresar contrasena" />
 
@@ -99,7 +99,7 @@ export function LoginPage({ initialError, initialMode = "login", maxBirthDate, m
               {/* Orden: primero quien sos (identidad), despues a que te dedicas y por
                   ultimo como entras. Los datos de identidad se piden una sola vez aca,
                   asi el formulario de propuestas no vuelve a pedirlos. */}
-              <form action="/api/auth/register" method="post" className="mt-6 space-y-4">
+              <form action="/api/auth?action=register" method="post" className="mt-6 space-y-4">
                 <FieldGroup title="Tus datos">
                   <TextField label="Nombre y apellido" name="name" type="text" placeholder="Tu nombre completo" />
                   <TextField label="DNI" name="dni" type="text" placeholder="Ej: 30123456" inputMode="numeric" />

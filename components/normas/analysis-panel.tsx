@@ -35,7 +35,7 @@ export function AnalysisPanel({
     setSaving(true);
     setError("");
     try {
-      const response = await fetch(`/api/projects/${normId}/diagnosis/${analysis.id}`, {
+      const response = await fetch(`/api/projects/${normId}?diagnosisId=${analysis.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

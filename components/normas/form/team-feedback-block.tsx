@@ -54,7 +54,7 @@ export function TeamFeedbackBlock({
 
   const loadOpinions = useCallback(async () => {
     try {
-      const response = await fetch(`/api/projects/${normId}/opinions`);
+      const response = await fetch(`/api/projects/${normId}?action=opinions`);
       const payload = await response.json();
       if (response.ok) setOpinions(payload.opinions ?? []);
     } catch {
@@ -76,7 +76,7 @@ export function TeamFeedbackBlock({
     setPosting(true);
     setError("");
     try {
-      const response = await fetch(`/api/projects/${normId}/opinions`, {
+      const response = await fetch(`/api/projects/${normId}?action=opinions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: text, authorName: signedBy })
@@ -103,7 +103,7 @@ export function TeamFeedbackBlock({
     try {
       // El servidor compara la identidad declarada contra la firma de la
       // devolucion: solo su autor puede borrarla.
-      const response = await fetch(`/api/projects/${normId}/opinions/${opinionId}`, {
+      const response = await fetch(`/api/projects/${normId}?opinionId=${opinionId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ voterName: voter })

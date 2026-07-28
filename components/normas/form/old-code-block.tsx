@@ -44,7 +44,7 @@ export function OldCodeBlock({
     setError("");
     setBusyAnchorId(anchorItem.id);
     try {
-      const response = await fetch("/api/normativa/links", {
+      const response = await fetch("/api/normativa?action=links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -58,7 +58,7 @@ export function OldCodeBlock({
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.detail || payload?.error || "No se pudo actualizar la relación.");
       if (payload.id !== anchorItem.id) {
-        await fetch(`/api/normativa/links?id=${anchorItem.id}`, { method: "DELETE" });
+        await fetch(`/api/normativa?action=links&id=${anchorItem.id}`, { method: "DELETE" });
       }
       onChange(
         anchors
@@ -75,7 +75,7 @@ export function OldCodeBlock({
   async function remove(anchorId: string) {
     onChange(anchors.filter((entry) => entry.id !== anchorId));
     try {
-      await fetch(`/api/normativa/links?id=${anchorId}`, { method: "DELETE" });
+      await fetch(`/api/normativa?action=links&id=${anchorId}`, { method: "DELETE" });
     } catch {
       // El anclaje ya se quito de la UI; el error de red no bloquea.
     }
@@ -206,7 +206,7 @@ function ManualAdd({
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const response = await fetch(`/api/normativa/search?q=${encodeURIComponent(query.trim())}`);
+        const response = await fetch(`/api/normativa?action=search&q=${encodeURIComponent(query.trim())}`);
         const payload = await response.json();
         setResults(Array.isArray(payload.articles) ? payload.articles : []);
       } catch {
@@ -231,7 +231,7 @@ function ManualAdd({
     }
     setAnchoringId(result.id);
     try {
-      const response = await fetch("/api/normativa/links", {
+      const response = await fetch("/api/normativa?action=links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
