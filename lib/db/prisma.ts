@@ -53,9 +53,14 @@ function runtimeDatabaseUrl(value: string) {
     // "Failed to collect page data for /api/assistant" —la primera ruta que
     // importa prisma, alfabeticamente— sin nombrar jamas la variable. Se pierde
     // media hora buscando en el lugar equivocado; paso.
+    // Los espacios y saltos de linea al principio o al final NO son la causa:
+    // el parser de URL los descarta. Lo que rompe es que la cadena no empiece
+    // exactamente en el esquema, que es justo lo que pasa al copiar de mas.
     throw new Error(
-      "DATABASE_URL no es una URL valida. Suele ser que el valor quedo pegado con las comillas de .env.local, " +
-        "o con un espacio o un salto de linea al final. Revisala en las variables de entorno del deploy."
+      'DATABASE_URL no es una URL valida: tiene que empezar exactamente en "postgresql://". ' +
+        'Suele ser que se copio de mas desde .env.local y quedo adentro del valor el nombre de la ' +
+        'variable ("DATABASE_URL=postgresql://...") o las comillas que la envuelven. Revisala en las ' +
+        "variables de entorno del deploy."
     );
   }
 
