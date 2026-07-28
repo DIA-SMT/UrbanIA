@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { compareNormWithOldCode, DiagnosisUnavailableError, MissingArticleTextError } from "@/lib/projects/diagnosis";
 
-export const dynamic = "force-dynamic";
 
 /**
  * Paso 2 de la Fabrica: comparar la norma formalizada contra el CPU 2014.
@@ -10,15 +9,13 @@ export const dynamic = "force-dynamic";
  * los anclajes humanos) y produce el analisis de impacto con recomendaciones
  * y conflictos. Devuelve { diagnosis, anchors } para refrescar el panel.
  */
-export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function handleDiagnose(_request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-
-  const { id } = await params;
   try {
     const result = await compareNormWithOldCode(id);
     return NextResponse.json(result, { status: 201 });

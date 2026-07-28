@@ -280,7 +280,7 @@ export function ImportDocument({
   async function formalizeAndCompare(norm: CreatedNorm) {
     setChainState((current) => ({ ...current, [norm.id]: "Formalizando…" }));
     try {
-      const formalize = await fetch(`/api/projects/${norm.id}/formalize`, { method: "POST" });
+      const formalize = await fetch(`/api/projects/${norm.id}?action=formalize`, { method: "POST" });
       const formalizePayload = await formalize.json().catch(() => null);
       if (!formalize.ok) {
         throw new Error(formalizePayload?.detail || formalizePayload?.error || "No se pudo formalizar.");
@@ -295,7 +295,7 @@ export function ImportDocument({
       if (!patch.ok) throw new Error("No se pudo guardar el articulado propuesto.");
 
       setChainState((current) => ({ ...current, [norm.id]: "Comparando con el código viejo…" }));
-      const diagnose = await fetch(`/api/projects/${norm.id}/diagnose`, { method: "POST" });
+      const diagnose = await fetch(`/api/projects/${norm.id}?action=diagnose`, { method: "POST" });
       const diagnosePayload = await diagnose.json().catch(() => null);
       if (!diagnose.ok) {
         throw new Error(diagnosePayload?.detail || diagnosePayload?.error || "No se pudo comparar.");

@@ -3,16 +3,57 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { handleDiagnose } from "@/lib/projects/api/diagnose";
+import { handleDiagnosisUpdate } from "@/lib/projects/api/diagnosis-update";
+import { handleExport } from "@/lib/projects/api/export";
+import { handleFormalize } from "@/lib/projects/api/formalize";
+import { handleOpinionDelete } from "@/lib/projects/api/opinion-delete";
+import { handleOpinionCreate, handleOpinionsList } from "@/lib/projects/api/opinions";
+import { handleSupportCreate, handleSupportDelete, handleSupportGet } from "@/lib/projects/api/support";
 import { getNorm, updateNorm } from "@/lib/projects/data";
 import { removeNormDocument } from "@/lib/storage/supabase";
 
 export const dynamic = "force-dynamic";
+/** Formalizar y diagnosticar llaman al modelo: no entran en el default de 10 s. */
+export const maxDuration = 60;
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+/*
+ * Todas las operaciones sobre UNA norma entran por esta ruta, con la operacion
+ * en el query param `action`. Mismo motivo que en audiencias: el plan Hobby de
+ * Vercel admite 12 funciones serverless por deploy y cada route.ts cuenta una.
+ *
+ * Cada handler vive en lib/projects/api/ con su codigo intacto.
+ */
+function accion(request: Request): string {
+  return new URL(request.url).searchParams.get("action") ?? "";
+}
+
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  switch (accion(request)) {
+    case "diagnose":
+      return handleDiagnose(request, id);
+    case "formalize":
+      return handleFormalize(request, id);
+    case "opinions":
+      return handleOpinionCreate(request, id);
+    case "support":
+      return handleSupportCreate(request, id);
+    default:
+      return NextResponse.json({ error: "Acción inválida" }, { status: 400 });
+  }
+}
+
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  // Sub-recursos de solo lectura; sin action, el detalle de la norma.
+  if (accion(request) === "export") return handleExport(request, id);
+  if (accion(request) === "opinions") return handleOpinionsList(request, id);
+  if (accion(request) === "support") return handleSupportGet(request, id);
+
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
-  const { id } = await params;
   const norm = await getNorm(id);
   if (!norm) {
     return NextResponse.json({ error: "Norma no encontrada" }, { status: 404 });
@@ -33,6 +74,11 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  // Con `?diagnosisId=` se edita ESE diagnostico; sin el, la norma.
+  const diagnosisId = new URL(request.url).searchParams.get("diagnosisId");
+  if (diagnosisId) return handleDiagnosisUpdate(request, id, diagnosisId);
+
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
@@ -40,7 +86,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
-  const { id } = await params;
   const parsed = patchSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
@@ -56,7 +101,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  // Sub-recursos: quitar una opinion o el apoyo. Sin eso, borrar la norma
+  // entera, que exige ADMIN.
+  const opinionId = new URL(request.url).searchParams.get("opinionId");
+  if (opinionId) return handleOpinionDelete(request, id, opinionId);
+  if (accion(request) === "support") return handleSupportDelete(request, id);
+
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
@@ -66,7 +118,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Sin permisos", detail: "Solo un administrador puede eliminar normas." }, { status: 403 });
   }
 
-  const { id } = await params;
   try {
     // Archivos del bucket que quedarian huerfanos al borrar la norma. Un mismo
     // PDF puede respaldar VARIAS normas (y ademas seguir listado como

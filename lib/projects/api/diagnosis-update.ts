@@ -5,7 +5,6 @@ import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import type { ProjectCitedArticle, ProjectDiagnosisView } from "@/lib/projects/shared";
 
-export const dynamic = "force-dynamic";
 
 const patchSchema = z.object({
   feasibility: z.nativeEnum(FeasibilityLevel).optional(),
@@ -29,15 +28,13 @@ function asCitedArticles(value: unknown): ProjectCitedArticle[] {
     .filter((item) => item.articleId && item.quote);
 }
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string; diagnosisId: string }> }) {
+export async function handleDiagnosisUpdate(request: Request, id: string, diagnosisId: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-
-  const { id, diagnosisId } = await params;
   const parsed = patchSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos invalidos" }, { status: 400 });

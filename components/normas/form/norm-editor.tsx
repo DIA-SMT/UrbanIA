@@ -222,7 +222,7 @@ export function NormEditor({
     setFormalizing(true);
     try {
       await flushSave(id);
-      const response = await fetch(`/api/projects/${id}/formalize`, { method: "POST" });
+      const response = await fetch(`/api/projects/${id}?action=formalize`, { method: "POST" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.detail || payload?.error || "No se pudo formalizar la norma.");
       setProposedText(payload.proposedText as string);
@@ -248,7 +248,7 @@ export function NormEditor({
     setComparing(true);
     try {
       await flushSave(id);
-      const response = await fetch(`/api/projects/${id}/diagnose`, { method: "POST" });
+      const response = await fetch(`/api/projects/${id}?action=diagnose`, { method: "POST" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.detail || payload?.error || "No se pudo comparar la norma.");
       setAnalyses((current) => [payload.diagnosis as ProjectDiagnosisView, ...current]);
@@ -370,7 +370,7 @@ export function NormEditor({
               </button>
             ) : null}
             <a
-              href={`/api/projects/${norm.id}/export`}
+              href={`/api/projects/${norm.id}?action=export`}
               className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-bold text-slate-200"
             >
               <FileDown className="h-4 w-4" />
@@ -532,7 +532,7 @@ export function NormEditor({
               ) : null}
               <button
                 type="button"
-                onClick={() => normId && window.open(`/api/projects/${normId}/export`, "_blank")}
+                onClick={() => normId && window.open(`/api/projects/${normId}?action=export`, "_blank")}
                 disabled={!normId || !articleText.trim()}
                 className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-bold text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
               >
