@@ -34,9 +34,14 @@ const bodySchema = z.object({
 /**
  * Nota de trazabilidad de cada norma importada.
  *
- * La ultima linea importa: la agrupacion mando una presentacion, no un
- * articulo redactado. Que el expediente no le atribuya un texto que no
- * escribio.
+ * Carga el peso de distinguir tres roles que es facil confundir:
+ *   - quien APORTO el material (la organizacion que mando el PDF),
+ *   - quien REVISO y confirmo la ficha (la persona del equipo, que ademas
+ *     queda como authorName porque es quien puede editarla),
+ *   - quien REDACTO el articulado (nadie todavia: eso lo genera Formalizar).
+ *
+ * La ultima linea importa especialmente: la agrupacion mando una presentacion,
+ * no un articulo. Que el expediente no le atribuya un texto que no escribio.
  */
 function buildOfficialNotes(input: {
   fileName: string;
@@ -51,8 +56,13 @@ function buildOfficialNotes(input: {
   return [
     `Origen: ${input.fileName}${paginas}.${aportadoPor} en el marco de la 1ª Audiencia Pública.`,
     `Ficha propuesta por IA (${input.model ?? "modelo no registrado"}) y revisada por ${input.userName} el ${fecha}.`,
+    input.organization
+      ? `La norma figura a nombre de ${input.userName} porque es quien la revisó y la edita; la propuesta es de ${input.organization}.`
+      : "",
     "El articulado NO fue redactado por la organización: se genera en el paso Formalizar y debe validarse."
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 /**
@@ -87,7 +97,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!reform) return NextResponse.json({ error: "Código nuevo no encontrado" }, { status: 404 });
 
     const user = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
+    // Para el texto de la nota alcanza un generico; para authorName NO, porque
+    // ese campo gobierna quien puede editar: un nombre que nadie va a tipear
+    // como identidad activa deja la norma trabada. Sin nombre real va null,
+    // que el editor interpreta como "sin dueño" y deja editar a cualquiera.
     const userName = user?.name ?? "el equipo";
+    const ownerName = user?.name?.trim() || null;
     const url = hasNormsStorage() ? getNormDocumentPublicUrl(data.storagePath) : null;
 
     const document = await prisma.reformDocument.create({
@@ -118,7 +133,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         status: "DRAFT",
         // La propuesta la trajo una agrupacion, no el equipo tecnico.
         source: "CITIZEN",
-        authorName: data.organization ?? null,
+        // authorName es QUIEN REDACTA, y ademas gobierna los permisos de
+        // edicion: el editor solo deja editar si la identidad activa coincide
+        // con este nombre. Va la persona que reviso y confirmo la ficha, no la
+        // organizacion del PDF —poner ahi "Colegio de Arquitectos" dejaba la
+        // norma imposible de editar para cualquiera—. De donde salio el aporte
+        // queda asentado en officialNotes, que es su lugar.
+        authorName: ownerName,
         createdById: session.userId,
         officialNotes: buildOfficialNotes({
           fileName: data.fileName,
