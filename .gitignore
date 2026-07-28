@@ -1,5 +1,9 @@
 node_modules
 .next
+# Cache incremental de TypeScript: se regenera solo en cada maquina y cambia en
+# cada build, asi que ensuciaba todos los commits y llego a dar un conflicto de
+# merge por si mismo.
+tsconfig.tsbuildinfo
 dist
 .env
 .env.local
