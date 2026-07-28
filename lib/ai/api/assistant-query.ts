@@ -130,7 +130,7 @@ function parseAssistantPayload(raw: string): { answer: string; cita: string } {
 // cualquier script que quiera vaciar los créditos de OpenRouter.
 const RATE_LIMIT = { limit: 10, windowMs: 60_000 };
 
-export async function POST(request: Request) {
+export async function handleAssistantQuery(request: Request) {
   const rate = checkRateLimit(clientKeyFromRequest(request, "assistant-query"), RATE_LIMIT);
   if (!rate.allowed) {
     return NextResponse.json(

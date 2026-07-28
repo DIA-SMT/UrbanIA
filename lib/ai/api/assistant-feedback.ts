@@ -23,7 +23,7 @@ const feedbackSchema = z.object({
 
 const RATE_LIMIT = { limit: 20, windowMs: 60_000 };
 
-export async function POST(request: Request) {
+export async function handleAssistantFeedback(request: Request) {
   const rate = checkRateLimit(clientKeyFromRequest(request, "assistant-feedback"), RATE_LIMIT);
   if (!rate.allowed) {
     return NextResponse.json(

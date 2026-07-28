@@ -24,9 +24,8 @@ const schema = z.object({
   notes: z.string().trim().max(600).optional()
 });
 
-export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+export async function handleLinkCreate(request: Request) {
   const denied = await requireStaff();
   if (denied) return denied;
 
@@ -43,7 +42,7 @@ export async function POST(request: Request) {
 }
 
 // Lista los anclajes de un origen (ej. sourceType=project&sourceId=<id>).
-export async function GET(request: Request) {
+export async function handleLinksList(request: Request) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ links: [], isLive: false });
   }
@@ -79,7 +78,7 @@ export async function GET(request: Request) {
 }
 
 // Elimina un anclaje por id (?id=).
-export async function DELETE(request: Request) {
+export async function handleLinkDelete(request: Request) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }

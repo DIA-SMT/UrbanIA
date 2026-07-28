@@ -9,7 +9,6 @@ import { applyOwnerCookie, resolveCpuOwner } from "@/lib/cpu/owner";
 import { attachmentSchema, buildAttachmentBlock, type QueryAttachment } from "@/lib/ai/attachment";
 import { analyzeMigueQuestion } from "@/lib/ai/migue-intent";
 
-export const dynamic = "force-dynamic";
 
 // Debe cubrir un chunk completo de planilla (hasta 2200 chars) para no cortar filas.
 const MAX_ARTICLE_CHARS = 2400;
@@ -222,7 +221,7 @@ function extractDocumentCitations(
   return references;
 }
 
-export async function POST(request: Request) {
+export async function handleCpuQuery(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = cpuQuerySchema.safeParse(body);
 

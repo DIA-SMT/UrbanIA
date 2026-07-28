@@ -140,7 +140,7 @@ export function CitizenParticipation() {
     setDeletingId(contribution.id);
 
     try {
-      const response = await fetch(`/api/citizen-contributions/${contribution.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/citizen-contributions?id=${contribution.id}`, { method: "DELETE" });
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
@@ -168,7 +168,7 @@ export function CitizenParticipation() {
     );
 
     try {
-      const response = await fetch(`/api/citizen-contributions/${contribution.id}`, {
+      const response = await fetch(`/api/citizen-contributions?id=${contribution.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ axis })
@@ -195,7 +195,7 @@ export function CitizenParticipation() {
     setDraftErrors((current) => ({ ...current, [contribution.id]: "" }));
 
     try {
-      const response = await fetch("/api/assistant/query", {
+      const response = await fetch("/api/assistant?action=query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

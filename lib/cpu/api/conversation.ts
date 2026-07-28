@@ -3,7 +3,6 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { resolveCpuOwner } from "@/lib/cpu/owner";
 
-export const dynamic = "force-dynamic";
 
 const patchSchema = z.object({
   archived: z.boolean().optional(),
@@ -22,8 +21,7 @@ async function findOwnedConversation(id: string) {
   return conversation;
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export async function handleConversationGet(_request: Request, id: string) {
   const conversation = await findOwnedConversation(id);
   if (!conversation) {
     return NextResponse.json({ error: "Conversacion no encontrada" }, { status: 404 });
@@ -54,8 +52,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   });
 }
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export async function handleConversationPatch(request: Request, id: string) {
   const conversation = await findOwnedConversation(id);
   if (!conversation) {
     return NextResponse.json({ error: "Conversacion no encontrada" }, { status: 404 });
@@ -79,8 +76,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   return NextResponse.json({ conversation: updated });
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export async function handleConversationDelete(_request: Request, id: string) {
   const conversation = await findOwnedConversation(id);
   if (!conversation) {
     return NextResponse.json({ error: "Conversacion no encontrada" }, { status: 404 });

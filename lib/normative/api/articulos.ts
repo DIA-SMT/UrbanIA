@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getNormativeExplorerData } from "@/lib/normative/data";
 import { retrieveRelevantArticles } from "@/lib/normative/search";
 
-export const dynamic = "force-dynamic";
 
 /**
  * Explorador del Código para el portal público. Dos usos:
@@ -13,7 +12,7 @@ export const dynamic = "force-dynamic";
  * El contenido no viaja como props de la landing (son 100 KB entre 52 artículos):
  * se pide el artículo cuando el vecino lo abre.
  */
-export async function GET(request: Request) {
+export async function handleArticulos(request: Request) {
   const { searchParams } = new URL(request.url);
   const number = searchParams.get("number")?.trim();
   const query = searchParams.get("q")?.trim();

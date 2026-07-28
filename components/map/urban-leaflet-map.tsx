@@ -43,7 +43,7 @@ export function UrbanLeafletMap({ mode = "explore", value = null, onPick }: Urba
 
   useEffect(() => {
     if (isPick) return;
-    fetch("/api/map/layers").then((response) => response.ok ? response.json() : Promise.reject()).then((items: RemoteLayer[]) => { setLayers(items); setActive([]); }).catch(() => setError("No se pudieron cargar las capas desde Supabase."));
+    fetch("/api/map?action=layers").then((response) => response.ok ? response.json() : Promise.reject()).then((items: RemoteLayer[]) => { setLayers(items); setActive([]); }).catch(() => setError("No se pudieron cargar las capas desde Supabase."));
   }, [isPick]);
 
   const loadViewport = useCallback(async (bounds: L.LatLngBounds, zoom: number) => {
@@ -54,7 +54,7 @@ export function UrbanLeafletMap({ mode = "explore", value = null, onPick }: Urba
     const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(",");
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/map/features?layers=${encodeURIComponent(active.join(","))}&bbox=${bbox}&zoom=${zoom}`, { signal: controller.signal });
+      const response = await fetch(`/api/map?action=features&layers=${encodeURIComponent(active.join(","))}&bbox=${bbox}&zoom=${zoom}`, { signal: controller.signal });
       if (!response.ok) throw new Error();
       const collection = await response.json() as FeatureCollection;
       startTransition(() => setData(collection));

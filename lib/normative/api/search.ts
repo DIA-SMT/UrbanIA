@@ -3,7 +3,6 @@ import { getNormativeExplorerData, type NormativeExplorerArticle } from "@/lib/n
 import { retrieveRelevantArticles } from "@/lib/normative/search";
 import { normalizeForSearch } from "@/lib/normative/parser";
 
-export const dynamic = "force-dynamic";
 
 const MAX_RESULTS = 20;
 const EXCERPT_RADIUS = 90;
@@ -30,7 +29,7 @@ function buildExcerpt(article: NormativeExplorerArticle, query: string): string 
   return `${start > 0 ? "…" : ""}${content.slice(start, end).trim()}${end < content.length ? "…" : ""}`;
 }
 
-export async function GET(request: Request) {
+export async function handleNormativaSearch(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = (searchParams.get("q") ?? "").trim();
 

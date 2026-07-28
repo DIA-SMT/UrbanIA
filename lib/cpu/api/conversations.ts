@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { applyOwnerCookie, resolveCpuOwner } from "@/lib/cpu/owner";
 
-export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+export async function handleConversationsList(request: Request) {
   const { searchParams } = new URL(request.url);
   const archived = searchParams.get("archived") === "true";
   const owner = await resolveCpuOwner(true);

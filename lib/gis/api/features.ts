@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 
 type FeatureRow = { id: string; name: string; properties: Record<string, unknown>; geometry: string; layerName: string; layerSlug: string };
 
-export async function GET(request: Request) {
+export async function handleMapFeatures(request: Request) {
   const params = new URL(request.url).searchParams;
   const slugs = (params.get("layers") || "").split(",").map((value) => value.trim()).filter(Boolean).slice(0, 10);
   const bbox = (params.get("bbox") || "").split(",").map(Number);
