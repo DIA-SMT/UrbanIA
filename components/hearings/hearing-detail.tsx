@@ -64,11 +64,13 @@ type NormGroup = { normId: string; code: string; title: string; articleNumber: s
 export function HearingDetail({
   hearing,
   canEdit = false,
-  canDelete = false
+  canDelete = false,
+  aiAvailable = false
 }: {
   hearing: HearingDetailData;
   canEdit?: boolean;
   canDelete?: boolean;
+  aiAvailable?: boolean;
 }) {
   const router = useRouter();
   // Se puede continuar dictando aunque sea tema libre (sin código nuevo).
@@ -170,8 +172,49 @@ export function HearingDetail({
   const [conclusionsDraft, setConclusionsDraft] = useState<HearingConclusions | null>(null);
   const [savingConclusions, setSavingConclusions] = useState(false);
   const [conclusionsError, setConclusionsError] = useState("");
+  const [completingFicha, setCompletingFicha] = useState(false);
 
   const hasFicha = fichaEntries.length > 0;
+
+  // Texto de la transcripción ya guardada (la del dictado, del PDF, del audio o
+  // de YouTube). Es la materia prima para completar la ficha con IA acá: en el
+  // detalle no hay dictado en vivo, pero la transcripción persistida sirve igual.
+  const storedTranscript = hearing.transcriptSegments
+    .map((segment) => (segment.speakerLabel ? `${segment.speakerLabel}: ${segment.content}` : segment.content))
+    .join("\n")
+    .trim();
+  const canCompleteFicha = aiAvailable && storedTranscript.length >= 40;
+
+  async function completeFichaWithAi() {
+    if (!fichaDraft) return;
+    setFichaError("");
+    setCompletingFicha(true);
+    try {
+      const response = await fetch(`/api/hearings/${hearing.id}/complete-ficha`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // El endpoint topea en 200.000 caracteres.
+        body: JSON.stringify({ transcript: storedTranscript.slice(0, 200_000) })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.detail || payload?.error || "No se pudo completar la ficha.");
+      const extracted = payload.ficha as Partial<HearingFicha>;
+      setFichaDraft((current) => {
+        if (!current) return current;
+        const next = { ...current };
+        (Object.keys(extracted) as (keyof HearingFicha)[]).forEach((key) => {
+          const value = extracted[key];
+          // Solo campos vacíos: no se pisa lo que la persona ya escribió.
+          if (value && next[key].trim().length === 0) next[key] = value;
+        });
+        return next;
+      });
+    } catch (error) {
+      setFichaError(error instanceof Error ? error.message : "No se pudo completar la ficha.");
+    } finally {
+      setCompletingFicha(false);
+    }
+  }
 
   async function saveFicha() {
     if (!fichaDraft) return;
@@ -388,11 +431,12 @@ export function HearingDetail({
           <HearingFields
             value={fichaDraft}
             disabled={savingFicha}
-            aiAvailable={false}
-            completing={false}
+            aiAvailable={canCompleteFicha}
+            completing={completingFicha}
             error=""
             onChange={setFichaDraft}
-            onCompleteWithAi={() => {}}
+            onCompleteWithAi={completeFichaWithAi}
+            source="transcripcion"
           />
           <EditActions saving={savingFicha} error={fichaError} onCancel={() => setFichaDraft(null)} onSave={saveFicha} />
         </div>

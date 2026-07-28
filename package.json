@@ -19,7 +19,9 @@
     "db:ingest:planillas": "tsx --env-file=.env.local prisma/ingest-planillas.ts",
     "db:ingest:planillas-uso": "tsx --env-file=.env.local prisma/ingest-planillas-uso.ts",
     "hearings:ingest": "tsx --env-file=.env.local scripts/ingest-hearings.ts",
-    "dev:turbo": "next dev --turbo"
+    "dev:turbo": "next dev --turbo",
+    "hearings:ingest-docs": "tsx --env-file=.env.local scripts/ingest-hearing-documents.ts",
+    "hearings:ingest-transcripts": "tsx --env-file=.env.local scripts/ingest-hearing-transcripts.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",

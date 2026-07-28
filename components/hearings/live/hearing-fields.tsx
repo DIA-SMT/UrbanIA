@@ -17,7 +17,8 @@ function HearingFieldsBase({
   completing,
   error,
   onChange,
-  onCompleteWithAi
+  onCompleteWithAi,
+  source = "dictado"
 }: {
   value: HearingFicha;
   disabled: boolean;
@@ -26,6 +27,8 @@ function HearingFieldsBase({
   error: string;
   onChange: (ficha: HearingFicha) => void;
   onCompleteWithAi: () => void;
+  /** De dónde sale el texto que lee Migue: el dictado en vivo o la transcripción guardada. */
+  source?: "dictado" | "transcripcion";
 }) {
   function set<K extends keyof HearingFicha>(key: K, next: string) {
     onChange({ ...value, [key]: next });
@@ -36,8 +39,17 @@ function HearingFieldsBase({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-black text-white">Ficha de la audiencia</p>
+          {/* El texto solo promete "Completar con IA" si el boton esta: sin esto,
+              en el detalle (sin transcripcion o sin IA) se ofrecia algo ausente. */}
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            Cargá a mano o usá <span className="font-bold text-slate-300">Completar con IA</span>: Migue rellena los campos vacíos con lo que detecta del dictado. Vos corregís.
+            {aiAvailable ? (
+              <>
+                Cargá a mano o usá <span className="font-bold text-slate-300">Completar con IA</span>: Migue rellena los campos vacíos con lo que detecta{" "}
+                {source === "dictado" ? "del dictado" : "de la transcripción"}. Vos corregís.
+              </>
+            ) : (
+              "Cargá los datos de la audiencia. Podés completarlos y corregirlos cuando quieras."
+            )}
           </p>
         </div>
         {aiAvailable ? (
@@ -80,7 +92,7 @@ function HearingFieldsBase({
 
       <Group title="Participación">
         <Field label="Participantes">
-          <Text value={value.participants} disabled={disabled} onChange={(v) => set("participants", v)} placeholder="Nombres separados por comas" />
+          <Area value={value.participants} disabled={disabled} onChange={(v) => set("participants", v)} placeholder="Nombres separados por comas" />
         </Field>
         <Field label="Institución">
           <Text value={value.institution} disabled={disabled} onChange={(v) => set("institution", v)} placeholder="Institución u organización" />
@@ -154,6 +166,34 @@ function Text({
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
       className="h-10 w-full rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-300/50 disabled:opacity-60"
+    />
+  );
+}
+
+/**
+ * Campo multilínea para valores que crecen: una lista larga de participantes
+ * (la IA la llena con muchos nombres) se cortaba en un input de una sola línea.
+ * Ajusta su alto al contenido, con un mínimo, y se puede redimensionar.
+ */
+function Area({
+  value,
+  disabled,
+  placeholder,
+  onChange
+}: {
+  value: string;
+  disabled: boolean;
+  placeholder?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <textarea
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholder}
+      rows={2}
+      className="min-h-10 w-full resize-y rounded-md border border-white/10 bg-slate-950/60 px-3 py-2 text-sm leading-6 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-300/50 disabled:opacity-60"
     />
   );
 }

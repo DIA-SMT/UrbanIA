@@ -9,7 +9,7 @@
  */
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { collapseSpacedLetters, pagesInText, sanitizeText } from "./extract-text";
+import { collapseSpacedLetters, pagesInText, sanitizePdfText } from "./extract-text";
 
 test("caso real 1: no toca lo que no puede arreglar sin adivinar", () => {
   // PDF1 pag. 10, tabla. La frase real es "POZO EN LA MATERNIDAD S.M. DE TUCUMAN".
@@ -72,12 +72,12 @@ test("pagesInText lee todas las paginas presentes, ordenadas y sin repetir", () 
   assert.deepEqual(pagesInText("sin marcadores"), []);
 });
 
-test("sanitizeText saca caracteres de control pero respeta saltos y tabs", () => {
+test("sanitizePdfText saca caracteres de control pero respeta saltos y tabs", () => {
   // Los de control se construyen con fromCharCode para no meter bytes crudos
   // en el fuente (ya paso una vez en este repo: un NUL literal en un .tsx).
   const NUL = String.fromCharCode(0);
   const BEL = String.fromCharCode(7);
-  assert.equal(sanitizeText(`hola${NUL}mundo`), "holamundo");
-  assert.equal(sanitizeText(`campo${BEL}`), "campo");
-  assert.equal(sanitizeText("  linea1\nlinea2\tcol  "), "linea1\nlinea2\tcol");
+  assert.equal(sanitizePdfText(`hola${NUL}mundo`), "holamundo");
+  assert.equal(sanitizePdfText(`campo${BEL}`), "campo");
+  assert.equal(sanitizePdfText("  linea1\nlinea2\tcol  "), "linea1\nlinea2\tcol");
 });

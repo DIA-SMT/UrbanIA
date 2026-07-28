@@ -1,9 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { getHearing } from "@/lib/hearings/data";
-import { ensureHearingRecord } from "@/lib/hearings/record";
-import { hasSupabaseStorage, uploadHearingDocument } from "@/lib/storage/supabase";
+import { attachHearingDocument } from "@/lib/hearings/attach-document";
+import { hasSupabaseStorage } from "@/lib/storage/supabase";
+import { extractPdfText, sanitizePdfText } from "@/lib/pdf/extract-text";
+import { ingestHearingReport } from "@/lib/knowledge/ingest-hearing-report";
+
+/** Formatos con texto que se pueden indexar para el conocimiento de Migue. */
+const INGESTABLE_EXTENSIONS = [".pdf", ".txt"];
 
 export const dynamic = "force-dynamic";
 
@@ -60,31 +65,48 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   try {
-    const meeting = await prisma.meeting.findFirst({ where: { id, kind: "PUBLIC_HEARING" }, select: { id: true } });
+    const meeting = await prisma.meeting.findFirst({ where: { id, kind: "PUBLIC_HEARING" }, select: { id: true, title: true } });
     if (!meeting) return NextResponse.json({ error: "Audiencia no encontrada" }, { status: 404 });
 
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const uploaded = await uploadHearingDocument({
+    const uploader = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
+
+    const { documentId, url } = await attachHearingDocument({
       meetingId: id,
       fileName,
       contentType: file.type || "application/octet-stream",
-      bytes
+      bytes,
+      fileSize: file.size,
+      uploadedByName: uploader?.name ?? null
     });
 
-    const recordId = await ensureHearingRecord(id);
-    const uploader = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
-
-    await prisma.hearingDocument.create({
-      data: {
-        hearingRecordId: recordId,
-        name: fileName,
-        type: file.type || extension.replace(".", "").toUpperCase(),
-        url: uploaded.url,
-        storagePath: uploaded.storagePath,
-        sizeBytes: file.size,
-        uploadedBy: uploader?.name ?? null
-      }
-    });
+    // El informe se indexa para el conocimiento de Migue DESPUES de responder
+    // (after): extraer texto + embeber tarda segundos y no debe demorar la subida.
+    // Solo formatos con texto; una falla aca no afecta al documento ya guardado.
+    if (INGESTABLE_EXTENSIONS.includes(extension)) {
+      after(async () => {
+        try {
+          const text =
+            extension === ".pdf"
+              ? sanitizePdfText((await extractPdfText(bytes, { maxPages: 200 })).text)
+              : sanitizePdfText(new TextDecoder("utf-8").decode(bytes));
+          if (text.trim().length >= 40) {
+            const result = await ingestHearingReport({
+              hearingId: id,
+              documentId,
+              title: fileName,
+              text,
+              mimeType: file.type || null,
+              sourceUrl: url,
+              hearingTitle: meeting.title
+            });
+            console.log(`[conocimiento] Informe "${fileName}" indexado: ${result.chunks} fragmentos.`);
+          }
+        } catch (error) {
+          console.error(`[conocimiento] No se pudo indexar "${fileName}":`, error);
+        }
+      });
+    }
 
     const hearing = await getHearing(id);
     return NextResponse.json({ hearing }, { status: 201 });

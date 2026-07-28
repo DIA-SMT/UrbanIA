@@ -4,7 +4,7 @@ import { MunicipalArea } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { askUrbanAssistant, hasOpenRouterConfig } from "@/lib/ai/openrouter";
-import { extractPdfText } from "@/lib/pdf/extract-text";
+import { extractPdfText, sanitizePdfText } from "@/lib/pdf/extract-text";
 import { downloadNormDocument, hasNormsStorage } from "@/lib/storage/supabase";
 import { quoteAppearsIn } from "@/lib/text/normalize-quote";
 
@@ -195,7 +195,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       collapseSpaced: true
     });
 
-    if (usefulLength(extracted.text) < MIN_USEFUL_CHARS) {
+    // Se sanea UNA vez y se usa el mismo string para el prompt y para verificar
+    // las citas. Si el modelo viera un texto y la verificacion comparara contra
+    // otro, toda cita valida se descartaria por una diferencia invisible.
+    const documentText = sanitizePdfText(extracted.text);
+
+    if (usefulLength(documentText) < MIN_USEFUL_CHARS) {
       return NextResponse.json(
         {
           error: "PDF sin texto legible",
@@ -215,7 +220,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             `Reforma: ${reform.title}`,
             "",
             "=== TEXTO EXTRAIDO DEL DOCUMENTO ===",
-            extracted.text,
+            documentText,
             "",
             extracted.truncated
               ? "AVISO: el texto se recorto por longitud; puede faltar el final del documento."
@@ -258,7 +263,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // es el mismo criterio que ya usa el diagnostico normativo.
     const warnings = [...validated.data.warnings];
     const proposals = validated.data.proposals.filter((proposal) => {
-      if (quoteAppearsIn(extracted.text, proposal.evidenceQuote)) return true;
+      if (quoteAppearsIn(documentText, proposal.evidenceQuote)) return true;
       warnings.push(
         `Se descartó una propuesta ("${proposal.title}") porque su cita no aparece textualmente en el PDF.`
       );

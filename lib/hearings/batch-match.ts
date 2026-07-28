@@ -12,6 +12,7 @@ import {
 } from "@/lib/hearings/live-match";
 import { syncRecordLifecycle } from "@/lib/hearings/record";
 import { chunksToTranscript, type TranscriptChunk } from "@/lib/hearings/transcript";
+import { ingestHearingTranscript } from "@/lib/knowledge/ingest-hearing-report";
 
 /**
  * Macheo en lote de una audiencia ya ocurrida: recorre la transcripcion en
@@ -204,6 +205,15 @@ export async function matchFullTranscript({
     }
   });
   await syncRecordLifecycle(meetingId, "COMPLETED");
+
+  // Migue aprende de la transcripción (fuente MEETING). Fire-and-forget para no
+  // demorar la carga: en la subida síncrona la respuesta no espera el embedding,
+  // y en el worker de background da igual. Un fallo acá no afecta la audiencia.
+  void ingestHearingTranscript(meetingId)
+    .then((result) => {
+      if (result) console.log(`[conocimiento] Transcripción de audiencia indexada: ${result.chunks} fragmentos.`);
+    })
+    .catch((error) => console.error("[conocimiento] No se pudo indexar la transcripción de la audiencia:", error));
 
   return { segments: usable.length, matches, analyzed, warning };
 }

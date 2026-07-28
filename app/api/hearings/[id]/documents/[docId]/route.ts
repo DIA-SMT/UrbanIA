@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { getHearing } from "@/lib/hearings/data";
 import { removeHearingDocument } from "@/lib/storage/supabase";
+import { removeHearingReportKnowledge } from "@/lib/knowledge/ingest-hearing-report";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,10 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
         await removeHearingDocument(document.storagePath).catch((error) => console.error("No se pudo borrar el objeto del bucket", error));
       }
       await prisma.hearingDocument.delete({ where: { id: document.id } });
+      // Saca tambien el conocimiento indexado del documento, si se habia ingestado.
+      await removeHearingReportKnowledge(document.id).catch((error) =>
+        console.error("No se pudo borrar el conocimiento del documento", error)
+      );
 
       const hearing = await getHearing(id);
       return NextResponse.json({ hearing });

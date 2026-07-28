@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { extractPdfText, sanitizeText } from "@/lib/pdf/extract-text";
+import { extractPdfText, sanitizePdfText } from "@/lib/pdf/extract-text";
 import { checkRateLimit, clientKeyFromRequest } from "@/lib/rate-limit";
 
 /**
@@ -82,7 +82,9 @@ export async function POST(request: Request) {
 
     if (extension === ".pdf") {
       const extracted = await extractPdfText(buffer, { maxPages: MAX_PDF_PAGES, maxChars: MAX_TEXT_CHARS });
-      cleanText = extracted.text;
+      // extractPdfText devuelve el texto crudo: sanear es responsabilidad del
+      // llamador (asi la ingesta de conocimiento decide por su cuenta).
+      cleanText = sanitizePdfText(extracted.text);
       truncated = extracted.truncated;
       if (extracted.pages > extracted.readPages) {
         notes.push(`Se leyeron las primeras ${extracted.readPages} de ${extracted.pages} páginas.`);
@@ -97,7 +99,7 @@ export async function POST(request: Request) {
         );
       }
     } else {
-      const raw = sanitizeText(new TextDecoder("utf-8").decode(buffer));
+      const raw = sanitizePdfText(new TextDecoder("utf-8").decode(buffer));
       truncated = raw.length > MAX_TEXT_CHARS;
       cleanText = truncated ? raw.slice(0, MAX_TEXT_CHARS) : raw;
     }
