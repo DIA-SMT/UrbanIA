@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { handleMapFeatures } from "@/lib/gis/api/features";
 import { handleMapLayers } from "@/lib/gis/api/layers";
 
+/** Capas y features salen de la base en cada pedido. */
+export const dynamic = "force-dynamic";
+
 /*
  * Mapa: capas y features entran por esta unica ruta. El plan Hobby de Vercel
  * admite 12 funciones serverless por deploy y cada route.ts cuenta una.
