@@ -1,31 +1,33 @@
-import { NextResponse } from "next/server";
+// Analisis IA de un documento aportado a la reforma: decide que es el
+// documento y, si las hay, que propuestas normativas concretas contiene.
+//
+// Vive en lib y no dentro de la ruta porque el prompt y la validacion son la
+// parte delicada de esta funcion (lo que impide que el modelo invente normas) y
+// conviene poder leerlos y probarlos sin la ceremonia de una request.
+
 import { z } from "zod";
 import { MunicipalArea } from "@prisma/client";
-import { prisma } from "@/lib/db/prisma";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
-import { askUrbanAssistant, hasOpenRouterConfig } from "@/lib/ai/openrouter";
+import { askUrbanAssistant } from "@/lib/ai/openrouter";
 import { extractPdfText, sanitizePdfText } from "@/lib/pdf/extract-text";
-import { downloadNormDocument, hasNormsStorage } from "@/lib/storage/supabase";
 import { quoteAppearsIn } from "@/lib/text/normalize-quote";
 
-/** Un PDF de 30 paginas + la pasada del modelo no entra en el default de 10 s. */
-export const maxDuration = 60;
-export const dynamic = "force-dynamic";
-
-const MAX_PAGES = 120;
-const MAX_CHARS = 40_000;
+export const MAX_PAGES = 120;
+export const MAX_CHARS = 40_000;
 /** Debajo de esto no hay con que trabajar: es un escaneo o puras imagenes. */
-const MIN_USEFUL_CHARS = 200;
+export const MIN_USEFUL_CHARS = 200;
 
-const bodySchema = z.object({ storagePath: z.string().trim().min(1).max(400) });
-
-const DOCUMENT_KINDS = [
+export const DOCUMENT_KINDS = [
   "PROPUESTA_NORMATIVA",
   "DIAGNOSTICO_TECNICO",
   "PRESENTACION_INSTITUCIONAL",
   "PONENCIA_ACADEMICA",
   "OTRO"
 ] as const;
+
+/** Se lanza cuando el PDF no tiene capa de texto (escaneo o solo imagenes). */
+export class UnreadablePdfError extends Error {}
+/** Se lanza cuando el modelo devuelve algo que no se puede usar. */
+export class UnusableAnalysisError extends Error {}
 
 /**
  * Normaliza el FORMATO de un valor de enum, sin adivinar el significado.
@@ -36,7 +38,7 @@ const DOCUMENT_KINDS = [
  * se intenta inferir a que categoria se parecia el texto libre, porque eso
  * seria interpretar por el modelo.
  */
-function normalizeEnumValue<T extends string>(raw: unknown, allowed: readonly T[]): T | null {
+export function normalizeEnumValue<T extends string>(raw: unknown, allowed: readonly T[]): T | null {
   if (typeof raw !== "string") return null;
   const normalized = raw
     .normalize("NFD")
@@ -84,10 +86,7 @@ const proposalSchema = z.object({
 });
 
 const analysisSchema = z.object({
-  documentKind: z.preprocess(
-    (raw) => normalizeEnumValue(raw, DOCUMENT_KINDS) ?? "OTRO",
-    z.enum(DOCUMENT_KINDS)
-  ),
+  documentKind: z.preprocess((raw) => normalizeEnumValue(raw, DOCUMENT_KINDS) ?? "OTRO", z.enum(DOCUMENT_KINDS)),
   documentSummary: z.string().trim().min(1).max(2000),
   organization: z.string().trim().max(200).nullish(),
   authors: z.array(z.string().trim().max(160)).max(20).default([]),
@@ -95,12 +94,17 @@ const analysisSchema = z.object({
   warnings: z.array(z.string().trim().max(400)).max(20).default([])
 });
 
+export type DocumentAnalysis = z.infer<typeof analysisSchema> & {
+  pageCount: number;
+  model: string | null;
+};
+
 /** Texto sin los marcadores de pagina, para medir cuanto contenido real hay. */
-function usefulLength(text: string): number {
+export function usefulLength(text: string): number {
   return text.replace(/\[Página \d+\]/g, "").replace(/\s+/g, " ").trim().length;
 }
 
-const SYSTEM_PROMPT = [
+export const SYSTEM_PROMPT = [
   "Sos Migue, asistente de la Direccion de Inteligencia Artificial de la Municipalidad de San Miguel de Tucuman.",
   "Estas leyendo un documento aportado por una agrupacion, colegio profesional, universidad u ONG a la 1ª Audiencia Publica de la reforma del Codigo de Planeamiento Urbano.",
   "Tu tarea es identificar si el documento contiene PROPUESTAS NORMATIVAS CONCRETAS y, si las hay, describirlas para que una persona del equipo las revise.",
@@ -153,145 +157,94 @@ const SYSTEM_PROMPT = [
   '{"documentKind":"...","documentSummary":"...","organization":"..."|null,"authors":["..."],"proposals":[{"title":"...","summary":"...","areas":["..."],"sourcePages":[1],"evidenceQuote":"...","confidence":"alta|media|baja"}],"warnings":["..."]}'
 ].join("\n");
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (!process.env.DATABASE_URL) {
-    return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
-  }
-  const session = await getSessionUser();
-  if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+/**
+ * Lee el PDF y le pide al modelo que identifique las propuestas.
+ *
+ * NO persiste nada: devuelve la propuesta para que una persona la revise.
+ */
+export async function analyzeReformDocument(input: {
+  bytes: Uint8Array;
+  reformTitle: string;
+}): Promise<DocumentAnalysis> {
+  const extracted = await extractPdfText(input.bytes, {
+    maxPages: MAX_PAGES,
+    maxChars: MAX_CHARS,
+    collapseSpaced: true
+  });
 
-  if (!hasNormsStorage()) {
-    return NextResponse.json({ error: "Almacenamiento no configurado" }, { status: 503 });
-  }
-  if (!hasOpenRouterConfig()) {
-    return NextResponse.json(
-      { error: "IA no disponible", detail: "El servicio de IA todavía no está habilitado para esta instancia." },
-      { status: 503 }
+  // Se sanea UNA vez y se usa el mismo string para el prompt y para verificar
+  // las citas. Si el modelo viera un texto y la verificacion comparara contra
+  // otro, toda cita valida se descartaria por una diferencia invisible.
+  const documentText = sanitizePdfText(extracted.text);
+
+  if (usefulLength(documentText) < MIN_USEFUL_CHARS) {
+    throw new UnreadablePdfError(
+      "El PDF no tiene capa de texto legible. Probablemente sea un escaneo o sólo imágenes. Podés guardarlo igual como antecedente de la reforma."
     );
   }
 
-  const { id } = await params;
-  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Datos inválidos", detail: "Falta la ruta del archivo subido." }, { status: 400 });
-  }
-
-  // El storagePath lo genera el server al firmar la subida y siempre arranca
-  // con el id de la reforma: se verifica para que no se pueda leer el PDF de
-  // otra reforma pasando una ruta a mano.
-  if (!parsed.data.storagePath.startsWith(`${id}/`)) {
-    return NextResponse.json({ error: "Ruta inválida", detail: "El archivo no pertenece a este código nuevo." }, { status: 400 });
-  }
-
-  try {
-    const reform = await prisma.normativeReform.findUnique({ where: { id }, select: { id: true, title: true } });
-    if (!reform) return NextResponse.json({ error: "Código nuevo no encontrado" }, { status: 404 });
-
-    const bytes = await downloadNormDocument(parsed.data.storagePath);
-    const extracted = await extractPdfText(bytes, {
-      maxPages: MAX_PAGES,
-      maxChars: MAX_CHARS,
-      collapseSpaced: true
-    });
-
-    // Se sanea UNA vez y se usa el mismo string para el prompt y para verificar
-    // las citas. Si el modelo viera un texto y la verificacion comparara contra
-    // otro, toda cita valida se descartaria por una diferencia invisible.
-    const documentText = sanitizePdfText(extracted.text);
-
-    if (usefulLength(documentText) < MIN_USEFUL_CHARS) {
-      return NextResponse.json(
-        {
-          error: "PDF sin texto legible",
-          detail:
-            "El PDF no tiene capa de texto legible. Probablemente sea un escaneo o sólo imágenes. Podés guardarlo igual como antecedente de la reforma."
-        },
-        { status: 422 }
-      );
-    }
-
-    const response = await askUrbanAssistant(
-      [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: [
-            `Reforma: ${reform.title}`,
-            "",
-            "=== TEXTO EXTRAIDO DEL DOCUMENTO ===",
-            documentText,
-            "",
-            extracted.truncated
-              ? "AVISO: el texto se recorto por longitud; puede faltar el final del documento."
-              : "",
-            "Analiza el documento y devolve el JSON pedido."
-          ]
-            .filter(Boolean)
-            .join("\n")
-        }
-      ],
+  const response = await askUrbanAssistant(
+    [
+      { role: "system", content: SYSTEM_PROMPT },
       {
-        model: process.env.OPENROUTER_CPU_MODEL || "openai/gpt-4o",
-        json: true,
-        temperature: 0.1,
-        maxTokens: 3000
+        role: "user",
+        content: [
+          `Reforma: ${input.reformTitle}`,
+          "",
+          "=== TEXTO EXTRAIDO DEL DOCUMENTO ===",
+          documentText,
+          "",
+          extracted.truncated ? "AVISO: el texto se recorto por longitud; puede faltar el final del documento." : "",
+          "Analiza el documento y devolve el JSON pedido."
+        ]
+          .filter(Boolean)
+          .join("\n")
       }
-    );
-
-    let raw: unknown;
-    try {
-      raw = JSON.parse(response.answer);
-    } catch {
-      return NextResponse.json(
-        { error: "Respuesta ilegible", detail: "La IA no devolvió un JSON válido. Probá de nuevo." },
-        { status: 502 }
-      );
+    ],
+    {
+      model: process.env.OPENROUTER_CPU_MODEL || "openai/gpt-4o",
+      json: true,
+      temperature: 0.1,
+      maxTokens: 3000
     }
+  );
 
-    const validated = analysisSchema.safeParse(raw);
-    if (!validated.success) {
-      console.error("Analisis de PDF con forma invalida", validated.error.flatten());
-      return NextResponse.json(
-        { error: "Respuesta inesperada", detail: "La IA devolvió campos que no se entienden. Probá de nuevo." },
-        { status: 502 }
-      );
-    }
-
-    // Verificacion de citas: toda propuesta cuya evidencia no aparezca TEXTUAL
-    // en el PDF se descarta. Es lo que impide que el modelo invente normas, y
-    // es el mismo criterio que ya usa el diagnostico normativo.
-    const warnings = [...validated.data.warnings];
-    const proposals = validated.data.proposals.filter((proposal) => {
-      if (quoteAppearsIn(documentText, proposal.evidenceQuote)) return true;
-      warnings.push(
-        `Se descartó una propuesta ("${proposal.title}") porque su cita no aparece textualmente en el PDF.`
-      );
-      return false;
-    });
-
-    if (extracted.pages > extracted.readPages) {
-      warnings.push(`Se leyeron las primeras ${extracted.readPages} de ${extracted.pages} páginas.`);
-    }
-    if (extracted.truncated) {
-      warnings.push("El texto del PDF se recortó por longitud: puede faltar el final del documento.");
-    }
-
-    return NextResponse.json({
-      documentKind: validated.data.documentKind,
-      documentSummary: validated.data.documentSummary,
-      organization: validated.data.organization ?? null,
-      authors: validated.data.authors,
-      pageCount: extracted.pages,
-      proposals,
-      warnings,
-      model: response.model
-    });
-  } catch (error) {
-    console.error("No se pudo analizar el documento de la reforma", error);
-    return NextResponse.json(
-      { error: "No se pudo analizar el documento", detail: error instanceof Error ? error.message : undefined },
-      { status: 502 }
-    );
+  let raw: unknown;
+  try {
+    raw = JSON.parse(response.answer);
+  } catch {
+    throw new UnusableAnalysisError("La IA no devolvió un JSON válido. Probá de nuevo.");
   }
+
+  const validated = analysisSchema.safeParse(raw);
+  if (!validated.success) {
+    console.error("Analisis de PDF con forma invalida", validated.error.flatten());
+    throw new UnusableAnalysisError("La IA devolvió campos que no se entienden. Probá de nuevo.");
+  }
+
+  // Verificacion de citas: toda propuesta cuya evidencia no aparezca TEXTUAL
+  // en el PDF se descarta. Es lo que impide que el modelo invente normas, y
+  // es el mismo criterio que ya usa el diagnostico normativo.
+  const warnings = [...validated.data.warnings];
+  const proposals = validated.data.proposals.filter((proposal) => {
+    if (quoteAppearsIn(documentText, proposal.evidenceQuote)) return true;
+    warnings.push(`Se descartó una propuesta ("${proposal.title}") porque su cita no aparece textualmente en el PDF.`);
+    return false;
+  });
+
+  if (extracted.pages > extracted.readPages) {
+    warnings.push(`Se leyeron las primeras ${extracted.readPages} de ${extracted.pages} páginas.`);
+  }
+  if (extracted.truncated) {
+    warnings.push("El texto del PDF se recortó por longitud: puede faltar el final del documento.");
+  }
+
+  return {
+    ...validated.data,
+    organization: validated.data.organization ?? null,
+    proposals,
+    warnings,
+    pageCount: extracted.pages,
+    model: response.model
+  };
 }

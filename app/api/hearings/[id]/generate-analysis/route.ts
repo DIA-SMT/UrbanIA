@@ -7,8 +7,13 @@ import { analyzeHearingTranscript } from "@/lib/hearings/analyze";
 import { getHearing } from "@/lib/hearings/data";
 
 export const dynamic = "force-dynamic";
-/** El analisis de una audiencia larga puede tardar; no es una request rapida. */
-export const maxDuration = 120;
+/**
+ * El analisis de una audiencia larga tarda; 60 s es el techo del plan Hobby de
+ * Vercel (estaba en 120, que ahi ni siquiera es aplicable). Si una audiencia muy
+ * larga no llega a completarse, el boton "Generar analisis" del detalle se puede
+ * volver a tocar: trabaja sobre la transcripcion ya guardada y no re-transcribe.
+ */
+export const maxDuration = 60;
 
 /**
  * Genera (o regenera) el resumen estructurado de una audiencia YA transcripta.

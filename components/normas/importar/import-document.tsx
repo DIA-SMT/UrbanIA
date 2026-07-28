@@ -143,10 +143,17 @@ export function ImportDocument({
       const hash = await sha256Hex(picked);
       setSha256(hash);
 
-      const urlResponse = await fetch(`/api/reforms/${reformId}/documents/upload-url`, {
+      // Los tres pasos van a la MISMA ruta con distinto `action`: el plan Hobby
+      // de Vercel admite 12 funciones serverless y cada route.ts cuenta una.
+      const urlResponse = await fetch(`/api/reforms/${reformId}/documents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: picked.name, sizeBytes: picked.size, mimeType: picked.type || "application/pdf" })
+        body: JSON.stringify({
+          action: "upload-url",
+          fileName: picked.name,
+          sizeBytes: picked.size,
+          mimeType: picked.type || "application/pdf"
+        })
       });
       const urlPayload = await urlResponse.json().catch(() => null);
       if (!urlResponse.ok) {
@@ -161,10 +168,10 @@ export function ImportDocument({
       // se muestran como dos pasos porque es lo que la persona percibe.
       setTimeout(() => setPhase((current) => (current === "extrayendo" ? "analizando" : current)), 1200);
 
-      const analyzeResponse = await fetch(`/api/reforms/${reformId}/documents/analyze`, {
+      const analyzeResponse = await fetch(`/api/reforms/${reformId}/documents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storagePath: urlPayload.storagePath })
+        body: JSON.stringify({ action: "analyze", storagePath: urlPayload.storagePath })
       });
       const analyzePayload = await analyzeResponse.json().catch(() => null);
 
@@ -231,6 +238,7 @@ export function ImportDocument({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "confirm",
           storagePath,
           fileName: file.name,
           sizeBytes: file.size,
