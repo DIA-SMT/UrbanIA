@@ -328,23 +328,8 @@ Toda actividad que por su índole implique la necesidad de maniobras de vehícul
 Las actividades que requieren espacios para carga y descarga se indican en las Planillas de Reglamentaciones Particulares sobre  Usos del Suelo según distrito mediante: 
 - Número de ordenanza en el caso que existan normas especiales para ese uso.  
 - Un signo numeral #. En este caso, la superficie exigida dependerá de la superficie total construida de la actividad, estipulada  en el siguiente cuadro:
-Sup. Total Construida de la actividad 
-	Nº de Espacios de Carga y Descarga
-	de 300,00 a 1.000,00 m² 
-	1
-	de 1001,00 a 3.000,00 m² 
-	2
-	de 3001,00 a 5.000,00 m² 
-	3
-	de 3001,00 a 5.000,00 m² 
-	3
-	más de 5.001,00 m² 
-	4
-	
+[Cuadro de espacios de carga y descarga según superficie total construida (de 1 a 4 espacios). La transcripción a texto pierde la correspondencia entre rango y cantidad, por eso no se incluye acá: ver la lámina de la página 16 del texto original.] 
 
-
-
-16 
 Dirección de Catastro y Edificación – Digesto Normativo – CÓDIGO DE PLANEAMIENTO URBANO - ORDENANZA Nº 2648/98 (ordenado a mayo de 2014) 
 Cada espacio equivaldrá a una superficie de 30,00 m² o 60,00 m² según se trate de vehículos sin acoplados o con acoplados, o  semirremolques respectivamente. Estas superficies no incluyen el espacio para maniobras y circulaciones. 
 Cuando la superficie ocupada por la actividad supere los 5.000,00 m² se requerirán espacios adicionales para carga y descarga  en relación a 1 (uno) por cada 1.000,00 m² o fracción. 
@@ -525,21 +510,8 @@ El ancho (d´) mínimo requerido de los patios auxiliares para los paramentos la
 NOTA: Artículo 26º modificado por Ordenanza Nº 3112/01
 22 
 Dirección de Catastro y Edificación – Digesto Normativo – CÓDIGO DE PLANEAMIENTO URBANO - ORDENANZA Nº 2648/98 (ordenado a mayo de 2014) 
-Conexión de Locales Habitables Clase A al Espacio Urbano 
-(gráficos) 
-Situación I 
- Espacio Urbano 
- Conexión directa 
- Local Habitable 
-  
-Situación II 
- Espacio Urbano 
- a  
-a > ¼ > 1.00 m 
-b < a 
- b 
- Local habitable 
- L
+[Conexión de Locales Habitables Clase A al Espacio Urbano (gráficos): croquis de las situaciones de conexión directa e indirecta con sus cotas. Ver la lámina de la página 23 del texto original.] 
+
 23 
 Dirección de Catastro y Edificación – Digesto Normativo – CÓDIGO DE PLANEAMIENTO URBANO - ORDENANZA Nº 2648/98 (ordenado a mayo de 2014) Trazado del Espacio Centro de Manzana 
 1°) Para manzanas con lados mayores o iguales a 120 m y menores o iguales a 160 m
@@ -865,26 +837,7 @@ PT= Superficie del edificio
 NOTA: Artículo 30º modificado por Ordenanza Nº 2918/00
 31 
 Dirección de Catastro y Edificación – Digesto Normativo – CÓDIGO DE PLANEAMIENTO URBANO - ORDENANZA Nº 2648/98 (ordenado a mayo de 2014) 
-TABLA Nº 1 
-USO 
-	COEFICIENTE DE OCUPACIÓN (C.O.)
-	Sitios p/asambleas, auditorios, salas de concierto, Salas de baile, o similares 
-	1
-	Edificios educacionales, templos o similares 
-	2
-	Locales comerciales, mercados, ferias, restaurantes, Mercados o similares 
-	3
-	Salones p/billar, canchas de bolo, bochas, gimnasios, Pistas de patinaje, o similares 
-	5
-	Edificios p/oficinas, bancos, bibliotecas, clínicas, Sanatorios, asilos, internados o  similares 
-	8
-	Edificios para viviendas 
-	12
-	Edificios industriales 
-	16
-	
-
-
+[Tabla Nº 1: coeficiente de ocupación (C.O.) por uso del edificio, de 1 (sitios de asambleas y auditorios) a 16 (edificios industriales). La transcripción a texto separa cada uso de su coeficiente, por eso no se incluye acá: ver la lámina de la página 32 del texto original.] 
 
 Obs.: En caso de surgir actividades o usos no definidos, la autoridad de aplicación decidirá el coeficiente y porcentaje a aplicar  según la similitud con los usos aquí consignados. 
 II- Cantidad de personas CP es el porcentaje de la población total del edificio PT que deberá evacuarse en un tiempo  determinado. 

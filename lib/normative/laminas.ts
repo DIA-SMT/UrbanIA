@@ -25,6 +25,7 @@ export type CpuLamina = {
 
 export const CPU_LAMINAS: CpuLamina[] = [
   { page: 16, file: "p16.png", articleNumber: "20", kind: "tabla", caption: "Índice de planillas de usos del suelo y cuadro de espacios de carga y descarga (arts. 20 y 21)" },
+  { page: 23, file: "p23.png", articleNumber: "26", kind: "croquis", caption: "Conexión de locales habitables Clase A al espacio urbano — situaciones I y II con sus cotas" },
   { page: 24, file: "p24.png", articleNumber: "26", kind: "croquis", caption: "Trazado del espacio centro de manzana — manzanas de 120 a 160 m" },
   { page: 25, file: "p25.png", articleNumber: "26", kind: "croquis", caption: "Trazado del espacio centro de manzana (continuación)" },
   { page: 26, file: "p26.png", articleNumber: "26", kind: "croquis", caption: "Trazado del espacio centro de manzana (continuación)" },
