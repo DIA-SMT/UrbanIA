@@ -4,6 +4,6 @@ export function GET() {
   return NextResponse.json({
     status: "ok",
     service: "UrbanIA",
-    modules: ["dashboard", "gis", "regulations", "case-studies", "assistant"]
+    modules: ["regulations", "norm-factory", "hearings", "participation", "gis", "assistant"]
   });
 }
