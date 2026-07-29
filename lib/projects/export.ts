@@ -148,10 +148,34 @@ export function reformToPrintHtml(reform: ReformDetail, normTexts: Map<string, s
 // ============================================================================
 
 const COMPARATIVE_STYLES = `
-  .doc-summary { display: flex; gap: 18px; margin: 10px 0 4px; }
-  .doc-summary strong { font-size: 16px; }
-  .doc-summary .rojo strong { color: #b91c1c; }
-  .doc-summary .verde strong { color: #15803d; }
+  /* En PANTALLA el documento se presenta como hoja A4: fondo gris, hoja blanca
+     centrada con sombra, membrete y pie fluyendo con el contenido. Al imprimir
+     rigen los estilos del shell (membrete/pie fijos por pagina). */
+  @media screen {
+    html { background: #dbe1ea; }
+    body { max-width: 210mm; margin: 26px auto 52px; padding: 26px 20mm 30px; background: #ffffff; box-shadow: 0 22px 54px rgba(15, 23, 42, 0.22); border-radius: 4px; }
+    .doc-letterhead { position: static; margin-bottom: 24px; }
+    .doc-footer { position: static; margin-top: 34px; }
+    .doc-watermark { display: none; }
+  }
+  .portada { padding-top: 6px; }
+  .portada h1 { font-size: 26px; line-height: 1.25; margin-bottom: 14px; }
+  .portada-metricas { display: flex; gap: 12px; margin: 18px 0; }
+  .metrica { flex: 1; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; background: #f8fafc; }
+  .metrica strong { display: block; font-size: 26px; line-height: 1.1; }
+  .metrica span { font-size: 11.5px; color: #475569; font-weight: 700; }
+  .metrica-roja { border-color: #fecaca; background: #fef2f2; } .metrica-roja strong { color: #b91c1c; }
+  .metrica-verde { border-color: #bbf7d0; background: #f0fdf4; } .metrica-verde strong { color: #15803d; }
+  .indice-cambios { border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 18px; margin-top: 16px; }
+  .indice-cambios h3 { margin-top: 0; }
+  .indice-cambios ul { list-style: none; padding-left: 0; }
+  .indice-cambios li { margin: 6px 0; }
+  .indice-cambios a { color: #0b1220; text-decoration: none; }
+  .indice-cambios a:hover { color: #1f89f6; }
+  .indice-verbo { font-weight: 800; font-size: 11px; border-radius: 5px; padding: 1px 6px; margin-right: 6px; }
+  .indice-verbo.rojo { background: #fef2f2; color: #b91c1c; }
+  .indice-verbo.verde { background: #f0fdf4; color: #15803d; }
+  @media print { .portada { page-break-after: always; } .capitulo { page-break-before: always; } }
   .capitulo { margin-top: 30px; }
   .cpu-articulo { border-left: 3px solid #cbd5e1; padding: 2px 0 2px 12px; margin: 14px 0; page-break-inside: avoid; }
   .cpu-articulo h2 { margin: 0 0 4px; font-size: 14px; }
@@ -170,7 +194,7 @@ const COMPARATIVE_STYLES = `
   .barra-export .btn-limpio { background: #e2e8f0; color: #0b1220; }
   .barra-export p { margin: 0; font-size: 10px; color: #64748b; max-width: 190px; }
   body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body.limpio .cpu-eliminado, body.limpio .referencia-cruzada, body.limpio .badge-cambio { display: none; }
+  body.limpio .cpu-eliminado, body.limpio .referencia-cruzada, body.limpio .badge-cambio, body.limpio .solo-cambios { display: none; }
   body.limpio .norma-nueva { border-left-color: #cbd5e1; background: transparent; }
   body.limpio .norma-nueva h2 { color: #0b1220; }
   @media print { .barra-export { display: none; } }
@@ -234,7 +258,7 @@ export function reformToComparativePrintHtml(
 
     if (!eliminado) {
       bloques.push(
-        `<section class="cpu-articulo"><h2>Artículo ${escapeHtml(article.number)} — ${escapeHtml(article.title)}</h2><div class="contenido">${toParagraphs(article.content)}</div></section>`
+        `<section class="cpu-articulo" id="art-${escapeHtml(article.number)}"><h2>Artículo ${escapeHtml(article.number)} — ${escapeHtml(article.title)}</h2><div class="contenido">${toParagraphs(article.content)}</div></section>`
       );
       return bloques.join("");
     }
@@ -249,7 +273,7 @@ export function reformToComparativePrintHtml(
       .join(" · ");
 
     bloques.push(
-      `<section class="cpu-articulo cpu-eliminado"><h2>Artículo ${escapeHtml(article.number)} — ${escapeHtml(article.title)}<span class="badge-cambio badge-rojo">Eliminado</span></h2><p class="muted">${motivos}</p><div class="contenido">${toParagraphs(article.content)}</div></section>`
+      `<section class="cpu-articulo cpu-eliminado" id="art-${escapeHtml(article.number)}"><h2>Artículo ${escapeHtml(article.number)} — ${escapeHtml(article.title)}<span class="badge-cambio badge-rojo">Eliminado</span></h2><p class="muted">${motivos}</p><div class="contenido">${toParagraphs(article.content)}</div></section>`
     );
 
     // El texto de cada norma va tras SU primer articulo reemplazado.
@@ -269,15 +293,39 @@ export function reformToComparativePrintHtml(
     .filter((norm) => !primerArticuloDeNorma.has(norm.id))
     .sort((a, b) => compareArticleNumbers(a.articleNumber, b.articleNumber));
 
+  // Portada: la primera impresion es el RESUMEN de la reforma, no una pared de
+  // articulado. En pantalla es el primer pantallazo de la hoja; al imprimir se
+  // vuelve la primera pagina (page-break-after).
   const eliminadosCount = eliminadoPor.size;
+  const indiceEliminados = cpu.articles
+    .filter((article) => eliminadoPor.has(article.id))
+    .map((article) => {
+      const detalle = (eliminadoPor.get(article.id) ?? [])
+        .map(({ normId, relationshipType }) => {
+          const norm = normById.get(normId);
+          return `${relationshipType === "REPEALS" ? "derogado" : "reemplazado"} por ${norm?.code ?? "norma nueva"}`;
+        })
+        .join(", ");
+      return `<li><a href="#art-${escapeHtml(article.number)}"><span class="indice-verbo rojo">Art. ${escapeHtml(article.number)}</span>${escapeHtml(article.title)} <span class="muted">(${escapeHtml(detalle)})</span></a></li>`;
+    })
+    .join("");
+
   const header = [
-    `<h1>${escapeHtml(reform.title)} — comparado con el CPU ${escapeHtml(cpu.versionLabel)}</h1>`,
-    `<div class="doc-summary">`,
-    `<p class="muted"><strong>${cpu.articles.length}</strong> artículos del código vigente</p>`,
-    `<p class="muted rojo"><strong>${eliminadosCount}</strong> eliminados</p>`,
-    `<p class="muted verde"><strong>${reform.norms.length}</strong> artículos nuevos</p>`,
+    `<div class="portada">`,
+    `<h1>${escapeHtml(reform.title)}<br><span class="muted" style="font-size:16px; font-weight:700;">comparado con el CPU vigente (texto ordenado ${escapeHtml(cpu.versionLabel)})</span></h1>`,
+    `<div class="portada-metricas">`,
+    `<div class="metrica"><strong>${cpu.articles.length}</strong><span>artículos del código vigente</span></div>`,
+    `<div class="metrica metrica-roja"><strong>${eliminadosCount}</strong><span>quedan sin efecto</span></div>`,
+    `<div class="metrica metrica-verde"><strong>${reform.norms.length}</strong><span>artículos nuevos</span></div>`,
     `</div>`,
-    `<p class="muted">Los artículos en rojo quedan sin efecto según los anclajes cargados en la Fábrica de Normas; el texto que los sustituye aparece en verde a continuación de cada uno.</p>`
+    `<p class="muted">Los artículos en rojo quedan sin efecto según los anclajes cargados en la Fábrica de Normas; el texto que los sustituye aparece en verde a continuación de cada uno. Documento de trabajo para revisión: no es texto vigente.</p>`,
+    ...(indiceEliminados
+      ? [`<div class="indice-cambios solo-cambios"><h3>Artículos que quedan sin efecto</h3><ul>${indiceEliminados}</ul></div>`]
+      : []),
+    ...(normasSinCorrelato.length
+      ? [`<div class="indice-cambios"><h3>Artículos nuevos sin artículo reemplazado</h3><p class="muted"><a href="#agregados"><span class="indice-verbo verde">${normasSinCorrelato.length}</span>normas que no sustituyen ningún artículo del código vigente — al final del documento.</a></p></div>`]
+      : []),
+    `</div>`
   ].join("");
 
   const porCapitulo = cpu.chapters
@@ -291,7 +339,7 @@ export function reformToComparativePrintHtml(
   const sinCapitulo = sueltos.length ? `<section class="capitulo"><h3>Artículos sin capítulo</h3>${sueltos.map(articuloHtml).join("")}</section>` : "";
 
   const agregados = normasSinCorrelato.length
-    ? `<section class="capitulo"><h3>Artículos nuevos sin artículo reemplazado</h3>${normasSinCorrelato.map((norm) => normaNuevaHtml(norm.id)).join("")}</section>`
+    ? `<section class="capitulo" id="agregados"><h3>Artículos nuevos sin artículo reemplazado</h3>${normasSinCorrelato.map((norm) => normaNuevaHtml(norm.id)).join("")}</section>`
     : "";
 
   const barra = [
