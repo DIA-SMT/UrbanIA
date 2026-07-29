@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { extractPdfText, sanitizePdfText } from "@/lib/pdf/extract-text";
+import { hasOcrConfig, ocrScannedPdf } from "@/lib/pdf/ocr";
 import { checkRateLimit, clientKeyFromRequest } from "@/lib/rate-limit";
 
 /**
@@ -13,6 +14,10 @@ export const dynamic = "force-dynamic";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
 const MAX_PDF_PAGES = 40;
+// El OCR por visión cuesta tiempo (~3-5 s por página) y tokens: se transcriben
+// solo las primeras páginas de un escaneo. Alcanza para notas y expedientes
+// cortos, que es lo que circula escaneado.
+const MAX_OCR_PAGES = 8;
 const MAX_TEXT_CHARS = 12_000;
 const RATE_LIMIT = { limit: 6, windowMs: 60_000 };
 
@@ -90,13 +95,30 @@ export async function POST(request: Request) {
         notes.push(`Se leyeron las primeras ${extracted.readPages} de ${extracted.pages} páginas.`);
       }
       if (!cleanText.trim()) {
-        return NextResponse.json(
-          {
-            error: "PDF sin capa de texto",
-            detail: `"${name}" es un escaneo y no tiene texto seleccionable: todavía no podemos leer documentos escaneados. Si tenés la versión digital (el Word original o un PDF exportado), subí esa. Tip: si podés seleccionar el texto del PDF con el mouse, lo vamos a poder leer.`
-          },
-          { status: 422 }
-        );
+        // Escaneo sin capa de texto: se intenta OCR por visión. Si no hay API
+        // key o el OCR no saca nada, se mantiene el rechazo honesto de siempre.
+        const ocr = hasOcrConfig()
+          ? await ocrScannedPdf(buffer, { maxPages: MAX_OCR_PAGES, maxChars: MAX_TEXT_CHARS }).catch((error) => {
+              console.warn("OCR de adjunto falló.", error instanceof Error ? error.message : error);
+              return null;
+            })
+          : null;
+
+        if (ocr?.text.trim()) {
+          cleanText = sanitizePdfText(ocr.text);
+          truncated = ocr.truncated;
+          notes.push(
+            `Documento escaneado: se transcribió con OCR${ocr.pages > ocr.readPages ? ` (las primeras ${ocr.readPages} de ${ocr.pages} páginas)` : ""}. Puede contener errores de lectura.`
+          );
+        } else {
+          return NextResponse.json(
+            {
+              error: "PDF sin capa de texto",
+              detail: `"${name}" es un escaneo y no pudimos transcribirlo. Si tenés la versión digital (el Word original o un PDF exportado), subí esa. Tip: si podés seleccionar el texto del PDF con el mouse, lo vamos a poder leer seguro.`
+            },
+            { status: 422 }
+          );
+        }
       }
     } else {
       const raw = sanitizePdfText(new TextDecoder("utf-8").decode(buffer));
