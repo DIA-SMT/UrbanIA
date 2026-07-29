@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { AuthorLine, MetricStrip, SectionTitle } from "@/components/ui/board-ui";
 import { TopicsDemandPanel } from "@/components/normas/topics-demand-panel";
 import type { TopicsDemandPayload } from "@/lib/citizen/shared";
-import { reformStatusLabels, reformStatusStyles, type ReformListItem } from "@/lib/projects/shared";
+import { reformStatusLabels, reformStatusRails, reformStatusStyles, type ReformListItem } from "@/lib/projects/shared";
 
 /**
  * Pantalla principal de la Fabrica de Normas: los codigos nuevos en
@@ -121,14 +121,15 @@ export function ReformsBoard({
 
 function ReformCard({ reform }: { reform: ReformListItem }) {
   return (
-    <div className="urban-lift flex flex-col rounded-lg border border-white/8 bg-white/[0.03] p-4">
+    <div className="urban-lift relative flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] p-4 pl-5">
+      <span className="absolute inset-y-0 left-0 w-1" style={{ background: reformStatusRails[reform.status] }} aria-hidden />
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-[11px] font-medium text-slate-400">{reform.code}</span>
-        <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${reformStatusStyles[reform.status]}`}>
+        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${reformStatusStyles[reform.status]}`}>
           {reformStatusLabels[reform.status]}
         </span>
       </div>
-      <h3 className="mt-3 text-base font-bold leading-6 text-white">{reform.title}</h3>
+      <h3 className="mt-3 text-base font-black leading-6 text-white">{reform.title}</h3>
       {reform.description ? <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-400">{reform.description}</p> : null}
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/8 pt-3 text-xs text-slate-400">
         <span className="inline-flex items-center gap-1.5">

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Anchor, CalendarDays, MapPin, MessageSquareText, Scale, TriangleAlert, Users } from "lucide-react";
-import { hearingStatusLabels, hearingStatusStyles, type HearingListItem } from "@/lib/hearings/shared";
+import { hearingStatusLabels, hearingStatusRails, hearingStatusStyles, hearingStatusTints, type HearingListItem } from "@/lib/hearings/shared";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "Sin fecha";
@@ -12,13 +12,14 @@ function formatDate(iso: string | null): string {
 /** Card de una audiencia en el listado del registro. */
 export function HearingCard({ hearing }: { hearing: HearingListItem }) {
   return (
-    <Link href={`/audiencias/${hearing.id}`} className="urban-lift block rounded-lg border border-white/8 bg-white/[0.03] p-4">
+    <Link href={`/audiencias/${hearing.id}`} className="urban-lift relative block overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] p-4 pl-5">
+      <span className="absolute inset-y-0 left-0 w-1" style={{ background: hearingStatusRails[hearing.hearingStatus] }} aria-hidden />
       <div className="flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
+        <span className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-black ${hearingStatusTints[hearing.hearingStatus]}`}>
           <CalendarDays className="h-3.5 w-3.5" />
           {formatDate(hearing.occurredAt)}
         </span>
-        <span className={`rounded-md border px-2 py-0.5 text-[10px] font-black ${hearingStatusStyles[hearing.hearingStatus]}`}>
+        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${hearingStatusStyles[hearing.hearingStatus]}`}>
           {hearingStatusLabels[hearing.hearingStatus]}
         </span>
       </div>
