@@ -7,6 +7,7 @@ import {
   renderWatermark,
   type LetterheadMeta
 } from "@/lib/brand/document-shell";
+import { laminasForArticle, planosGenerales, type CpuLamina } from "@/lib/normative/laminas";
 import type { NormDetail, NormListItem, ReformDetail } from "@/lib/projects/shared";
 import {
   conflictLevelLabels,
@@ -188,6 +189,9 @@ const COMPARATIVE_STYLES = `
   .norma-nueva { border-left: 3px solid #15803d; background: #f0fdf4; padding: 6px 12px 10px; margin: 14px 0 14px 18px; page-break-inside: avoid; }
   .norma-nueva h2 { color: #15803d; margin-top: 4px; }
   .referencia-cruzada { font-size: 12px; color: #475569; font-style: italic; margin: 4px 0 4px 18px; }
+  .lamina { margin: 12px 0; page-break-inside: avoid; }
+  .lamina img { width: 100%; height: auto; border: 1px solid #e2e8f0; border-radius: 6px; background: #ffffff; }
+  .lamina figcaption { font-size: 11px; color: #64748b; margin-top: 4px; }
   .barra-export { position: fixed; top: 14px; right: 14px; z-index: 50; display: flex; flex-direction: column; gap: 6px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12); }
   .barra-export button { border: 0; border-radius: 7px; padding: 8px 12px; font-size: 12px; font-weight: 800; cursor: pointer; }
   .barra-export .btn-cambios { background: #1f89f6; color: #fff; }
@@ -252,13 +256,27 @@ export function reformToComparativePrintHtml(
     )}</section>`;
   };
 
+  // Las tablas, croquis y planos del CPU original no sobreviven al import a
+  // texto plano: se muestran como laminas (imagenes del PDF fuente) despues
+  // del texto del articulo al que acompanan.
+  const laminasHtml = (laminas: CpuLamina[]): string =>
+    laminas
+      .map(
+        (lamina) =>
+          // Sin loading="lazy": las laminas fuera del viewport no llegarian a
+          // cargarse y "Guardar como PDF" las imprimiria en blanco.
+          `<figure class="lamina"><img src="/normativa/cpu-2014/${lamina.file}" alt="${escapeHtml(lamina.caption)}"><figcaption>${escapeHtml(lamina.caption)} · página ${lamina.page} del texto original</figcaption></figure>`
+      )
+      .join("");
+
   const articuloHtml = (article: ComparativeCpu["articles"][number]): string => {
     const eliminado = eliminadoPor.get(article.id);
+    const laminas = laminasHtml(laminasForArticle(article.number));
     const bloques: string[] = [];
 
     if (!eliminado) {
       bloques.push(
-        `<section class="cpu-articulo" id="art-${escapeHtml(article.number)}"><h2>Artículo ${escapeHtml(article.number)} — ${escapeHtml(article.title)}</h2><div class="contenido">${toParagraphs(article.content)}</div></section>`
+        `<section class="cpu-articulo" id="art-${escapeHtml(article.number)}"><h2>Artículo ${escapeHtml(article.number)} — ${escapeHtml(article.title)}</h2><div class="contenido">${toParagraphs(article.content)}</div>${laminas}</section>`
       );
       return bloques.join("");
     }
@@ -273,7 +291,7 @@ export function reformToComparativePrintHtml(
       .join(" · ");
 
     bloques.push(
-      `<section class="cpu-articulo cpu-eliminado" id="art-${escapeHtml(article.number)}"><h2>Artículo ${escapeHtml(article.number)} — ${escapeHtml(article.title)}<span class="badge-cambio badge-rojo">Eliminado</span></h2><p class="muted">${motivos}</p><div class="contenido">${toParagraphs(article.content)}</div></section>`
+      `<section class="cpu-articulo cpu-eliminado" id="art-${escapeHtml(article.number)}"><h2>Artículo ${escapeHtml(article.number)} — ${escapeHtml(article.title)}<span class="badge-cambio badge-rojo">Eliminado</span></h2><p class="muted">${motivos}</p><div class="contenido">${toParagraphs(article.content)}</div>${laminas}</section>`
     );
 
     // El texto de cada norma va tras SU primer articulo reemplazado.
@@ -342,6 +360,12 @@ export function reformToComparativePrintHtml(
     ? `<section class="capitulo" id="agregados"><h3>Artículos nuevos sin artículo reemplazado</h3>${normasSinCorrelato.map((norm) => normaNuevaHtml(norm.id)).join("")}</section>`
     : "";
 
+  // Los planos de zonificacion cierran el documento, como en el texto original.
+  const planos = planosGenerales();
+  const anexoPlanos = planos.length
+    ? `<section class="capitulo" id="planos"><h3>Planos de zonificación del CPU vigente</h3><p class="muted">Reproducidos del texto original; rigen hasta que la reforma apruebe su propia cartografía.</p>${laminasHtml(planos)}</section>`
+    : "";
+
   const barra = [
     `<div class="barra-export">`,
     `<button type="button" class="btn-cambios" onclick="document.body.classList.remove('limpio'); window.print();">Guardar PDF con cambios</button>`,
@@ -350,7 +374,7 @@ export function reformToComparativePrintHtml(
     `</div>`
   ].join("");
 
-  const documento = printDocument(`${reform.code} — comparado con CPU ${cpu.versionLabel}`, header + porCapitulo + sinCapitulo + agregados, {
+  const documento = printDocument(`${reform.code} — comparado con CPU ${cpu.versionLabel}`, header + porCapitulo + sinCapitulo + agregados + anexoPlanos, {
     subtitle: "Fábrica de Normas · Documento comparado",
     docCode: reform.code,
     statusLabel: reformStatusLabels[reform.status]
