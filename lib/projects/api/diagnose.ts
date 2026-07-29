@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { compareNormWithOldCode, DiagnosisUnavailableError, MissingArticleTextError } from "@/lib/projects/diagnosis";
@@ -18,6 +19,9 @@ export async function handleDiagnose(_request: Request, id: string) {
   if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   try {
     const result = await compareNormWithOldCode(id);
+    // El diagnostico ancla articulos: sin esto, el explorador del codigo y el
+    // documento comparado siguen mostrando los anclajes viejos hasta una hora.
+    revalidateTag("normative-code");
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     if (error instanceof MissingArticleTextError) {
