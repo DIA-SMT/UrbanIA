@@ -219,8 +219,9 @@ async function ingestPlanilla(externalId: string, title: string, fileName: strin
 
 async function main() {
   const results = [];
-  results.push(await ingestPlanilla("planillas-edificacion-2014", "CPU 2014 – Planillas de Edificación", "PLANILLAS DE EDIFICACION 2014.pdf", EDIFICACION_PROMPT));
-  results.push(await ingestPlanilla("planillas-uso-suelo-2014", "CPU 2014 – Planillas de Usos del Suelo", "PLANILLAS DE USO 2014.pdf", USO_PROMPT));
+  // "vigente": el texto ordenado 2014 es el ultimo disponible del CPU.
+  results.push(await ingestPlanilla("planillas-edificacion-2014", "CPU vigente – Planillas de Edificación (texto ordenado 2014)", "PLANILLAS DE EDIFICACION 2014.pdf", EDIFICACION_PROMPT));
+  results.push(await ingestPlanilla("planillas-uso-suelo-2014", "CPU vigente – Planillas de Usos del Suelo (texto ordenado 2014)", "PLANILLAS DE USO 2014.pdf", USO_PROMPT));
   console.log(JSON.stringify({ results }, null, 2));
 }
 

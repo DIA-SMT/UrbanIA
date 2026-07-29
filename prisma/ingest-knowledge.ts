@@ -266,7 +266,10 @@ async function main() {
     results.push(await removeSource("digesto-catastro-2-2014"));
   }
   if (corre("cpu-anexo-ordenanzas-2014")) {
-    results.push(await ingestDocument("cpu-anexo-ordenanzas-2014", "CPU 2014 – Anexo de Ordenanzas", "data/sources/TEXTO CPU 2014-para web.pdf", join(extracted, "texto-cpu-2014.raw.txt"), "2014-05", { fromMarker: /^ANEXO DE ORDENANZAS$/m }));
+    // "vigente" y no "2014" a secas: el texto ordenado 2014 es el ULTIMO del
+    // CPU (la serie 2015 del digesto no trajo tomo del CPU) y las citas deben
+    // dejar claro que es el codigo que rige, no una edicion vieja conviviendo.
+    results.push(await ingestDocument("cpu-anexo-ordenanzas-2014", "CPU vigente – Anexo de Ordenanzas (texto ordenado 2014)", "data/sources/TEXTO CPU 2014-para web.pdf", join(extracted, "texto-cpu-2014.raw.txt"), "2014-05", { fromMarker: /^ANEXO DE ORDENANZAS$/m }));
   }
 
   const total = await prisma.knowledgeChunk.count();
