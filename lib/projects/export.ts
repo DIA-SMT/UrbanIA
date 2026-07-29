@@ -2,6 +2,8 @@ import "server-only";
 
 import {
   DOCUMENT_SHELL_STYLES,
+  getBrandLogoDataUri,
+  getDiaLogoDataUri,
   renderFooter,
   renderLetterhead,
   renderWatermark,
@@ -159,14 +161,30 @@ const COMPARATIVE_STYLES = `
     .doc-footer { position: static; margin-top: 34px; }
     .doc-watermark { display: none; }
   }
-  .portada { padding-top: 6px; }
-  .portada h1 { font-size: 26px; line-height: 1.25; margin-bottom: 14px; }
-  .portada-metricas { display: flex; gap: 12px; margin: 18px 0; }
-  .metrica { flex: 1; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; background: #f8fafc; }
-  .metrica strong { display: block; font-size: 26px; line-height: 1.1; }
+  /* Paleta institucional: los tres colores del logo municipal (petalo azul,
+     petalo celeste y circulo amarillo). El rojo y el verde NO se tocan: son la
+     semantica del control de cambios, no decoracion. */
+  .portada { padding-top: 6px; text-align: center; }
+  .portada-logo { height: 92px; width: auto; margin: 18px auto 10px; display: block; }
+  .portada-institucion { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.18em; color: #0b1220; }
+  .portada-dependencia { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #0868f6; margin-top: 3px; }
+  .portada-franja { display: flex; height: 5px; border-radius: 3px; overflow: hidden; margin: 20px auto; max-width: 420px; }
+  .portada-franja span { flex: 1; }
+  .franja-azul { background: #0868f6; }
+  .franja-celeste { background: #35aefc; }
+  .franja-amarillo { background: #f4dc00; flex: 0 0 46px !important; }
+  .portada h1 { font-size: 27px; line-height: 1.25; margin: 10px 0 4px; }
+  .portada-subtitulo { font-size: 15px; font-weight: 700; color: #475569; margin-bottom: 16px; }
+  .portada-metricas { display: flex; gap: 12px; margin: 20px 0; text-align: left; }
+  .metrica { flex: 1; border: 1px solid #e2e8f0; border-top: 4px solid #35aefc; border-radius: 10px; padding: 12px 16px; background: #f8fafc; }
+  .metrica strong { display: block; font-size: 26px; line-height: 1.1; color: #0868f6; }
   .metrica span { font-size: 11.5px; color: #475569; font-weight: 700; }
-  .metrica-roja { border-color: #fecaca; background: #fef2f2; } .metrica-roja strong { color: #b91c1c; }
-  .metrica-verde { border-color: #bbf7d0; background: #f0fdf4; } .metrica-verde strong { color: #15803d; }
+  .metrica-roja { border-color: #fecaca; border-top-color: #dc2626; background: #fef2f2; } .metrica-roja strong { color: #b91c1c; }
+  .metrica-verde { border-color: #bbf7d0; border-top-color: #15803d; background: #f0fdf4; } .metrica-verde strong { color: #15803d; }
+  .portada > p.muted, .portada .indice-cambios { text-align: left; }
+  .portada-sello { display: inline-flex; align-items: center; gap: 10px; margin: 26px auto 4px; padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 999px; background: #f8fafc; font-size: 11px; font-weight: 800; color: #334155; }
+  .portada-sello img { height: 26px; width: auto; }
+  .portada-sello .sello-punto { width: 7px; height: 7px; border-radius: 50%; background: #f4dc00; flex-shrink: 0; }
   .indice-cambios { border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 18px; margin-top: 16px; }
   .indice-cambios h3 { margin-top: 0; }
   .indice-cambios ul { list-style: none; padding-left: 0; }
@@ -328,9 +346,16 @@ export function reformToComparativePrintHtml(
     })
     .join("");
 
+  const logoMuni = getBrandLogoDataUri();
+  const logoDia = getDiaLogoDataUri();
   const header = [
     `<div class="portada">`,
-    `<h1>${escapeHtml(reform.title)}<br><span class="muted" style="font-size:16px; font-weight:700;">comparado con el CPU vigente (texto ordenado ${escapeHtml(cpu.versionLabel)})</span></h1>`,
+    ...(logoMuni ? [`<img class="portada-logo" src="${logoMuni}" alt="Logo de la Municipalidad de San Miguel de Tucumán">`] : []),
+    `<div class="portada-institucion">Municipalidad de San Miguel de Tucumán</div>`,
+    `<div class="portada-dependencia">Planeamiento · Fábrica de Normas</div>`,
+    `<div class="portada-franja"><span class="franja-azul"></span><span class="franja-amarillo"></span><span class="franja-celeste"></span></div>`,
+    `<h1>${escapeHtml(reform.title)}</h1>`,
+    `<p class="portada-subtitulo">Documento comparado con el CPU vigente (texto ordenado ${escapeHtml(cpu.versionLabel)})</p>`,
     `<div class="portada-metricas">`,
     `<div class="metrica"><strong>${cpu.articles.length}</strong><span>artículos del código vigente</span></div>`,
     `<div class="metrica metrica-roja"><strong>${eliminadosCount}</strong><span>quedan sin efecto</span></div>`,
@@ -343,6 +368,7 @@ export function reformToComparativePrintHtml(
     ...(normasSinCorrelato.length
       ? [`<div class="indice-cambios"><h3>Artículos nuevos sin artículo reemplazado</h3><p class="muted"><a href="#agregados"><span class="indice-verbo verde">${normasSinCorrelato.length}</span>normas que no sustituyen ningún artículo del código vigente — al final del documento.</a></p></div>`]
       : []),
+    `<div class="portada-sello">${logoDia ? `<img src="${logoDia}" alt="Dirección de Inteligencia Artificial">` : `<span class="sello-punto"></span>`}Generado por la Dirección de Inteligencia Artificial</div>`,
     `</div>`
   ].join("");
 
