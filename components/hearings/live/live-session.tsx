@@ -21,6 +21,13 @@ const MATCH_DEBOUNCE_MS = 10_000;
 const MATCH_MIN_NEW_CHARS = 300;
 const MATCH_WINDOW_CHARS = 1500;
 const AUTOSAVE_INTERVAL_MS = 60_000;
+/**
+ * Umbral de "frase dudosa" del reconocimiento (la Web Speech API da confianza
+ * por frase, no por palabra). Por debajo se marca en amarillo para revisar.
+ */
+const DUBIOUS_CONFIDENCE = 0.8;
+
+export type PendingPhrase = { id: number; text: string; dubious: boolean };
 
 /**
  * Sesion en vivo sobre una audiencia ya creada (ruta /audiencias/[id]/en-vivo).
@@ -69,6 +76,12 @@ export function LiveSession({
   const [conclusions, setConclusions] = useState<HearingConclusions>(emptyHearingConclusions());
   const [closingError, setClosingError] = useState("");
 
+  // Bandeja de dictado: las frases finales NO van directo al lienzo, se juntan
+  // aca y el operador las manda con "Enviar al lienzo" (o salen solas al
+  // guardar/finalizar). Las dudosas viajan marcadas para revisarlas despues.
+  const [pending, setPending] = useState<PendingPhrase[]>([]);
+  const [dubiousPhrases, setDubiousPhrases] = useState<string[]>([]);
+
   const startedAtRef = useRef<number>(Date.now());
   const lastSentLengthRef = useRef(initialTranscript.length);
   const matchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -77,14 +90,52 @@ export function LiveSession({
   transcriptRef.current = transcript;
   const fichaRef = useRef(ficha);
   fichaRef.current = ficha;
+  const pendingRef = useRef<PendingPhrase[]>([]);
+  pendingRef.current = pending;
   const lastSavedRef = useRef("");
   const savingRef = useRef(false);
+  const phraseIdRef = useRef(0);
 
-  const appendFinalText = useCallback((text: string) => {
-    setTranscript((current) => current + text);
+  const handleDictatedPhrase = useCallback((text: string, confidence: number | null) => {
+    const clean = text.trim();
+    if (!clean) return;
+    phraseIdRef.current += 1;
+    setPending((current) => [
+      ...current,
+      { id: phraseIdRef.current, text: clean, dubious: confidence !== null && confidence < DUBIOUS_CONFIDENCE }
+    ]);
   }, []);
 
-  const dictation = useDictation({ onFinalText: appendFinalText });
+  const dictation = useDictation({ onFinalText: handleDictatedPhrase });
+
+  /**
+   * Manda la bandeja al lienzo. Devuelve el texto completo resultante y
+   * actualiza el ref a mano para que quien llame (guardar, finalizar) pueda
+   * usarlo sin esperar el re-render.
+   */
+  const sendPendingToCanvas = useCallback((): string => {
+    const phrases = pendingRef.current;
+    if (!phrases.length) return transcriptRef.current;
+    const pendingText = phrases.map((phrase) => phrase.text).join(" ");
+    const base = transcriptRef.current;
+    const joined = base.length && !/\s$/.test(base) ? `${base} ${pendingText} ` : `${base}${pendingText} `;
+    const dubious = phrases.filter((phrase) => phrase.dubious).map((phrase) => phrase.text);
+    if (dubious.length) setDubiousPhrases((current) => [...current, ...dubious]);
+    pendingRef.current = [];
+    setPending([]);
+    transcriptRef.current = joined;
+    setTranscript(joined);
+    return joined;
+  }, []);
+
+  // Una frase dudosa deja de estarlo cuando el operador la corrige: si su
+  // texto exacto ya no aparece en el lienzo, la marca se retira sola.
+  useEffect(() => {
+    setDubiousPhrases((current) => {
+      const kept = current.filter((phrase) => transcript.includes(phrase));
+      return kept.length === current.length ? current : kept;
+    });
+  }, [transcript]);
 
   // Arranca el dictado al montar solo si es una audiencia nueva (sin borrador).
   // Al reanudar no se arranca solo: el operador revisa y toca "Reanudar dictado".
@@ -114,7 +165,13 @@ export function LiveSession({
    */
   const saveDraft = useCallback(
     async (options: { force?: boolean; keepalive?: boolean } = {}): Promise<boolean> => {
-      const text = transcriptRef.current;
+      // El borrador incluye la bandeja sin enviar: si la pestana se cierra con
+      // frases pendientes, no se pierden (al retomar aparecen ya en el lienzo).
+      const pendingTail = pendingRef.current.map((phrase) => phrase.text).join(" ");
+      const canvasText = transcriptRef.current;
+      const text = pendingTail
+        ? `${canvasText}${canvasText.length && !/\s$/.test(canvasText) ? " " : ""}${pendingTail} `
+        : canvasText;
       const currentFicha = fichaRef.current;
       const signature = `${text} ${JSON.stringify(currentFicha)}`;
       if (!options.force && signature === lastSavedRef.current) return true;
@@ -271,6 +328,8 @@ export function LiveSession({
     if (exiting) return;
     setExiting(true);
     dictation.stop();
+    // Lo pendiente de la bandeja entra al lienzo antes de guardar.
+    sendPendingToCanvas();
     // Si el servidor rechazo el guardado NO se navega: salir de la pantalla
     // perderia el dictado. El error queda visible y se puede reintentar.
     const saved = await saveDraft({ force: true });
@@ -300,14 +359,15 @@ export function LiveSession({
 
   /** "Finalizar": Migue redacta las conclusiones y se pasa a revisarlas. Sin IA, cierra directo. */
   async function startClosing() {
-    const fullText = transcript.trim();
+    dictation.stop();
+    // La bandeja entra al lienzo antes de cerrar: nada queda sin registrar.
+    const fullText = sendPendingToCanvas().trim();
     if (fullText.length < 20) {
       setFinalizeError("La transcripción es demasiado corta para cerrar (mínimo 20 caracteres).");
       return;
     }
     setFinalizeError("");
     setFinalizing(true);
-    dictation.stop();
     if (matchTimerRef.current) {
       clearTimeout(matchTimerRef.current);
       matchTimerRef.current = null;
@@ -413,19 +473,22 @@ export function LiveSession({
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <TranscriptCanvas
-          value={transcript}
-          interim={dictation.interim}
-          recording={dictation.recording}
-          supported={dictation.supported}
-          dictationError={dictation.error}
-          elapsedLabel={elapsedLabel}
-          onChange={setTranscript}
-          onToggleDictation={() => (dictation.recording ? dictation.stop() : dictation.start())}
-        />
-        <MatchesPanel matches={matches} reformId={reformId} aiAvailable={aiAvailable} />
-      </div>
+      {/* El lienzo ocupa toda la pagina (pedido del equipo para operar en la
+          audiencia real); los cruces con el codigo van abajo, a lo ancho. */}
+      <TranscriptCanvas
+        value={transcript}
+        interim={dictation.interim}
+        pending={pending}
+        dubiousPhrases={dubiousPhrases}
+        recording={dictation.recording}
+        supported={dictation.supported}
+        dictationError={dictation.error}
+        elapsedLabel={elapsedLabel}
+        onChange={setTranscript}
+        onSendPending={sendPendingToCanvas}
+        onToggleDictation={() => (dictation.recording ? dictation.stop() : dictation.start())}
+      />
+      <MatchesPanel matches={matches} reformId={reformId} aiAvailable={aiAvailable} />
 
       <HearingFields
         value={ficha}

@@ -16,7 +16,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * - start() es idempotente (evita doble arranque por StrictMode o toggles).
  */
 
-type MinimalSpeechAlternative = { transcript: string };
+type MinimalSpeechAlternative = { transcript: string; confidence?: number };
 type MinimalSpeechResult = { isFinal: boolean; 0: MinimalSpeechAlternative };
 type MinimalSpeechRecognitionEvent = { resultIndex: number; results: ArrayLike<MinimalSpeechResult> };
 
@@ -46,7 +46,12 @@ function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | null 
 
 const RESTART_DELAY_MS = 350;
 
-export function useDictation({ onFinalText }: { onFinalText: (text: string) => void }) {
+/**
+ * onFinalText recibe cada frase final con su confianza (0..1) o null si el
+ * navegador no la informa. La API da confianza POR FRASE, no por palabra: la
+ * revision de "dudosas" trabaja a ese nivel.
+ */
+export function useDictation({ onFinalText }: { onFinalText: (text: string, confidence: number | null) => void }) {
   const [supported, setSupported] = useState(true);
   const [recording, setRecording] = useState(false);
   const [interim, setInterim] = useState("");
@@ -115,7 +120,10 @@ export function useDictation({ onFinalText }: { onFinalText: (text: string) => v
         const transcript = result[0]?.transcript ?? "";
         if (result.isFinal) {
           const finalPiece = transcript.trim();
-          if (finalPiece) onFinalRef.current(`${finalPiece} `);
+          const confidence = result[0]?.confidence;
+          // 0 o undefined = el navegador no midio: se trata como desconocida,
+          // no como dudosa (si no, TODO saldria marcado en Edge).
+          if (finalPiece) onFinalRef.current(`${finalPiece} `, typeof confidence === "number" && confidence > 0 ? confidence : null);
         } else {
           interimText += transcript;
         }
