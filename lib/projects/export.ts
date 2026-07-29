@@ -137,6 +137,185 @@ export function reformToPrintHtml(reform: ReformDetail, normTexts: Map<string, s
   });
 }
 
+// ============================================================================
+// Documento comparado: el CPU 2014 completo con el control de cambios de la
+// reforma. Rojo = articulo del codigo viejo que alguna norma nueva REEMPLAZA o
+// DEROGA (sale de los anclajes de NormativeLink, los mismos que alimentan el
+// diagnostico). Verde = las normas nuevas, insertadas despues del articulo que
+// reemplazan (o al final si no reemplazan ninguno). La barra de la vista deja
+// elegir el PDF: "con cambios" imprime los colores; "limpio" oculta los
+// articulos eliminados y saca las marcas — queda el codigo resultante.
+// ============================================================================
+
+const COMPARATIVE_STYLES = `
+  .doc-summary { display: flex; gap: 18px; margin: 10px 0 4px; }
+  .doc-summary strong { font-size: 16px; }
+  .doc-summary .rojo strong { color: #b91c1c; }
+  .doc-summary .verde strong { color: #15803d; }
+  .capitulo { margin-top: 30px; }
+  .cpu-articulo { border-left: 3px solid #cbd5e1; padding: 2px 0 2px 12px; margin: 14px 0; page-break-inside: avoid; }
+  .cpu-articulo h2 { margin: 0 0 4px; font-size: 14px; }
+  .cpu-articulo .contenido p { font-size: 12.5px; }
+  .cpu-eliminado { border-left-color: #dc2626; background: #fef2f2; }
+  .cpu-eliminado h2 { color: #b91c1c; text-decoration: line-through; }
+  .badge-cambio { display: inline-block; border-radius: 6px; padding: 1px 8px; font-size: 11px; font-weight: 700; margin-left: 6px; text-decoration: none; }
+  .badge-rojo { background: #dc2626; color: #fff; }
+  .badge-verde { background: #15803d; color: #fff; }
+  .norma-nueva { border-left: 3px solid #15803d; background: #f0fdf4; padding: 6px 12px 10px; margin: 14px 0 14px 18px; page-break-inside: avoid; }
+  .norma-nueva h2 { color: #15803d; margin-top: 4px; }
+  .referencia-cruzada { font-size: 12px; color: #475569; font-style: italic; margin: 4px 0 4px 18px; }
+  .barra-export { position: fixed; top: 14px; right: 14px; z-index: 50; display: flex; flex-direction: column; gap: 6px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12); }
+  .barra-export button { border: 0; border-radius: 7px; padding: 8px 12px; font-size: 12px; font-weight: 800; cursor: pointer; }
+  .barra-export .btn-cambios { background: #1f89f6; color: #fff; }
+  .barra-export .btn-limpio { background: #e2e8f0; color: #0b1220; }
+  .barra-export p { margin: 0; font-size: 10px; color: #64748b; max-width: 190px; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body.limpio .cpu-eliminado, body.limpio .referencia-cruzada, body.limpio .badge-cambio { display: none; }
+  body.limpio .norma-nueva { border-left-color: #cbd5e1; background: transparent; }
+  body.limpio .norma-nueva h2 { color: #0b1220; }
+  @media print { .barra-export { display: none; } }
+`;
+
+type ComparativeCpu = {
+  versionLabel: string;
+  chapters: Array<{ id: string; number: string; title: string }>;
+  articles: Array<{
+    id: string;
+    number: string;
+    title: string;
+    content: string;
+    chapterId: string | null;
+    links: Array<{ sourceType: string; sourceId: string; relationshipType: string }>;
+  }>;
+};
+
+/**
+ * CPU 2014 completo con control de cambios: articulos eliminados en rojo con
+ * la norma que los saca, normas nuevas en verde en el lugar del articulo que
+ * reemplazan. No imprime solo al cargar (es un documento para LEER); los dos
+ * botones de la barra disparan la impresion en el modo elegido.
+ */
+export function reformToComparativePrintHtml(
+  reform: ReformDetail,
+  normTexts: Map<string, string | null>,
+  cpu: ComparativeCpu
+): string {
+  const normById = new Map(reform.norms.map((norm) => [norm.id, norm]));
+
+  // Que norma elimina cada articulo, y cual es el PRIMER articulo (en el orden
+  // del codigo) que cada norma reemplaza: ahi va su texto completo; en los
+  // demas se deja una referencia para no repetir el articulado.
+  const eliminadoPor = new Map<string, Array<{ normId: string; relationshipType: string }>>();
+  const primerArticuloDeNorma = new Map<string, string>();
+  for (const article of cpu.articles) {
+    for (const link of article.links) {
+      if (link.sourceType !== "project" || !normById.has(link.sourceId)) continue;
+      if (link.relationshipType !== "REPLACES" && link.relationshipType !== "REPEALS") continue;
+      const lista = eliminadoPor.get(article.id) ?? [];
+      lista.push({ normId: link.sourceId, relationshipType: link.relationshipType });
+      eliminadoPor.set(article.id, lista);
+      if (!primerArticuloDeNorma.has(link.sourceId)) primerArticuloDeNorma.set(link.sourceId, article.id);
+    }
+  }
+
+  const normaNuevaHtml = (normId: string): string => {
+    const norm = normById.get(normId);
+    if (!norm) return "";
+    return `<section class="norma-nueva"><span class="badge-cambio badge-verde">Artículo nuevo</span>${normSectionHtml(
+      { ...norm, articleText: normTexts.get(norm.id) ?? null },
+      "h2",
+      true
+    )}</section>`;
+  };
+
+  const articuloHtml = (article: ComparativeCpu["articles"][number]): string => {
+    const eliminado = eliminadoPor.get(article.id);
+    const bloques: string[] = [];
+
+    if (!eliminado) {
+      bloques.push(
+        `<section class="cpu-articulo"><h2>Artículo ${escapeHtml(article.number)} — ${escapeHtml(article.title)}</h2><div class="contenido">${toParagraphs(article.content)}</div></section>`
+      );
+      return bloques.join("");
+    }
+
+    const motivos = eliminado
+      .map(({ normId, relationshipType }) => {
+        const norm = normById.get(normId);
+        const verbo = relationshipType === "REPEALS" ? "Derogado" : "Reemplazado";
+        return `${verbo} por ${norm ? `${norm.code} — ${norm.title}` : "una norma del código nuevo"}`;
+      })
+      .map(escapeHtml)
+      .join(" · ");
+
+    bloques.push(
+      `<section class="cpu-articulo cpu-eliminado"><h2>Artículo ${escapeHtml(article.number)} — ${escapeHtml(article.title)}<span class="badge-cambio badge-rojo">Eliminado</span></h2><p class="muted">${motivos}</p><div class="contenido">${toParagraphs(article.content)}</div></section>`
+    );
+
+    // El texto de cada norma va tras SU primer articulo reemplazado.
+    for (const { normId } of eliminado) {
+      if (primerArticuloDeNorma.get(normId) === article.id) {
+        bloques.push(normaNuevaHtml(normId));
+      } else {
+        const norm = normById.get(normId);
+        if (norm) bloques.push(`<p class="referencia-cruzada">El texto de ${escapeHtml(norm.code)} está incluido junto al primer artículo que reemplaza.</p>`);
+      }
+    }
+    return bloques.join("");
+  };
+
+  // Normas que no reemplazan ni derogan ningun articulo: son agregados puros.
+  const normasSinCorrelato = [...reform.norms]
+    .filter((norm) => !primerArticuloDeNorma.has(norm.id))
+    .sort((a, b) => compareArticleNumbers(a.articleNumber, b.articleNumber));
+
+  const eliminadosCount = eliminadoPor.size;
+  const header = [
+    `<h1>${escapeHtml(reform.title)} — comparado con el CPU ${escapeHtml(cpu.versionLabel)}</h1>`,
+    `<div class="doc-summary">`,
+    `<p class="muted"><strong>${cpu.articles.length}</strong> artículos del código vigente</p>`,
+    `<p class="muted rojo"><strong>${eliminadosCount}</strong> eliminados</p>`,
+    `<p class="muted verde"><strong>${reform.norms.length}</strong> artículos nuevos</p>`,
+    `</div>`,
+    `<p class="muted">Los artículos en rojo quedan sin efecto según los anclajes cargados en la Fábrica de Normas; el texto que los sustituye aparece en verde a continuación de cada uno.</p>`
+  ].join("");
+
+  const porCapitulo = cpu.chapters
+    .map((chapter) => {
+      const articulos = cpu.articles.filter((article) => article.chapterId === chapter.id);
+      if (!articulos.length) return "";
+      return `<section class="capitulo"><h3>Capítulo ${escapeHtml(chapter.number)} — ${escapeHtml(chapter.title)}</h3>${articulos.map(articuloHtml).join("")}</section>`;
+    })
+    .join("");
+  const sueltos = cpu.articles.filter((article) => !article.chapterId);
+  const sinCapitulo = sueltos.length ? `<section class="capitulo"><h3>Artículos sin capítulo</h3>${sueltos.map(articuloHtml).join("")}</section>` : "";
+
+  const agregados = normasSinCorrelato.length
+    ? `<section class="capitulo"><h3>Artículos nuevos sin artículo reemplazado</h3>${normasSinCorrelato.map((norm) => normaNuevaHtml(norm.id)).join("")}</section>`
+    : "";
+
+  const barra = [
+    `<div class="barra-export">`,
+    `<button type="button" class="btn-cambios" onclick="document.body.classList.remove('limpio'); window.print();">Guardar PDF con cambios</button>`,
+    `<button type="button" class="btn-limpio" onclick="document.body.classList.add('limpio'); window.print();">Guardar PDF limpio</button>`,
+    `<p>El PDF limpio oculta los artículos eliminados y las marcas: queda el código resultante.</p>`,
+    `</div>`
+  ].join("");
+
+  const documento = printDocument(`${reform.code} — comparado con CPU ${cpu.versionLabel}`, header + porCapitulo + sinCapitulo + agregados, {
+    subtitle: "Fábrica de Normas · Documento comparado",
+    docCode: reform.code,
+    statusLabel: reformStatusLabels[reform.status]
+  });
+
+  // printDocument autoimprime al cargar (sirve para los export directos); aca
+  // el documento es para revisar primero, asi que se quita ese script y se
+  // inyectan la barra y los estilos del comparado.
+  return documento
+    .replace(`<script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 350); });</script>`, barra)
+    .replace("</style>", `${COMPARATIVE_STYLES}</style>`);
+}
+
 /** Una norma individual, con sus articulos del CPU 2014 relacionados. */
 export function normToPrintHtml(norm: NormDetail): string {
   const anchorsBlock = norm.anchors.length

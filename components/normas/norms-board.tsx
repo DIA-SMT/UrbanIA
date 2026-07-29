@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { MunicipalArea, ProjectStatus, ReformStatus } from "@prisma/client";
-import { Anchor, ArrowLeft, FileDown, FileStack, FileText, FileUp, MessageSquare, Plus } from "lucide-react";
+import { Anchor, ArrowLeft, FileDiff, FileDown, FileStack, FileText, FileUp, MessageSquare, Plus } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AuthorLine, FilterBar, FilterChip, FilterGroup, MetricStrip } from "@/components/ui/board-ui";
 import { SupportControls } from "@/components/normas/support-controls";
@@ -107,6 +107,16 @@ export function NormsBoard({
               >
                 <FileDown className="h-4 w-4" />
                 Exportar código
+              </a>
+              <a
+                href={`/api/reforms/${reform.id}?action=export&vista=cambios`}
+                target="_blank"
+                rel="noreferrer"
+                title="El CPU vigente completo con los artículos eliminados en rojo y los nuevos en verde"
+                className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-slate-200"
+              >
+                <FileDiff className="h-4 w-4" />
+                Comparar con CPU
               </a>
               {canEdit ? (
                 <>
