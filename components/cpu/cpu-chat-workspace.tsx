@@ -254,8 +254,11 @@ export function CpuChatWorkspace({
         </button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <div className={`${mobileListOpen ? "block" : "hidden"} lg:block`}>
+      {/* minmax(0,...) tambien en mobile: sin eso, los titulos del historial
+          (truncate = nowrap) reventaban la columna implicita del grid y en iOS
+          la pagina entera quedaba mas ancha que el viewport (grid blowout). */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div className={`${mobileListOpen ? "block" : "hidden"} min-w-0 lg:block`}>
           <CpuConversationList
             conversations={conversations}
             currentId={currentId}

@@ -377,12 +377,21 @@ model CabinetIdea {
   @@index([projectId])
 }
 
+// Registro de consultas a Migue: la materia prima del futuro panel "qué
+// pregunta la gente". answered=false marca los huecos de conocimiento: una
+// consulta normativa que el RAG no pudo respaldar con evidencia.
 model AiQuery {
   id        String   @id @default(cuid())
   question  String
   answer    String?
   sources   Json     @default("[]")
+  answered  Boolean  @default(true)
+  normative Boolean  @default(false)
+  mode      String?
+  module    String?
   createdAt DateTime @default(now())
+
+  @@index([answered, createdAt])
 }
 
 model KnowledgeSource {
