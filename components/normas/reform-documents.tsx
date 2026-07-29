@@ -78,7 +78,16 @@ export function ReformDocuments({
 
       <div className="grid gap-2">
         {documents.map((document) => (
-          <div key={document.id} className="rounded-md border border-white/8 bg-white/[0.03] p-3">
+          // El min-w-0 no es decorativo: sin el, un nombre de archivo largo
+          // desborda la pagina entera. `truncate` incluye white-space: nowrap,
+          // asi que recorta lo que se VE pero el texto sigue MIDIENDO todo su
+          // ancho; y una columna de grid `auto` nunca baja del min-content de su
+          // item, que por defecto tiene min-width: auto. Resultado: un PDF
+          // llamado "2da AUDIENCIA PUBLICA · CPU SMT EL NUEVO..." estiraba la
+          // columna a 1641 px dentro de un viewport de 1265 y se llevaba puestas
+          // a las quince tarjetas. El min-w-0 del div de adentro no alcanza:
+          // arregla el encogido dentro del flex, no el tamano de la pista.
+          <div key={document.id} className="min-w-0 rounded-md border border-white/8 bg-white/[0.03] p-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-black text-white">{document.name}</p>

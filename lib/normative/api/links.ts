@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { NormativeRelationshipType } from "@prisma/client";
 import { z } from "zod";
@@ -34,6 +35,9 @@ export async function handleLinkCreate(request: Request) {
   try {
     const link = await prisma.normativeLink.upsert({ where: { sourceType_sourceId_articleId_relationshipType: { sourceType: parsed.data.sourceType, sourceId: parsed.data.sourceId, articleId: parsed.data.articleId, relationshipType: parsed.data.relationshipType } }, update: { notes: parsed.data.notes || null }, create: { ...parsed.data, notes: parsed.data.notes || null, createdBy: "manual" } });
     const withArticle = await prisma.normativeLink.findUnique({ where: { id: link.id }, include: { article: { select: { articleNumber: true, title: true } } } });
+    // Los anclajes viajan dentro del cache del codigo estructurado (1 h): sin
+    // esto, el explorador y el documento comparado no ven el anclaje nuevo.
+    revalidateTag("normative-code");
     return NextResponse.json(withArticle ?? link, { status: 201 });
   } catch (error) {
     console.error("Manual normative link failed", error);
@@ -92,6 +96,7 @@ export async function handleLinkDelete(request: Request) {
   }
   try {
     await prisma.normativeLink.delete({ where: { id } });
+    revalidateTag("normative-code");
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("No se pudo eliminar el anclaje", error);

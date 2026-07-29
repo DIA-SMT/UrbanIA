@@ -4,7 +4,15 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // La app corre contra el pooler de Supabase en modo TRANSACCION (puerto 6543,
+  // con pgbouncer=true). Es el unico que aguanta serverless: en modo sesion
+  // (5432) cada cliente reserva una conexion real de Postgres y el tope son 15,
+  // asi que con unas pocas lambdas tibias la base empieza a rechazar consultas
+  // con EMAXCONNSESSION.
+  url = env("DATABASE_URL")
+  // Las migraciones NO pueden ir por el pooler de transacciones: necesitan una
+  // conexion de sesion. DIRECT_URL es la misma cadena con el puerto 5432.
+  directUrl = env("DIRECT_URL")
 }
 
 model User {

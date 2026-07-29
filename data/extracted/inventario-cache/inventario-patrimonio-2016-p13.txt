@@ -1,0 +1,165 @@
+# HOJA: 6/7
+
+## SECCIÓN: EDIFICIOS Y SITIOS DE INTERES MUNICIPAL
+
+## Plaza Irigoyen
+- Ubicación: Gral Paz - 9 de Julio - Pje Vélez Sarfield - Congreso
+- Propietario / situación jurídica: Municipalidad de S.M. de Tucumán
+- Categorización: IM
+
+## Plaza Rivadavia
+- Ubicación: Bolívar – Ayacucho – Chacabuco - Pje Hungría
+- Propietario / situación jurídica: Municipalidad de S.M. de Tucumán
+- Categorización: IM
+- Observaciones: IM (Dcto 777/SPP/94)
+
+## Plaza San Martín
+- Ubicación: Lavalle – Ayacucho – Chacabuco – Bolívar
+- Propietario / situación jurídica: Municipalidad de S.M. de Tucumán
+- Categorización: IM
+- Observaciones: IM (Dcto 777/SPP/94)
+
+## Plaza Urquiza y entorno
+- Ubicación: 25 de Mayo – Av Sarmiento – Santa Fe – Muñecas
+- Propietario / situación jurídica: Municipalidad de S.M. de Tucumán
+- Categorización: IM
+- Observaciones: IM (Dcto 780/SPP/94)
+
+## Poder legislativo (Casino) – Oficina Legisladores
+- Ubicación: Av Sarmiento al 600
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM
+
+## Poder Legislativo (Sala de Sesiones)
+- Ubicación: Rivadavia 25
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM
+- Observaciones: Escuela Sarmiento
+
+## Policlínico Ferroviario
+- Ubicación: Av Sarmiento esq Junín
+- Propietario / situación jurídica: Privada– Dir.Gral de Asist. Y Prev. Soc.
+- Categorización: CPA
+- Observaciones: Sanatorio Sarmiento. Remodelado planta baja
+
+## Sala Cuna – Instituto de Puericultura A. Guzmán
+- Ubicación: Congreso 384
+- Propietario / situación jurídica: Hermanas Vicentinas
+- Categorización: IM
+
+## Sanatorio Pasquini
+- Ubicación: Monteagudo 75
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Secretaría de Trabajo (Ex Banco Francés)
+- Ubicación: San Martín 730
+- Propietario / situación jurídica: Gob. de la Provincia–Caja P.de Ahornos
+- Categorización: IM
+- Situación 2016: resaltado en el relevamiento
+
+## Servicio Nacional de Arquitectura
+- Ubicación: Congreso 53
+- Propietario / situación jurídica: Estado Nacional
+- Categorización: IM
+- Observaciones: Museo de Arte Sacro
+
+## SIPROSA –ex - (Casa Ramón Paz Posse)
+- Ubicación: Rivadavia 196
+- Categorización: CPA
+
+## Sociedad Española de Socorros Mutuos
+- Ubicación: Laprida 316
+- Propietario / situación jurídica: Privada – Asociación Española
+- Categorización: IM
+
+## Sociedad Extranjera de Socorros Mutuos y Beneficencia
+- Ubicación: San Martín 1156
+- Propietario / situación jurídica: Privada – Soc. Extranjera de S.M. y B.
+- Categorización: CPA
+
+## Sociedad Francesa
+- Ubicación: San Juan 751
+- Categorización: CPA
+
+## Sociedad Sarmiento – Biblioteca Sarmiento
+- Ubicación: Congreso 65
+- Propietario / situación jurídica: Privada – Sociedad Sarmiento
+- Categorización: IM
+
+## Steimberg (Casa Bellucci)
+- Ubicación: 9 de Julio 64/68
+- Propietario / situación jurídica: Privada – Sucesión Bellucci
+- Categorización: CPA
+- Observaciones: Remodelación planta baja
+
+## Teatro Alberdi
+- Ubicación: Salta y Crisóstomo Alvarez
+- Propietario / situación jurídica: Estado Nacional – UNT
+- Categorización: IM
+
+## Teatro San Martín
+- Ubicación: Av Sarmiento esq Muñecas
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM
+
+## UNT Casa Central
+- Ubicación: Ayacucho 482
+- Propietario / situación jurídica: Estado Nacional – UNT
+- Categorización: IM
+
+## Villa Navarra
+- Ubicación: I. La Católica y Av E. Del Norte
+- Propietario / situación jurídica: Privada – Srta Sara Rosa Nasser
+- Categorización: IM
+- Observaciones: IM (Dcto 555/Int/96)
+
+## Vivienda
+- Ubicación: Buenos Aires 738
+- Categorización: CPA
+
+## Vivienda
+- Ubicación: Buenos Aires 488
+- Categorización: CPA
+
+## Vivienda
+- Ubicación: Las Heras 251
+- Categorización: CPA
+
+## Vivienda
+- Ubicación: Lamadrid 175
+- Categorización: CPA
+
+## Vivienda "Neogotica"
+- Ubicación: Av Sarmiento 1218
+- Categorización: CPA
+
+## Vivienda –ex- (Armando Juan B. Edipo) – Ctro de belleza
+- Ubicación: San Martín 1019
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+- Situación 2016: resaltado en el relevamiento
+
+## Vivienda (Benjamín Áviar)
+- Ubicación: San Martín 51
+- Categorización: CPA
+
+## Vivienda (Casa Bossi)
+- Ubicación: 25 de Mayo 348
+- Categorización: CPA
+- Situación 2016: resaltado en el relevamiento
+
+## Vivienda (Casa Chenaut)
+- Ubicación: 25 de Mayo 346
+- Categorización: CPA
+- Observaciones: Demolida
+- Situación 2016: resaltado en el relevamiento
+
+---
+
+## REFERENCIAS
+
+- **IM**: Interés Municipal
+- **CPA**: Componente del Patrimonio Arquitectónico
+- **MHM**: Monumento Histórico Municipal
+- **MHN**: Monumento Histórico Nacional
