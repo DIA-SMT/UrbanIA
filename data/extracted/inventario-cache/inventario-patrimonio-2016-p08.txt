@@ -1,0 +1,170 @@
+# HOJA: 1/7
+
+## SECCIÓN: EDIFICIOS Y SITIOS DE INTERES MUNICIPAL
+
+## Archivo Histórico – Archivo Gral de la Provincia
+- Ubicación: 24 de Setiembre 871
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: CPA
+
+## Arzobispado y Seminario Mayor (Palacio Episcopal)
+- Ubicación: Av Sarmiento al 800
+- Propietario / situación jurídica: Arzobispado de Tucumán
+- Categorización: IM
+
+## Banco Comercial del Norte –ex Banco del Tucumán
+- Ubicación: San Martín 721
+- Propietario / situación jurídica: Privada
+- Categorización: IM
+- Observaciones: Banco Macro. Remodelada fachada e interior
+
+## Banco Empresario de Tucumán
+- Ubicación: Maipú 22
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Banco Hipotecario Nacional
+- Ubicación: San Martín 801 esq Junín
+- Propietario / situación jurídica: Fiscal – Estado Provincial
+- Categorización: CPA
+
+## Banco Municipal –ex
+- Ubicación: Monteagudo esq San Martín
+- Propietario / situación jurídica: Municipalidad S.M. de Tucumán
+- Categorización: CPA
+- Observaciones: Honorable Concejo Deliberante. Remodelado interior
+
+## Banco Nación
+- Ubicación: Maipú esq San Martín
+- Propietario / situación jurídica: Estado Nacional
+- Categorización: IM
+
+## Banco de la Provincia –ex
+- Ubicación: Laprida 99
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM
+- Observaciones: Secretaría de Hacienda
+
+## Banco del Suquía (Christie SA)
+- Ubicación: San Martín 800 esq Junín
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Biblioteca Alberdi
+- Ubicación: 9 de Julio 162
+- Propietario / situación jurídica: Privada
+- Categorización: IM
+
+## Brigada de Investigaciones (Cárcel de Contraventores)
+- Ubicación: Av Sarmiento esq Muñecas
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM
+- Observaciones: Demolición parcial
+- Situación 2016: resaltado en el relevamiento
+
+## Café de la Plaza
+- Ubicación: Laprida 101 – San Martín
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Caja Popular de Ahorros
+- Ubicación: San Martín 469
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM
+
+## Capilla El Señor del Milagro y San Marón
+- Ubicación: Santiago esq Junín
+- Propietario / situación jurídica: Eclesial – Comunidad Maronita
+- Categorización: IM
+
+## Capilla de las Hnas Esclavas del Corazón de Jesús
+- Ubicación: Alberdi 509
+- Propietario / situación jurídica: Hnas Esclavas del Corazón de Jesús
+- Categorización: IM
+
+## Capilla de las Hermanas Josefinas
+- Ubicación: Las Heras 868
+- Propietario / situación jurídica: Hermanas Josefinas
+- Categorización: IM
+
+## Capilla y Colegio Sagrado Corazón
+- Ubicación: 25 de Mayo 680
+- Propietario / situación jurídica: Padres Lourdistas
+- Categorización: IM
+
+## Capilla y Colegio Santa Catalina
+- Ubicación: Av Sarmiento al 700
+- Propietario / situación jurídica: Orden de Santo Domingo
+- Categorización: IM
+
+## Casa Apaza (Dr Onofre Herrera)
+- Ubicación: San Martín 21 B
+- Categorización: CPA
+
+## Casa Bulacio (ex casa Araoz)
+- Ubicación: 25 de Mayo 883
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+- Observaciones: Remodelación fachada
+
+## Casa Chaker Farra Apás
+- Ubicación: Maipú 390/392/394
+- Propietario / situación jurídica: Privada
+- Categorización: IM
+
+## Casa Chavanne
+- Ubicación: Pje Felipe Bertrés 247/249
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+- Observaciones: Pedido de demolición
+- Situación 2016: resaltado en el relevamiento
+
+## Casa Corrales Muñoz (Casa Gómez Omil)
+- Ubicación: 25 de Mayo 762
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Casa Di Lella
+- Ubicación: 25 de Mayo 683
+- Propietario / situación jurídica: Privada – Sr Alberto Di Lella
+- Categorización: IM
+
+## Casa Franceschi
+- Ubicación: Córdoba 961/959/965
+- Propietario / situación jurídica: Privada – Sucesión Franceschi
+- Categorización: CPA
+
+## Casa Jerónimo Helguera
+- Ubicación: Santiago 63
+- Propietario / situación jurídica: Privada – Sr Gerónimo Helguera
+- Categorización: CPA
+
+## Casa Histórica de la Independencia
+- Ubicación: Congreso 183
+- Propietario / situación jurídica: Estado Nacional
+- Categorización: IM/MHN
+- Observaciones: MHN (Dcto 98.076-12/8/41)
+
+## Casa Iramain (ex) Sr Adad
+- Ubicación: Bernabé Aráoz 251
+- Propietario / situación jurídica: Privada – Sr Adad
+- Categorización: CPA
+
+## Casa Juan B. Terán
+- Ubicación: 25 de Mayo 476
+- Propietario / situación jurídica: Privada
+- Categorización: IM
+
+## Casa Libanesa (Casa Gnet)
+- Ubicación: Chacabuco 54/56
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+---
+
+## REFERENCIAS
+
+- **IM**: Interés Municipal
+- **CPA**: Componente del Patrimonio Arquitectónico
+- **MHM**: Monumento Histórico Municipal
+- **MHN**: Monumento Histórico Nacional

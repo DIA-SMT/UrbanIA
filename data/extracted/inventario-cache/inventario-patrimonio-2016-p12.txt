@@ -1,0 +1,158 @@
+# HOJA: 5/7
+
+## SECCIÓN: EDIFICIOS Y SITIOS DE INTERES MUNICIPAL
+
+## Inmobiliaria (ex)
+- Ubicación: Mendoza 299 esq Rivadavia
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+- Situación 2016: resaltado en el relevamiento
+
+## Instituto Italo Argentino de Seguros
+- Ubicación: 24 de Setiembre 508
+- Categorización: CPA
+
+## Instituto Técnico de la UNT
+- Ubicación: General Paz 920
+- Categorización: CPA
+
+## Instituto de Enseñanza 20 de Junio (Vivienda Turri)
+- Ubicación: Rivadavia 355
+- Categorización: CPA
+
+## Jockey Club
+- Ubicación: San Martín 451
+- Propietario / situación jurídica: Privada – Jockey Club de Tucumán
+- Categorización: IM
+
+## LV 12 Radio Independencia (Casa Zavaleta)
+- Ubicación: Rivadavia 120
+- Categorización: CPA
+- Observaciones: Conserva solo la fachada
+- Situación 2016: resaltado en el relevamiento
+
+## La Fénix del Norte
+- Ubicación: San Martín esq Junín
+- Categorización: CPA
+
+## Locales y Vivienda Prop. Enrique V. Zuccardi y Amalia T.
+- Ubicación: Crisóstomo Alvarez 719
+- Propietario / situación jurídica: Privada – Dr Zuccardi
+- Categorización: CPA
+- Observaciones: Demolida
+- Situación 2016: resaltado en el relevamiento
+
+## Logia Masónica (S. de S.M. Estrella de Tucumán)
+- Ubicación: 9 de Julio 369
+- Categorización: CPA
+
+## Mercado de Abasto (ex)
+- Ubicación: Miguel Lillo, General Paz, Las Piedras, P.Mena
+- Propietario / situación jurídica: Municipalidad de S.M. de Tucumán
+- Categorización: IM
+- Observaciones: IM (Ord 2996/01) Demolición parcial y refuncionalización
+
+## Mercado del Norte
+- Ubicación: Maipú esq Mendoza
+- Propietario / situación jurídica: Fiscal – Municip. S.M. de Tucumán
+- Categorización: CPA
+
+## Museo Folklórico Prov. (Casa Obispo Colombres)
+- Ubicación: 24 de Setiembre 565
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM
+
+## Museo Histórico Provincial (Casa Avellaneda)
+- Ubicación: Congreso 20
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM/MHN
+- Observaciones: MHN (1208/1941)
+
+## Museo Provincial de Bellas Artes
+- Ubicación: 9 de Julio 46
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM
+
+## OSECAC
+- Ubicación: San Juan 795
+- Propietario / situación jurídica: Privada – Fortunato Abdelnur
+- Categorización: CPA
+
+## Opus Dei (ex)
+- Ubicación: Crisóstomo Alvarez 777
+- Propietario / situación jurídica: Privada – Opus Dei
+- Categorización: CPA
+
+## Palacio de Tribunales
+- Ubicación: 9 de Julio/Lamadrid/Congreso
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM
+
+## Panadería Villecco
+- Ubicación: Corrientes 747
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Partido Justicialista
+- Ubicación: Rivadavia 153
+- Categorización: CPA
+- Observaciones: Demolida
+- Situación 2016: resaltado en el relevamiento
+
+## Paseo Español (ex Banco Español)
+- Ubicación: Maipú esq San Martín
+- Propietario / situación jurídica: Privada
+- Categorización: IM
+- Observaciones: Remodelado
+
+## Paseo Independencia (Casa Ñaró)
+- Ubicación: San Martín 499
+- Categorización: CPA
+
+## Peña Cultural El Cardón (Casa Nougués)
+- Ubicación: Las Heras 50
+- Categorización: CPA
+
+## Plaza Alberdi
+- Ubicación: Santiago-Catamarca-Corrientes-José Colombres
+- Propietario / situación jurídica: Municipalidad de S.M. de Tucumán
+- Categorización: IM
+- Observaciones: IM (Dcto 779/SPP/94)
+
+## Parque Nicolás Avellaneda
+- Ubicación: Av Mate de Luna-Paso de Los Andes-Asunción-San Martín
+- Propietario / situación jurídica: Municipalidad S.M. de Tucumán
+- Categorización: IM
+
+## Parque Batalla de Tucumán (Parque Guillermina)
+- Ubicación: Av Mate de Luna-R.Cossio
+- Propietario / situación jurídica: Municipalidad de S.M. de Tucumán
+- Categorización: IM
+- Observaciones: IM (Dcto 784/SPP/94)
+
+## Parque 9 de Julio
+- Ubicación: Av Avelati y Benjamín Aráoz-Av C. del Campo-Av C. Suarez
+- Propietario / situación jurídica: Municipalidad de S.M. de Tucumán
+- Categorización: IM
+- Observaciones: IM (Dcto 785/SPP/94)
+
+## Plaza Belgrano
+- Ubicación: Alberdi – Lavalle - Bernabé Aráoz - Bolívar
+- Propietario / situación jurídica: Municipalidad de S.M. de Tucumán
+- Categorización: IM
+- Observaciones: IM (Dcto 781/SPP/94)
+
+## Plaza Independencia
+- Ubicación: 25 de Mayo - 24 de Setiembre – Laprida - San Martín
+- Propietario / situación jurídica: Municipalidad de S.M. de Tucumán
+- Categorización: IM
+- Observaciones: IM (Dcto 778/SPP/94)
+
+---
+
+## REFERENCIAS
+
+- **IM**: Interés Municipal
+- **CPA**: Componente del Patrimonio Arquitectónico
+- **MHM**: Monumento Histórico Municipal
+- **MHN**: Monumento Histórico Nacional

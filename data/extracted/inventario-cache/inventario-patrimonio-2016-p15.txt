@@ -1,0 +1,25 @@
+# HOJA: 7/7
+
+## RESUMEN
+
+**Total Bienes de Valor Patrimonial: 215**
+
+- Bienes MHN: 6
+- Bienes de Interés Municipal: 100
+- Bienes Componentes del Patrimonio: 112
+
+**Bienes Demolidos: 19**
+
+- Bienes de Interés Municipal Demolidos: 4
+- Bienes Componentes del Patrimonio Demolidos: 15 Controlar
+
+**Bienes en duda: 3**
+
+---
+
+## REFERENCIAS
+
+- **IM** = Interés Municipal
+- **CPA** = Componente del Patrimonio Arquitectónico
+- **MHM** = Monumento Histórico Municipal
+- **MHN** = Monumento Histórico Nacional

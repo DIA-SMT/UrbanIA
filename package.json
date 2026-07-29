@@ -18,6 +18,7 @@
     "db:ingest:knowledge": "tsx --env-file=.env.local prisma/ingest-knowledge.ts",
     "db:ingest:planillas": "tsx --env-file=.env.local prisma/ingest-planillas.ts",
     "db:ingest:planillas-uso": "tsx --env-file=.env.local prisma/ingest-planillas-uso.ts",
+    "db:ingest:inventario": "tsx --env-file=.env.local prisma/ingest-inventario-patrimonio.ts",
     "hearings:ingest": "tsx --env-file=.env.local scripts/ingest-hearings.ts",
     "dev:turbo": "next dev --turbo",
     "hearings:ingest-docs": "tsx --env-file=.env.local scripts/ingest-hearing-documents.ts",

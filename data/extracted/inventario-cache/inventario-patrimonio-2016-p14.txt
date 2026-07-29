@@ -1,0 +1,130 @@
+HOJA: 7/7
+
+SECCIÓN: EDIFICIOS Y SITIOS DE INTERES MUNICIPAL
+
+## Vivienda (Casa Conrado M. Pastur – J.M. Avellaneda)
+- Ubicación: Las Heras 162
+- Categorización: CPA
+
+## Vivienda (Casa Extratón Colombres)
+- Ubicación: Balcarce 164
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+- Observaciones: Demolida
+- Situación 2016: resaltado en el relevamiento
+
+## Vivienda (Casa Juan Hofer)
+- Ubicación: San Martín 58
+- Categorización: CPA
+
+## Vivienda (Casa López Domínguez)
+- Ubicación: Balcarce 758
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Vivienda (Casa Prudencio Santillán)
+- Ubicación: Monteagudo y Marcos Paz
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Vivienda (Casa Sofía N.H. de Colombres)
+- Ubicación: Balcarce 180
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+- Situación 2016: resaltado en el relevamiento
+
+## Vivienda (Casa Sucesión Usabel – Padrón 156038)
+- Ubicación: Congreso 310/312
+- Categorización: CPA
+
+## Vivienda (Casa Terán)
+- Ubicación: Balcarce 752
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Vivienda (Guillermo Hill Terán)
+- Ubicación: San Martín 65
+- Categorización: CPA
+- Observaciones: Demolida
+- Situación 2016: resaltado en el relevamiento
+
+## Vivienda (Lote 6 – Padrón 15637)
+- Ubicación: Congreso 347
+- Categorización: CPA
+
+## Vivienda (Padrón 156236)
+- Ubicación: Congreso 351
+- Categorización: CPA
+
+## Vivienda Asfoura
+- Ubicación: Salta 520
+- Propietario / situación jurídica: Privada
+- Categorización: IM
+
+## Vivienda Casbas
+- Ubicación: Salta 500
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Viv. Criscuolo (Casa Jaroslav Schollar - Casa Cuello Elías)
+- Ubicación: Las Heras y Lamadrid 295
+- Categorización: CPA
+
+## Vivienda O. Severo Colombres
+- Ubicación: Entre Ríos 175
+- Categorización: CPA
+
+## Vivienda Personal Jerárquico F.C. Gral B. Mitre
+- Ubicación: Catamarca al 700
+- Categorización: IM
+
+## Vivienda Sucesión Curia
+- Ubicación: Congreso 282/296
+- Propietario / situación jurídica: Privada – Sucesión Orc Curia
+- Categorización: CPA
+
+## Vivienda Sucesión Ferreyra
+- Ubicación: Congreso 278
+- Categorización: CPA
+
+## Vivienda Teófilo Kuchar (Casa Guillermo Terán)
+- Ubicación: Salta 528
+- Propietario / situación jurídica: Privada
+- Categorización: IM
+- Situación 2016: resaltado en el relevamiento
+
+## Vivienda V. Stagnetto
+- Ubicación: Las Heras 58
+- Categorización: CPA
+
+## Vivienda y Comercio
+- Ubicación: 25 de Mayo 257/259
+- Categorización: CPA
+- Observaciones: Demolida
+- Situación 2016: resaltado en el relevamiento
+
+## Vivienda y Conjunto
+- Ubicación: Salta 328 y 348
+- Categorización: CPA
+
+## Vivienda y Estudios
+- Ubicación: Jujuy 53/59
+- Categorización: CPA
+- Situación 2016: resaltado en el relevamiento
+
+## Vivienda Art Nouveau – Estudio jurídico
+- Ubicación: Entre Ríos 177 esquina
+- Categorización: CPA
+
+## Zona denominada "El Bajo"
+- Ubicación: Av 24 de Setiembre 1ª 2ª y 3ª cuadra; Av Sáenz Peña hasta Gral Paz; Pje Sargento Gómez; Charcas 1ª y 2ª cuadra; Av Benjamín Aráoz 1ª y 2ª cuadra y Av Avellaneda 1ª cuadra
+- Categorización: IM
+- Observaciones: IM (Ord Nº 1937/92)
+
+---
+
+REFERENCIAS:
+- IM: Interés Municipal
+- CPA: Componente del Patrimonio Arquitectónico
+- MHM: Monumento Histórico Municipal
+- MHN: Monumento Histórico Nacional
