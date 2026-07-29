@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/shell";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
-import { getReform, listAuthorNames } from "@/lib/projects/data";
+import { getReform, listAuthorNames, listReformDocuments } from "@/lib/projects/data";
 import { NormsBoard } from "@/components/normas/norms-board";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +13,10 @@ export default async function ReformPage({ params }: { params: Promise<{ reformI
 
   const session = await getSessionUser();
 
-  const [reform, knownAuthors] = await Promise.all([
+  const [reform, knownAuthors, documents] = await Promise.all([
     getReform(reformId).catch(() => null),
-    listAuthorNames().catch(() => [])
+    listAuthorNames().catch(() => []),
+    listReformDocuments(reformId).catch(() => [])
   ]);
   if (!reform) notFound();
 
@@ -23,7 +24,7 @@ export default async function ReformPage({ params }: { params: Promise<{ reformI
 
   return (
     <AppShell>
-      <NormsBoard reform={reform} canEdit={canEdit} knownAuthors={knownAuthors} />
+      <NormsBoard reform={reform} canEdit={canEdit} knownAuthors={knownAuthors} documents={documents} />
     </AppShell>
   );
 }

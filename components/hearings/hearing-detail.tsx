@@ -134,7 +134,7 @@ export function HearingDetail({
     setAnalyzeError("");
     setAnalyzing(true);
     try {
-      const response = await fetch(`/api/hearings/${hearing.id}/generate-analysis`, { method: "POST" });
+      const response = await fetch(`/api/hearings/${hearing.id}?action=generate-analysis`, { method: "POST" });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.detail || payload?.error || "No se pudo generar el análisis.");
@@ -151,7 +151,7 @@ export function HearingDetail({
     setRetryError("");
     setRetrying(true);
     try {
-      const response = await fetch(`/api/hearings/${hearing.id}/retry-ingest`, { method: "POST" });
+      const response = await fetch(`/api/hearings/${hearing.id}?action=retry-ingest`, { method: "POST" });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.detail || payload?.error || "No se pudo reintentar el procesamiento.");
@@ -190,7 +190,7 @@ export function HearingDetail({
     setFichaError("");
     setCompletingFicha(true);
     try {
-      const response = await fetch(`/api/hearings/${hearing.id}/complete-ficha`, {
+      const response = await fetch(`/api/hearings/${hearing.id}?action=complete-ficha`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // El endpoint topea en 200.000 caracteres.
@@ -221,7 +221,7 @@ export function HearingDetail({
     setFichaError("");
     setSavingFicha(true);
     try {
-      const response = await fetch(`/api/hearings/${hearing.id}/ficha`, {
+      const response = await fetch(`/api/hearings/${hearing.id}?action=ficha`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ficha: fichaDraft })
@@ -244,7 +244,7 @@ export function HearingDetail({
     setConclusionsError("");
     setSavingConclusions(true);
     try {
-      const response = await fetch(`/api/hearings/${hearing.id}/conclusions`, {
+      const response = await fetch(`/api/hearings/${hearing.id}?action=conclusions`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conclusions: conclusionsDraft })

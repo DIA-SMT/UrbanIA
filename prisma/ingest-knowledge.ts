@@ -5,10 +5,17 @@ import { embedPassages } from "../lib/ai/embeddings";
 
 /**
  * Ingesta RAG de la normativa en PDF (texto ya extraído con pdftotext a data/extracted):
- *  - Digesto Normativo 1ª y 2ª parte: se parte por norma (ordenanza/decreto/ley/resolución).
+ *  - Digesto Normativo 1ª y 2ª parte, EDICIÓN 2015 (quinta actualización): se
+ *    parte por norma (ordenanza/decreto/ley/resolución). La edición anterior se
+ *    elimina al final: el RAG cita una sola edición vigente, no dos.
  *  - Anexo de Ordenanzas del Texto CPU 2014: ordenanzas completas no intercalables.
  *  - Re-embebe los chunks estructurados del CPU ya existentes (fuente codigo-planeamiento-smt-2014).
  * Embeddings locales multilingual-e5-small (384 dim) sobre la columna pgvector.
+ *
+ * Cuando llegue la próxima edición del digesto: extraer con
+ *   pdftotext -enc UTF-8 <pdf> data/extracted/digesto-N-AAAA.raw.txt
+ * y actualizar las entradas de main() (archivos, externalId, versión y la lista
+ * de ediciones a eliminar).
  */
 
 const prisma = new PrismaClient();
@@ -24,6 +31,15 @@ type CleanPage = { page: number; text: string };
 type NormSection = { normType: string; normId: string; heading: string; body: string; page: number };
 type PreparedChunk = { content: string; embedText: string; metadata: Prisma.InputJsonValue };
 
+/**
+ * En algunas páginas pdftotext pega el encabezado y el título de la norma en la
+ * MISMA línea ("...mayo de 2015) RESOLUCIÓN Nº 227..."). Filtrar la línea entera
+ * se comía esa norma (pasaba en ambas ediciones: 9 líneas en 2014, 13 en 2015).
+ * Por eso primero se recorta el prefijo del encabezado y el filtro queda solo
+ * para las líneas que son encabezado puro.
+ */
+const PAGE_HEADER_PREFIX = /^.*?Digesto Normativo.*?\(Extractado y ordenado a mayo de \d{4}\)\s*/iu;
+
 function cleanPages(raw: string): CleanPage[] {
   return raw
     .replace(/^﻿/, "")
@@ -33,6 +49,7 @@ function cleanPages(raw: string): CleanPage[] {
       page: index + 1,
       text: pageText
         .split("\n")
+        .map((line) => (PAGE_HEADER.test(line) ? line.replace(PAGE_HEADER_PREFIX, "") : line))
         .filter((line) => !PAGE_HEADER.test(line) && !/^\s*\d{1,3}\s*$/.test(line))
         .join("\n")
         .replace(/\n{3,}/g, "\n\n")
@@ -88,11 +105,25 @@ function sizeSplit(text: string): string[] {
   return parts.filter((part) => part.length > 40);
 }
 
+/**
+ * El Anexo I del Decreto 0582/SPDUA/00 (Inventario de Edificios y Sitios de
+ * Valor Patrimonial) es una TABLA que pdftotext lee por columnas: quedan todos
+ * los nombres juntos, despues todas las direcciones, despues los propietarios.
+ * Chunkeado asi, el RAG asociaria cada edificio con la direccion de otro. Se
+ * corta aca y la tabla entra bien por prisma/ingest-inventario-patrimonio.ts,
+ * que la transcribe con vision igual que las planillas.
+ */
+const ANEXO_INVENTARIO = /\n\s*ANEXO I\s*\n+\s*INVENTARIO EDIFICIOS[\s\S]*$/u;
+
 function prepareDocumentChunks(sections: NormSection[], docLabel: string, externalId: string): PreparedChunk[] {
   const chunks: PreparedChunk[] = [];
   for (const section of sections) {
     const normLabel = `${titleCase(section.normType)} ${section.normId}`;
-    const parts = sizeSplit(section.body);
+    const body = section.body.replace(
+      ANEXO_INVENTARIO,
+      "\n[Anexo I: el Inventario de Edificios y Sitios de Valor Patrimonial está cargado como fuente aparte, transcripto del PDF original.]"
+    );
+    const parts = sizeSplit(body);
     parts.forEach((part, partIndex) => {
       chunks.push({
         content: part,
@@ -118,12 +149,24 @@ function titleCase(value: string) {
   return value.toLowerCase().replace(/(^|\s)\S/g, (char) => char.toUpperCase());
 }
 
-async function upsertSource(externalId: string, title: string, filePath: string, wordCount: number) {
+async function upsertSource(externalId: string, title: string, filePath: string, wordCount: number, version: string) {
   return prisma.knowledgeSource.upsert({
     where: { kind_externalId: { kind: KnowledgeSourceKind.REGULATION, externalId } },
-    update: { title, filePath, mimeType: "application/pdf", status: ProcessingStatus.PROCESSING, wordCount, metadata: { pipeline: "pdftotext+e5-small", version: "2014-05" } },
-    create: { kind: KnowledgeSourceKind.REGULATION, externalId, title, filePath, mimeType: "application/pdf", status: ProcessingStatus.PROCESSING, wordCount, metadata: { pipeline: "pdftotext+e5-small", version: "2014-05" } }
+    update: { title, filePath, mimeType: "application/pdf", status: ProcessingStatus.PROCESSING, wordCount, metadata: { pipeline: "pdftotext+e5-small", version } },
+    create: { kind: KnowledgeSourceKind.REGULATION, externalId, title, filePath, mimeType: "application/pdf", status: ProcessingStatus.PROCESSING, wordCount, metadata: { pipeline: "pdftotext+e5-small", version } }
   });
+}
+
+/** Elimina una fuente reemplazada (edición vieja) con todos sus chunks. */
+async function removeSource(externalId: string) {
+  const source = await prisma.knowledgeSource.findUnique({
+    where: { kind_externalId: { kind: KnowledgeSourceKind.REGULATION, externalId } }
+  });
+  if (!source) return { externalId, removed: false };
+  const { count } = await prisma.knowledgeChunk.deleteMany({ where: { sourceId: source.id } });
+  await prisma.knowledgeSource.delete({ where: { id: source.id } });
+  console.log(`${externalId}: eliminada (${count} chunks).`);
+  return { externalId, removed: true, chunks: count };
 }
 
 async function embedAndStore(chunkIds: string[], embedTexts: string[]) {
@@ -144,7 +187,7 @@ async function embedAndStore(chunkIds: string[], embedTexts: string[]) {
   }
 }
 
-async function ingestDocument(externalId: string, title: string, filePath: string, rawPath: string, options?: { fromMarker?: RegExp }) {
+async function ingestDocument(externalId: string, title: string, filePath: string, rawPath: string, version: string, options?: { fromMarker?: RegExp }) {
   const raw = await readFile(rawPath, "utf8");
   let pages = cleanPages(raw);
 
@@ -159,7 +202,7 @@ async function ingestDocument(externalId: string, title: string, filePath: strin
   if (!chunks.length) throw new Error(`Sin chunks para ${externalId}`);
 
   const wordCount = pages.reduce((sum, page) => sum + page.text.split(/\s+/).length, 0);
-  const source = await upsertSource(externalId, title, filePath, wordCount);
+  const source = await upsertSource(externalId, title, filePath, wordCount, version);
   await prisma.knowledgeChunk.deleteMany({ where: { sourceId: source.id } });
 
   // createMany en lotes para no exceder límites del pooler.
@@ -206,10 +249,28 @@ async function main() {
   const extracted = join(process.cwd(), "data", "extracted");
   const results = [];
 
-  results.push(await reembedPlanningCode());
-  results.push(await ingestDocument("digesto-catastro-1-2014", "Digesto Normativo 1ª parte (mayo 2014)", "data/sources/DIGESTO 1ª parte- 2014-para web.pdf", join(extracted, "digesto-1-2014.raw.txt")));
-  results.push(await ingestDocument("digesto-catastro-2-2014", "Digesto Normativo 2ª parte (mayo 2014)", "data/sources/DIGESTO 2ª parte- 2014-para web.pdf", join(extracted, "digesto-2-2014.raw.txt")));
-  results.push(await ingestDocument("cpu-anexo-ordenanzas-2014", "CPU 2014 – Anexo de Ordenanzas", "data/sources/TEXTO CPU 2014-para web.pdf", join(extracted, "texto-cpu-2014.raw.txt"), { fromMarker: /^ANEXO DE ORDENANZAS$/m }));
+  // Sin argumentos corre todo. Con argumentos, solo esas fuentes:
+  //   npx tsx --env-file=.env.local prisma/ingest-knowledge.ts digesto-catastro-1-2015
+  const soloIds = process.argv.slice(2);
+  const corre = (externalId: string) => soloIds.length === 0 || soloIds.includes(externalId);
+
+  if (corre("codigo-planeamiento-smt-2014")) results.push(await reembedPlanningCode());
+  if (corre("digesto-catastro-1-2015")) {
+    results.push(await ingestDocument("digesto-catastro-1-2015", "Digesto Normativo 1ª parte (mayo 2015)", "data/sources/digesto-1-2015.pdf", join(extracted, "digesto-1-2015.raw.txt"), "2015-05"));
+    // El reemplazo borra la edición anterior recién DESPUÉS de ingerir la nueva:
+    // si la ingesta falla a mitad de camino, el RAG sigue citando el digesto 2014.
+    results.push(await removeSource("digesto-catastro-1-2014"));
+  }
+  if (corre("digesto-catastro-2-2015")) {
+    results.push(await ingestDocument("digesto-catastro-2-2015", "Digesto Normativo 2ª parte (mayo 2015)", "data/sources/digesto-2-2015.pdf", join(extracted, "digesto-2-2015.raw.txt"), "2015-05"));
+    results.push(await removeSource("digesto-catastro-2-2014"));
+  }
+  if (corre("cpu-anexo-ordenanzas-2014")) {
+    // "vigente" y no "2014" a secas: el texto ordenado 2014 es el ULTIMO del
+    // CPU (la serie 2015 del digesto no trajo tomo del CPU) y las citas deben
+    // dejar claro que es el codigo que rige, no una edicion vieja conviviendo.
+    results.push(await ingestDocument("cpu-anexo-ordenanzas-2014", "CPU vigente – Anexo de Ordenanzas (texto ordenado 2014)", "data/sources/TEXTO CPU 2014-para web.pdf", join(extracted, "texto-cpu-2014.raw.txt"), "2014-05", { fromMarker: /^ANEXO DE ORDENANZAS$/m }));
+  }
 
   const total = await prisma.knowledgeChunk.count();
   const withEmbedding = await prisma.$queryRawUnsafe<[{ n: number }]>(`select count(*)::int as n from "KnowledgeChunk" where embedding is not null`);

@@ -8,6 +8,29 @@ import { CONTRIBUTION_BLOCK_MESSAGE, moderateContribution } from "@/lib/moderati
 import { analyzeAggression } from "@/lib/ai/moderation-intent";
 import { UNCLASSIFIED_AXIS } from "@/lib/citizen/contributions";
 import { classifyContributionTopic } from "@/lib/ai/topic-classifier";
+import { handleContributionDelete, handleContributionPatch } from "@/lib/citizen/api/contribution";
+
+/*
+ * Editar y borrar UNA contribucion tambien entran por aca, con `?id=`, en vez
+ * de tener su propia ruta [id]: el plan Hobby de Vercel admite 12 funciones
+ * serverless por deploy y cada route.ts cuenta una. Los handlers viven en
+ * lib/citizen/api/ con su codigo intacto.
+ */
+function contributionId(request: Request): string | null {
+  return new URL(request.url).searchParams.get("id");
+}
+
+export async function PATCH(request: Request) {
+  const id = contributionId(request);
+  if (!id) return NextResponse.json({ error: "Falta el id de la contribución" }, { status: 400 });
+  return handleContributionPatch(request, id);
+}
+
+export async function DELETE(request: Request) {
+  const id = contributionId(request);
+  if (!id) return NextResponse.json({ error: "Falta el id de la contribución" }, { status: 400 });
+  return handleContributionDelete(request, id);
+}
 
 // name y dni NO se aceptan del cliente: salen de la cuenta del vecino, que los
 // declaró una sola vez al registrarse.

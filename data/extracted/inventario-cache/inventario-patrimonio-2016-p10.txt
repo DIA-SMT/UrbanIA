@@ -1,0 +1,177 @@
+# HOJA: 3/7
+
+SECCIÓN: EDIFICIOS Y SITIOS DE INTERES MUNICIPAL
+
+## Colegio Nuestra Sra del Huerto
+- Ubicación: Rivadavia 290
+- Propietario / situación jurídica: Arzobispado
+- Categorización: IM
+- Observaciones: IM (Dcto 281/SPDUA/01)
+
+## Colegio San Francisco (Casa Escuela de los Pobres)
+- Ubicación: Marcos Paz 664
+- Propietario / situación jurídica: Eclesial – Orden Franciscana
+- Categorización: IM
+
+## Colegio Santa Rosa
+- Ubicación: 24 de Setiembre 571/581
+- Propietario / situación jurídica: Hermanas Dominicas
+- Categorización: IM
+
+## Colegio Tulio García Fernández
+- Ubicación: Av Mitre 312
+- Propietario / situación jurídica: Orden Salesiana
+- Categorización: IM
+
+## Colegio de Escribanos (ex casa Sisto Terán)
+- Ubicación: Crisóstomo Alvarez 465
+- Categorización: CPA
+
+## Comando de la V Brigada de Infantería
+- Ubicación: Av Sarmiento 417/431
+- Propietario / situación jurídica: Estado Nacional
+- Categorización: IM
+
+## Comercio (Propiedad Jorge Herrera)
+- Ubicación: Córdoba 570
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Comercio tienda M.S. Muhala (Padrón 257061)
+- Ubicación: 9 de Julio esq General Paz
+- Categorización: CPA
+
+## Comercio y Deptos (Propiedad M. Pedroza)
+- Ubicación: Congreso 158
+- Categorización: CPA
+
+## Comercio y Vivienda (Confitería La Perla – Padrón 248161)
+- Ubicación: Av Sáenz Peña esq 24 de Setiembre
+- Categorización: CPA/IM
+- Observaciones: IM (Dcto 281/SPDUA/01)
+
+## Comisaría Seccional 2ª
+- Ubicación: Buenos Aires 480
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: CPA
+
+## Comisaría Seccional 3ª
+- Ubicación: Maipú 487
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: CPA
+
+## Cía de Seguros Aconcagua (Casa Terán:Apud)
+- Ubicación: 25 de Mayo 628
+- Categorización: CPA
+
+## Complejo Teniente Ledesma
+- Ubicación: Av Sarmiento esq 25 de Mayo
+- Propietario / situación jurídica: Municipalidad de S.M. de Tucumán
+- Categorización: IM
+
+## Conjunto de viviendas Balcarce y Córdoba
+- Ubicación: Balcarce esq Córdoba
+- Propietario / situación jurídica: Privada - Varios
+- Categorización: CPA
+
+## Convento San Francisco
+- Ubicación: 25 de Mayo esq San Martín
+- Propietario / situación jurídica: Orden Franciscana
+- Categorización: IM/MHN
+- Observaciones: MHN (Dcto 270 – 20/3/87)
+
+## Correo y Telecomunicaciones
+- Ubicación: 25 de Mayo esq Córdoba
+- Propietario / situación jurídica: Estado Nacional - Encotel
+- Categorización: IM
+
+## Círculo del Magisterio
+- Ubicación: Las Heras 25
+- Propietario / situación jurídica: Privada – Círculo del Magisterio
+- Categorización: CPA
+
+## Círculo de Suboficiales del Ejército (Casa Avellaneda)
+- Ubicación: San Martín 319/321
+- Propietario / situación jurídica: Privada – Mutual de Suboficiales Retir.
+- Categorización: CPA
+
+## Dirección General de Rentas
+- Ubicación: Maipú esq San Martín
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM
+
+## Dpto de Renta
+- Ubicación: Rivadavia 244
+- Categorización: CPA
+
+## ENET Nº 5
+- Ubicación: Alberdi 150
+- Categorización: CPA
+- Situación 2016: resaltado en el relevamiento
+
+## Edificio Mac Donald's (ex Casa Venci)
+- Ubicación: San Juan esq 25 de Mayo
+- Propietario / situación jurídica: Privada – Gettas Hnos
+- Categorización: CPA
+
+## Edificio Avellaneda y Terán
+- Ubicación: 25 de Mayo 278/284/286
+- Categorización: CPA
+
+## Edificio Excesany
+- Ubicación: San Martín 601 esq Muñecas
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Edificio La Continental
+- Ubicación: San Martín 401
+- Propietario / situación jurídica: Privada – Consorcio de Propietarios
+- Categorización: IM
+
+## Edificio Mizrahi
+- Ubicación: Crisóstomo Alvarez 616
+- Propietario / situación jurídica: Privada – Consorcio de Propietarios
+- Categorización: IM
+
+## Edificio de Oficinas (Comercio del Norte)
+- Ubicación: 24 de Setiembre 685
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Edificios - Vías y Obras F.C.N. Gral B. Mitre
+- Ubicación: Catamarca 662
+- Propietario / situación jurídica: Estado Nacional - FFCC
+- Categorización: IM
+
+## Escuela Mitre
+- Ubicación: Santiago esq Muñecas
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: CPA
+
+## Escuela Normal
+- Ubicación: Muñecas 219
+- Propietario / situación jurídica: Estado Nacional
+- Categorización: IM
+
+## Escuela Belgrano
+- Ubicación: Alberdi esq Lamadrid
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM
+
+## Escuela ENET Nº 2
+- Ubicación: Lavalle esq Congreso
+- Categorización: CPA
+
+## Escuela Federico Moreno
+- Ubicación: Santiago esq Rivadavia
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM
+
+---
+
+## REFERENCIAS
+
+- **IM**: Interés Municipal
+- **CPA**: Componente del Patrimonio Arquitectónico
+- **MHM**: Monumento Histórico Municipal
+- **MHN**: Monumento Histórico Nacional

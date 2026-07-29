@@ -1,0 +1,184 @@
+# INVENTARIO DE EDIFICIOS Y SITIOS DE VALOR PATRIMONIAL - SAN MIGUEL DE TUCUMÁN
+
+HOJA: 4/7
+
+SECCIÓN: EDIFICIOS Y SITIOS DE INTERÉS MUNICIPAL
+
+## Escuela Rivadavia
+- Ubicación: Salta esq 24 de Setiembre
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM
+
+## Escuela Sarmiento
+- Ubicación: Rivadavia 29
+- Propietario / situación jurídica: Estado Nacional - UNT
+- Categorización: IM
+
+## Escuela Irigoyen
+- Ubicación: José Colombres 290
+- Categorización: CPA
+
+## Escuela de Comercio Nº 1
+- Ubicación: Av Sarmiento 391
+- Categorización: CPA
+
+## Escuela de Comercio Nº 2
+- Ubicación: 25 de Mayo 364
+- Categorización: CPA
+- Observaciones: Demolida
+- Situación 2016: resaltado en el relevamiento
+
+## Escuela de Comercio Nº 3 (Asilo Hnas Franciscanas)
+- Ubicación: Buenos Aires 565
+- Categorización: CPA
+
+## Establecimiento Cotella - La Teresina
+- Ubicación: Mendoza 949/951/953/959
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Estación F.C.N. Gral B. Mitre (Sunchales)
+- Ubicación: Corrientes 1051
+- Propietario / situación jurídica: Estado Nacional - FFCC
+- Categorización: IM
+
+## Estación F.C.N. Gral Belgrano (Central Córdoba)
+- Ubicación: Marco Avellaneda al 100
+- Propietario / situación jurídica: Estado Nacional - FFCC
+- Categorización: IM
+
+## Estación F.C.N. Gral Belgrano (Central Norte) Ex El Bajo
+- Ubicación: Charcas 23
+- Propietario / situación jurídica: Estado Nacional - FFCC
+- Categorización: IM
+
+## Estación F.C.N. Gral Belgrano NOA (El Provincial)
+- Ubicación: Av Roca 640
+- Propietario / situación jurídica: Estado Nacional - FFCC
+- Categorización: IM
+
+## Estación del A.C.A.
+- Ubicación: Salta esq Crisóstomo Alvarez
+- Propietario / situación jurídica: Privada - ACA
+- Categorización: IM
+- Observaciones: Remodelado
+
+## Estudio – Vivienda – M.P.L.
+- Ubicación: Mendoza 294
+- Categorización: CPA
+- Situación 2016: resaltado en el relevamiento
+
+## Facultad de Bellas Artes (Hogar de obreras)
+- Ubicación: Chacabuco esq Bolívar
+- Propietario / situación jurídica: Estado Nacional - UNT
+- Categorización: IM
+
+## Facultad de Derecho y Departamentos
+- Ubicación: 25 de Mayo 453/455/457/459
+- Propietario / situación jurídica: Estado Nacional - UNT
+- Categorización: IM
+
+## Federación Económica de Tucumán
+- Ubicación: San Martín 427
+- Propietario / situación jurídica: Privada – F.E.T.
+- Observaciones: IM (Dcto 1483/SPDUA/01)
+- Categorización: IM
+
+## Ferretería Fernando Suárez – (ex)
+- Ubicación: 24 de Setiembre 851
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+- Observaciones: Banco de Santiago del estero. Conserva solo fachada
+- Situación 2016: resaltado en el relevamiento
+
+## Fundación Esperanza – Secretaría de la Mujer –ex
+- Ubicación: Rivadavia 134
+- Categorización: CPA
+
+## Galería Pezza
+- Ubicación: San Martín 650
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+- Observaciones: Remodelación interior
+
+## Hogar del Ciego (Asilo San Vicente)
+- Ubicación: Moreno 261
+- Categorización: CPA
+
+## Hogar del Empleado
+- Ubicación: Crisóstomo Alvarez 456
+- Categorización: CPA
+- Observaciones: Demolido
+- Situación 2016: resaltado en el relevamiento
+
+## Hogar del Niño de las Hnas Adoratrices
+- Ubicación: Alberdi 349/351
+- Categorización: IM
+
+## Hospital de Niños
+- Ubicación: Pje Hungría – Ayacucho
+- Propietario / situación jurídica: Gobierno de la Provincia
+- Categorización: IM
+
+## Hotel Congreso
+- Ubicación: Congreso 74
+- Propietario / situación jurídica: Privada – Sr Samuel Diker
+- Categorización: IM
+
+## Hotel Plaza
+- Ubicación: San Martín 443
+- Propietario / situación jurídica: Privada – Sr Fernando Hevia
+- Categorización: IM
+- Observaciones: IM (Dcto 428/SPDUA/00)
+
+## Hotel Royal (Hotel Barezzi)
+- Ubicación: San Martín 1200
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Hotel Vasca
+- Ubicación: Mendoza 281/289
+- Propietario / situación jurídica: Privada
+- Categorización: CPA
+
+## Iglesia "San Roque"
+- Ubicación: Av Avellaneda 471
+- Propietario / situación jurídica: Obispado de Tucumán
+- Categorización: IM
+
+## Iglesia "Corazón de María"
+- Ubicación: Santiago del Estero 871
+- Propietario / situación jurídica: Obispado de Tucumán
+- Categorización: IM
+
+## Iglesia Catedral
+- Ubicación: 24 de Setiembre esq Congreso
+- Propietario / situación jurídica: Arzobispado de Tucumán
+- Categorización: IM/MHN
+- Observaciones: MHN (98075)
+
+## Iglesia de San Francisco
+- Ubicación: 25 de Mayo esq San Martín
+- Propietario / situación jurídica: Orden Franciscana
+- Categorización: IM/MHN
+- Observaciones: MHN (Dcto 4938 – I/67)
+
+## Iglesia de Santo Domingo
+- Ubicación: 9 de Julio 161
+- Propietario / situación jurídica: Orden de Santo Domingo
+- Categorización: IM
+
+## Iglesia de La Merced
+- Ubicación: 24 de Setiembre esq Rivadavia
+- Propietario / situación jurídica: Arzobispado de Tucumán
+- Categorización: MHM/MHN
+- Observaciones: MHN (Dcto 9065/67) MHM (Ord 240/86)
+
+---
+
+## REFERENCIAS
+
+- **IM**: Interés Municipal
+- **CPA**: Componente del Patrimonio Arquitectónico
+- **MHM**: Monumento Histórico Municipal
+- **MHN**: Monumento Histórico Nacional

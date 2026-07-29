@@ -68,7 +68,7 @@ export function CpuChatWorkspace({
   const fetchList = useCallback(async (target: View) => {
     setListLoading(true);
     try {
-      const response = await fetch(`/api/cpu/conversations?archived=${target === "archived"}`);
+      const response = await fetch(`/api/cpu?archived=${target === "archived"}`);
       const payload = await response.json();
       setConversations(Array.isArray(payload.conversations) ? payload.conversations : []);
     } catch {
@@ -96,7 +96,7 @@ export function CpuChatWorkspace({
     setCurrentId(id);
     setMessages([]);
     try {
-      const response = await fetch(`/api/cpu/conversations/${id}`);
+      const response = await fetch(`/api/cpu?conversationId=${id}`);
       if (!response.ok) {
         throw new Error("No se pudo abrir la conversación.");
       }
@@ -126,7 +126,7 @@ export function CpuChatWorkspace({
     setIsSending(true);
 
     try {
-      const response = await fetch("/api/cpu/query", {
+      const response = await fetch("/api/cpu?action=query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -180,7 +180,7 @@ export function CpuChatWorkspace({
   async function archiveConversation(id: string, archived: boolean) {
     setBusyId(id);
     try {
-      const response = await fetch(`/api/cpu/conversations/${id}`, {
+      const response = await fetch(`/api/cpu?conversationId=${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ archived })
@@ -205,7 +205,7 @@ export function CpuChatWorkspace({
     const previous = conversations;
     setConversations((current) => current.map((conversation) => (conversation.id === id ? { ...conversation, title } : conversation)));
     try {
-      const response = await fetch(`/api/cpu/conversations/${id}`, {
+      const response = await fetch(`/api/cpu?conversationId=${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title })
@@ -221,7 +221,7 @@ export function CpuChatWorkspace({
   async function deleteConversation(id: string) {
     setBusyId(id);
     try {
-      const response = await fetch(`/api/cpu/conversations/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/cpu?conversationId=${id}`, { method: "DELETE" });
       if (!response.ok) {
         throw new Error("No se pudo eliminar.");
       }

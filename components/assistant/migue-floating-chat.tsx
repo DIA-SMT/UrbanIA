@@ -456,7 +456,7 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
     setStatus("loading");
 
     try {
-      const response = await fetch("/api/assistant/query", {
+      const response = await fetch("/api/assistant?action=query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

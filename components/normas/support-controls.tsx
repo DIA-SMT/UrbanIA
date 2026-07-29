@@ -52,7 +52,7 @@ export function SupportControls({
     setVoting(true);
     try {
       const removing = myValue === value;
-      const response = await fetch(`/api/projects/${normId}/support`, {
+      const response = await fetch(`/api/projects/${normId}?action=support`, {
         method: removing ? "DELETE" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(removing ? { voterName: voter } : { value, voterName: voter })

@@ -38,7 +38,7 @@ export function HearingDocuments({
     try {
       const body = new FormData();
       body.append("file", file);
-      const response = await fetch(`/api/hearings/${hearingId}/documents`, { method: "POST", body });
+      const response = await fetch(`/api/hearings/${hearingId}?action=documents`, { method: "POST", body });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.detail || payload?.error || "No se pudo subir el documento.");
@@ -57,7 +57,7 @@ export function HearingDocuments({
     setError("");
     setDeletingId(documentId);
     try {
-      const response = await fetch(`/api/hearings/${hearingId}/documents/${documentId}`, { method: "DELETE" });
+      const response = await fetch(`/api/hearings/${hearingId}?docId=${documentId}`, { method: "DELETE" });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.detail || payload?.error || "No se pudo eliminar el documento.");
@@ -109,7 +109,11 @@ export function HearingDocuments({
       {documents.length ? (
         <div className="grid gap-2">
           {documents.map((document) => (
-            <div key={document.id} className="flex items-center justify-between gap-3 rounded-md border border-white/8 bg-white/[0.03] px-3 py-2">
+            // min-w-0: sin el, un nombre de archivo largo estira la columna del
+            // grid (min-width: auto del item) y desborda la pagina, porque
+            // `truncate` recorta lo visible pero no lo que el texto mide. Mismo
+            // bug que ya mordio en los antecedentes de la reforma.
+            <div key={document.id} className="flex min-w-0 items-center justify-between gap-3 rounded-md border border-white/8 bg-white/[0.03] px-3 py-2">
               <a
                 href={document.url}
                 target="_blank"

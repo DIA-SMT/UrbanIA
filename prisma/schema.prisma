@@ -4,7 +4,15 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // La app corre contra el pooler de Supabase en modo TRANSACCION (puerto 6543,
+  // con pgbouncer=true). Es el unico que aguanta serverless: en modo sesion
+  // (5432) cada cliente reserva una conexion real de Postgres y el tope son 15,
+  // asi que con unas pocas lambdas tibias la base empieza a rechazar consultas
+  // con EMAXCONNSESSION.
+  url = env("DATABASE_URL")
+  // Las migraciones NO pueden ir por el pooler de transacciones: necesitan una
+  // conexion de sesion. DIRECT_URL es la misma cadena con el puerto 5432.
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -840,17 +848,31 @@ model ProjectBudgetItem {
 }
 
 model ProjectAttachment {
-  id        String   @id @default(cuid())
-  projectId String
-  kind      String
-  name      String
-  excerpt   String?
-  meetingId String?
-  meeting   Meeting? @relation(fields: [meetingId], references: [id], onDelete: SetNull)
-  createdAt DateTime @default(now())
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  projectId   String
+  kind        String
+  name        String
+  excerpt     String?
+  meetingId   String?
+  meeting     Meeting? @relation(fields: [meetingId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  /// Archivo real en Supabase Storage. Todos opcionales: los adjuntos previos
+  /// solo guardaban un excerpt de texto, sin archivo.
+  ///
+  /// OJO: varias normas salidas del mismo PDF comparten storagePath — el
+  /// archivo NO se duplica. Antes de borrarlo del bucket hay que verificar que
+  /// ningun otro ProjectAttachment ni ReformDocument lo apunte.
+  storagePath String?
+  url         String?
+  mimeType    String?
+  sizeBytes   Int?
+  /// Paginas del documento de origen que respaldan esta norma.
+  sourcePages Int[]    @default([])
+  uploadedBy  String?
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
+  @@index([storagePath])
 }
 
 // Un "codigo nuevo" en construccion: la fabrica que agrupa normas (articulos)
@@ -867,9 +889,43 @@ model NormativeReform {
   updatedAt   DateTime     @updatedAt
   norms       Project[]
   hearings    Meeting[]
+  documents   ReformDocument[]
 
   @@index([status])
   @@index([createdAt])
+}
+
+/// Documento aportado a la reforma (PDF de una agrupacion, colegio, universidad
+/// u ONG). Espeja a HearingDocument: el archivo vive en Supabase Storage y aca
+/// queda el registro con su link.
+///
+/// Existe con independencia de que haya producido normas: un PDF que resulta
+/// ser un encuadre institucional o una ponencia metodologica se guarda igual,
+/// como antecedente de la reforma. Es el caso mas frecuente, no la excepcion.
+model ReformDocument {
+  id           String   @id @default(cuid())
+  reformId     String
+  name         String
+  type         String
+  url          String?
+  /// Ruta del objeto en el bucket de normas: permite borrar el archivo real.
+  storagePath  String?
+  sizeBytes    Int?
+  pageCount    Int?
+  /// Que es este documento, en 2-4 oraciones (propuesto por IA, editable).
+  summary      String?
+  /// PROPUESTA_NORMATIVA | DIAGNOSTICO_TECNICO | PRESENTACION_INSTITUCIONAL |
+  /// PONENCIA_ACADEMICA | OTRO
+  documentKind String?
+  /// Hash del archivo, para avisar que ese PDF ya se habia subido. Con 15
+  /// archivos cargados de a uno, duplicar es facil.
+  sha256       String?
+  uploadedBy   String?
+  uploadedAt   DateTime @default(now())
+  reform       NormativeReform @relation(fields: [reformId], references: [id], onDelete: Cascade)
+
+  @@index([reformId])
+  @@index([sha256])
 }
 
 enum ReformStatus {

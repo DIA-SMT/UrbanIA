@@ -137,7 +137,7 @@ function UserMenu() {
 
   useEffect(() => {
     let mounted = true;
-    fetch("/api/auth/me")
+    fetch("/api/auth?action=me")
       .then((response) => response.json())
       .then((payload) => {
         if (mounted) setUser(payload.user ?? null);
@@ -162,7 +162,7 @@ function UserMenu() {
 
   async function logout() {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await fetch("/api/auth?action=logout", { method: "POST" });
     } finally {
       window.location.href = "/";
     }
