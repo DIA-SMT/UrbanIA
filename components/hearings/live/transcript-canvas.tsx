@@ -168,9 +168,10 @@ export const TranscriptCanvas = forwardRef<
   }
 
   return (
-    // El alto persigue el final de la pantalla: 100vh menos el encabezado de la
-    // sesion (~250px). El editor es flex-1, asi que estira con la seccion.
-    <section className="urban-card flex min-h-[calc(100vh-250px)] flex-col rounded-lg p-4 lg:p-5">
+    // Alto FIJO (100vh menos el encabezado de la sesion, ~250px): el lienzo no
+    // crece con el contenido — el texto scrollea ADENTRO, con su barrita. Sin
+    // esto la pagina se estiraba en un chorizo a medida que avanzaba el acta.
+    <section className="urban-card flex h-[calc(100vh-250px)] min-h-[480px] flex-col rounded-lg p-4 lg:p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-2 text-sm font-black text-white">
@@ -261,7 +262,9 @@ export const TranscriptCanvas = forwardRef<
         onPaste={handlePaste}
         onClick={handleEditorClick}
         style={{ fontSize: `${fontSize}px`, lineHeight: 1.9 }}
-        className="lienzo-editor urban-scrollbar min-h-[46vh] flex-1 overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-300/50"
+        // min-h-0: sin esto un hijo flex se niega a achicarse y el overflow
+        // interno (la barrita) nunca aparece.
+        className="lienzo-editor urban-scrollbar min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-300/50"
       />
 
       {/* Bandeja de dictado: lo reconocido espera aca hasta que se envia. */}
