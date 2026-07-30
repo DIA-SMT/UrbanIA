@@ -44,7 +44,47 @@ function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | null 
   return candidates.SpeechRecognition ?? candidates.webkitSpeechRecognition ?? null;
 }
 
-const RESTART_DELAY_MS = 350;
+// Ventana muerta del reinicio: entre que el reconocimiento corta y vuelve a
+// escuchar, lo hablado NO lo oye nadie. Lo mas corto posible sin que Chrome
+// tire por arrancar demasiado rapido (y si tira, launch() reintenta igual).
+const RESTART_DELAY_MS = 150;
+
+export type RecognizedFinal = { text: string; confidence: number | null };
+
+/**
+ * Procesa un evento onresult COMPLETO (todos los resultados, no solo desde
+ * resultIndex) y devuelve las frases finales nuevas y el interino vigente.
+ *
+ * Por que el barrido completo: Chrome puede tener VARIOS resultados
+ * provisorios pendientes a la vez, y resultIndex apunta solo al primero que
+ * cambio en este evento. Leyendo desde ahi, un interino anterior que seguia
+ * pendiente quedaba fuera del rescate (flushInterim) y se PERDIA si el
+ * reconocimiento cortaba. `emittedFinals` (por instancia) evita re-emitir los
+ * finales ya entregados.
+ */
+export function processRecognitionResults(
+  results: ArrayLike<{ isFinal: boolean; 0: { transcript: string; confidence?: number } }>,
+  emittedFinals: Set<number>
+): { finals: RecognizedFinal[]; interim: string } {
+  const finals: RecognizedFinal[] = [];
+  let interim = "";
+  for (let index = 0; index < results.length; index += 1) {
+    const result = results[index];
+    const transcript = result[0]?.transcript ?? "";
+    if (result.isFinal) {
+      if (emittedFinals.has(index)) continue;
+      emittedFinals.add(index);
+      const text = transcript.trim();
+      if (!text) continue;
+      const confidence = result[0]?.confidence;
+      // 0 o undefined = el navegador no midio: desconocida, no dudosa.
+      finals.push({ text, confidence: typeof confidence === "number" && confidence > 0 ? confidence : null });
+    } else {
+      interim += transcript;
+    }
+  }
+  return { finals, interim };
+}
 
 /**
  * onFinalText recibe cada frase final con su confianza (0..1) o null si el
@@ -124,26 +164,18 @@ export function useDictation({ onFinalText }: { onFinalText: (text: string, conf
     recognition.continuous = true;
     recognition.interimResults = true;
 
+    // Finales ya emitidos de ESTA instancia (el barrido completo de cada
+    // evento los recorre todos; este Set evita duplicarlos).
+    const emittedFinals = new Set<number>();
+
     recognition.onstart = () => {
       if (recognitionRef.current === recognition) setRecording(true);
     };
 
     recognition.onresult = (event) => {
       if (recognitionRef.current !== recognition) return;
-      let interimText = "";
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
-        const result = event.results[index];
-        const transcript = result[0]?.transcript ?? "";
-        if (result.isFinal) {
-          const finalPiece = transcript.trim();
-          const confidence = result[0]?.confidence;
-          // 0 o undefined = el navegador no midio: se trata como desconocida,
-          // no como dudosa (si no, TODO saldria marcado en Edge).
-          if (finalPiece) onFinalRef.current(`${finalPiece} `, typeof confidence === "number" && confidence > 0 ? confidence : null);
-        } else {
-          interimText += transcript;
-        }
-      }
+      const { finals, interim: interimText } = processRecognitionResults(event.results, emittedFinals);
+      for (const final of finals) onFinalRef.current(`${final.text} `, final.confidence);
       interimRef.current = interimText;
       setInterim(interimText);
     };
