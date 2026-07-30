@@ -62,10 +62,17 @@ export const TranscriptCanvas = forwardRef<
 ) {
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Contenido inicial, UNA sola vez (borrador recuperado o vacio). Despues el
-  // DOM es la fuente: React no vuelve a pisar el innerHTML porque este string
-  // no cambia nunca.
+  // Contenido inicial (borrador recuperado o vacio), inyectado por efecto UNA
+  // sola vez. NO va como dangerouslySetInnerHTML: React lo re-aplicaba en cada
+  // re-render (y la sesion re-renderiza cada segundo por el reloj), borrando lo
+  // tipeado y mandando el cursor al inicio. Reproducido y verificado: el div
+  // debe quedar SIN children de React para que nunca toque su contenido.
   const [initialHtml] = useState(() => escapeHtml(value).replace(/\n/g, "<br>"));
+  useEffect(() => {
+    const el = editorRef.current;
+    // Guarda por doble efecto de StrictMode: si ya tiene contenido, no pisar.
+    if (el && initialHtml && !el.innerHTML) el.innerHTML = initialHtml;
+  }, [initialHtml]);
 
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -255,7 +262,6 @@ export const TranscriptCanvas = forwardRef<
         onClick={handleEditorClick}
         style={{ fontSize: `${fontSize}px`, lineHeight: 1.9 }}
         className="lienzo-editor urban-scrollbar min-h-[46vh] flex-1 overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-300/50"
-        dangerouslySetInnerHTML={{ __html: initialHtml }}
       />
 
       {/* Bandeja de dictado: lo reconocido espera aca hasta que se envia. */}
