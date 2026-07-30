@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, type ChangeEvent, type ReactNode, type UIEvent } from "react";
-import { Mic, MicOff, Send } from "lucide-react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode, type UIEvent } from "react";
+import { AArrowDown, AArrowUp, Mic, MicOff, Send } from "lucide-react";
 import type { PendingPhrase } from "@/components/hearings/live/live-session";
 
 // useLayoutEffect en cliente, useEffect en server (evita el warning de SSR).
@@ -80,6 +80,25 @@ export function TranscriptCanvas({
   const prevValueRef = useRef(value);
   const userEditRef = useRef(false);
 
+  // Tamano de letra del lienzo (A- / A+), recordado entre sesiones. Se aplica
+  // por style al textarea Y al fondo espejado: si difirieran un pixel, las
+  // marcas amarillas quedarian corridas del texto.
+  const FONT_MIN = 12;
+  const FONT_MAX = 24;
+  const [fontSize, setFontSize] = useState(14);
+  useEffect(() => {
+    const stored = Number(window.localStorage.getItem("hearing-canvas-font-size"));
+    if (Number.isFinite(stored) && stored >= FONT_MIN && stored <= FONT_MAX) setFontSize(stored);
+  }, []);
+  function adjustFont(delta: number) {
+    setFontSize((current) => {
+      const next = Math.min(FONT_MAX, Math.max(FONT_MIN, current + delta));
+      window.localStorage.setItem("hearing-canvas-font-size", String(next));
+      return next;
+    });
+  }
+  const canvasTextStyle = { fontSize: `${fontSize}px`, lineHeight: 1.9 };
+
   const onSendRef = useRef(onSendPending);
   onSendRef.current = onSendPending;
   const hasPendingRef = useRef(pending.length > 0);
@@ -134,7 +153,7 @@ export function TranscriptCanvas({
   }
   useIsomorphicLayoutEffect(() => {
     syncScroll();
-  }, [value, dubiousPhrases]);
+  }, [value, dubiousPhrases, fontSize]);
 
   // Ctrl+Enter (o Cmd+Enter) manda la bandeja desde cualquier lado.
   useEffect(() => {
@@ -157,7 +176,9 @@ export function TranscriptCanvas({
     ranges.forEach(([from, to], index) => {
       if (from > cursor) nodes.push(value.slice(cursor, from));
       nodes.push(
-        <mark key={index} className="rounded-sm bg-yellow-300/25 text-transparent">
+        // Bien visible sobre el fondo oscuro: relleno amarillo + borde. El
+        // texto del mark es transparente (el visible es el del textarea).
+        <mark key={index} className="rounded-sm bg-yellow-400/40 text-transparent outline outline-1 outline-yellow-300/60">
           {value.slice(from, to)}
         </mark>
       );
@@ -193,18 +214,43 @@ export function TranscriptCanvas({
           </span>
           <span className="rounded-md bg-white/[0.06] px-2.5 py-1 font-mono text-xs font-bold text-sky-200">{elapsedLabel}</span>
         </div>
-        {supported ? (
-          <button
-            type="button"
-            onClick={onToggleDictation}
-            className={`urban-button inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-xs font-black ${
-              recording ? "border border-white/10 bg-white/[0.04] text-slate-200" : "bg-civic-blue text-white"
-            }`}
-          >
-            {recording ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-            {recording ? "Pausar dictado" : "Reanudar dictado"}
-          </button>
-        ) : null}
+        <div className="flex items-center gap-2">
+          <div className="inline-flex items-center overflow-hidden rounded-md border border-white/10">
+            <button
+              type="button"
+              onClick={() => adjustFont(-2)}
+              disabled={fontSize <= FONT_MIN}
+              title="Letra más chica"
+              aria-label="Letra más chica"
+              className="urban-button px-2.5 py-2 text-slate-300 hover:bg-white/[0.06] disabled:opacity-40"
+            >
+              <AArrowDown className="h-3.5 w-3.5" />
+            </button>
+            <span className="border-x border-white/10 px-2 text-[11px] font-bold text-slate-400">{fontSize}px</span>
+            <button
+              type="button"
+              onClick={() => adjustFont(2)}
+              disabled={fontSize >= FONT_MAX}
+              title="Letra más grande"
+              aria-label="Letra más grande"
+              className="urban-button px-2.5 py-2 text-slate-300 hover:bg-white/[0.06] disabled:opacity-40"
+            >
+              <AArrowUp className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {supported ? (
+            <button
+              type="button"
+              onClick={onToggleDictation}
+              className={`urban-button inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-xs font-black ${
+                recording ? "border border-white/10 bg-white/[0.04] text-slate-200" : "bg-civic-blue text-white"
+              }`}
+            >
+              {recording ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+              {recording ? "Pausar dictado" : "Reanudar dictado"}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {!supported ? (
@@ -227,7 +273,8 @@ export function TranscriptCanvas({
         <div
           ref={backdropRef}
           aria-hidden
-          className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words px-4 py-3 text-sm leading-7 text-transparent"
+          style={canvasTextStyle}
+          className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words px-4 py-3 text-transparent"
         >
           {backdropContent}
           {"​"}
@@ -238,8 +285,9 @@ export function TranscriptCanvas({
           onChange={handleChange}
           onSelect={rememberSelection}
           onScroll={syncScroll}
+          style={canvasTextStyle}
           placeholder="Acá aparece lo que vas enviando desde la bandeja de dictado. También podés tipear o corregir a mano."
-          className="urban-scrollbar absolute inset-0 h-full w-full resize-none bg-transparent px-4 py-3 text-sm leading-7 text-slate-100 outline-none placeholder:text-slate-600"
+          className="urban-scrollbar absolute inset-0 h-full w-full resize-none bg-transparent px-4 py-3 text-slate-100 outline-none placeholder:text-slate-600"
         />
       </div>
 
