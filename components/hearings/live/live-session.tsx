@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, Loader2, LogOut, Square, TriangleAlert } from "lucide-react";
-import { TranscriptCanvas } from "@/components/hearings/live/transcript-canvas";
+import { TranscriptCanvas, type TranscriptCanvasHandle } from "@/components/hearings/live/transcript-canvas";
 import { MatchesPanel } from "@/components/hearings/live/matches-panel";
 import { HearingFields } from "@/components/hearings/live/hearing-fields";
 import { ClosingReview } from "@/components/hearings/live/closing-review";
@@ -78,9 +78,10 @@ export function LiveSession({
 
   // Bandeja de dictado: las frases finales NO van directo al lienzo, se juntan
   // aca y el operador las manda con "Enviar al lienzo" (o salen solas al
-  // guardar/finalizar). Las dudosas viajan marcadas para revisarlas despues.
+  // guardar/finalizar). Las dudosas entran al lienzo como marcas amarillas
+  // reales (elementos del editor); un click las quita.
   const [pending, setPending] = useState<PendingPhrase[]>([]);
-  const [dubiousPhrases, setDubiousPhrases] = useState<string[]>([]);
+  const canvasRef = useRef<TranscriptCanvasHandle>(null);
 
   const startedAtRef = useRef<number>(Date.now());
   const lastSentLengthRef = useRef(initialTranscript.length);
@@ -109,33 +110,30 @@ export function LiveSession({
   const dictation = useDictation({ onFinalText: handleDictatedPhrase });
 
   /**
-   * Manda la bandeja al lienzo. Devuelve el texto completo resultante y
-   * actualiza el ref a mano para que quien llame (guardar, finalizar) pueda
-   * usarlo sin esperar el re-render.
+   * Manda la bandeja al lienzo (el editor appendea las frases en renglon
+   * nuevo, las dudosas como marca amarilla). Devuelve el texto completo
+   * resultante y actualiza el ref a mano para que quien llame (guardar,
+   * finalizar) pueda usarlo sin esperar el re-render.
    */
   const sendPendingToCanvas = useCallback((): string => {
     const phrases = pendingRef.current;
     if (!phrases.length) return transcriptRef.current;
-    const pendingText = phrases.map((phrase) => phrase.text).join(" ");
-    const base = transcriptRef.current;
-    const joined = base.length && !/\s$/.test(base) ? `${base} ${pendingText} ` : `${base}${pendingText} `;
-    const dubious = phrases.filter((phrase) => phrase.dubious).map((phrase) => phrase.text);
-    if (dubious.length) setDubiousPhrases((current) => [...current, ...dubious]);
+
+    let joined: string;
+    if (canvasRef.current) {
+      joined = canvasRef.current.appendPhrases(phrases);
+    } else {
+      // Editor no montado (no deberia pasar en fase live): concatenacion plana.
+      const pendingText = phrases.map((phrase) => phrase.text).join(" ");
+      const base = transcriptRef.current;
+      joined = base.length && !/\s$/.test(base) ? `${base}\n${pendingText} ` : `${base}${pendingText} `;
+    }
     pendingRef.current = [];
     setPending([]);
     transcriptRef.current = joined;
     setTranscript(joined);
     return joined;
   }, []);
-
-  // Una frase dudosa deja de estarlo cuando el operador la corrige: si su
-  // texto exacto ya no aparece en el lienzo, la marca se retira sola.
-  useEffect(() => {
-    setDubiousPhrases((current) => {
-      const kept = current.filter((phrase) => transcript.includes(phrase));
-      return kept.length === current.length ? current : kept;
-    });
-  }, [transcript]);
 
   // Arranca el dictado al montar solo si es una audiencia nueva (sin borrador).
   // Al reanudar no se arranca solo: el operador revisa y toca "Reanudar dictado".
@@ -476,10 +474,10 @@ export function LiveSession({
       {/* El lienzo ocupa toda la pagina (pedido del equipo para operar en la
           audiencia real); los cruces con el codigo van abajo, a lo ancho. */}
       <TranscriptCanvas
+        ref={canvasRef}
         value={transcript}
         interim={dictation.interim}
         pending={pending}
-        dubiousPhrases={dubiousPhrases}
         recording={dictation.recording}
         supported={dictation.supported}
         dictationError={dictation.error}

@@ -1,88 +1,80 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode, type UIEvent } from "react";
-import { AArrowDown, AArrowUp, Mic, MicOff, Send } from "lucide-react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type ClipboardEvent,
+  type MouseEvent
+} from "react";
+import { AArrowDown, AArrowUp, Bold, Mic, MicOff, Send } from "lucide-react";
 import type { PendingPhrase } from "@/components/hearings/live/live-session";
 
-// useLayoutEffect en cliente, useEffect en server (evita el warning de SSR).
-const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
-
 /**
- * Lienzo de transcripcion.
+ * Lienzo de transcripcion como EDITOR (contentEditable), no textarea.
  *
- * El dictado NO escribe directo aca: las frases finales caen en la BANDEJA de
- * abajo y el operador las manda con "Enviar al lienzo" (o Ctrl+Enter). Asi el
- * texto entra en tramos revisables en vez de un chorro continuo.
+ * Por que no un textarea con overlay: en tema claro una regla global pinta los
+ * textarea de blanco con !important y tapa cualquier resaltado dibujado detras.
+ * Con contentEditable la marca amarilla es un elemento real dentro del texto
+ * (letra negra sobre amarillo solido, igual en ambos temas), la negrita nativa
+ * funciona (Ctrl+B o el boton) y Enter hace salto de renglon como en Word.
  *
- * Frases dudosas: el reconocimiento informa confianza por frase; las que
- * vienen flojas se marcan en amarillo en la bandeja y SIGUEN marcadas en el
- * lienzo. El resaltado sobre un textarea se logra con la tecnica del fondo
- * espejado: un div detras renderiza el mismo texto invisible con <mark> en las
- * frases dudosas; el textarea (fondo transparente) va encima. Cuando el
- * operador corrige la frase, el texto ya no coincide y la marca se va sola.
+ * El editor es NO controlado: React pinta el contenido inicial una sola vez y
+ * despues el DOM manda. El dictado no escribe aca directo: las frases caen en
+ * la bandeja y entran con "Enviar al lienzo" (cada envio en renglon nuevo),
+ * appendeadas al final sin tocar el cursor del operador. El texto plano para
+ * guardar/analizar sale de innerText: el formato es una ayuda visual de la
+ * sesion, el acta se conserva como texto.
  *
- * Edicion durante el dictado: al re-renderizar, el navegador tiende a mandar
- * el cursor al final; se preserva la posicion (si editabas arriba te quedas
- * ahi; si seguias el final, el cursor acompana).
+ * Frases dudosas: llegan de la bandeja envueltas en <mark class="dictado-marca">.
+ * Un click sobre la marca la quita (el texto queda).
  */
 
-/** Rangos [inicio, fin) de cada aparicion de cada frase dudosa, fusionados. Exportada para testearla. */
-export function dubiousRanges(text: string, phrases: string[]): Array<[number, number]> {
-  const ranges: Array<[number, number]> = [];
-  for (const phrase of phrases) {
-    if (!phrase) continue;
-    let from = 0;
-    while (from <= text.length - phrase.length) {
-      const at = text.indexOf(phrase, from);
-      if (at < 0) break;
-      ranges.push([at, at + phrase.length]);
-      from = at + phrase.length;
-    }
-  }
-  ranges.sort((a, b) => a[0] - b[0]);
-  const merged: Array<[number, number]> = [];
-  for (const range of ranges) {
-    const last = merged[merged.length - 1];
-    if (last && range[0] <= last[1]) last[1] = Math.max(last[1], range[1]);
-    else merged.push([...range] as [number, number]);
-  }
-  return merged;
+export type TranscriptCanvasHandle = {
+  /** Agrega frases al final (en renglon nuevo) y devuelve el texto plano resultante. */
+  appendPhrases: (phrases: PendingPhrase[]) => string;
+  getText: () => string;
+};
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char] ?? char));
 }
 
-export function TranscriptCanvas({
-  value,
-  interim,
-  pending,
-  dubiousPhrases,
-  recording,
-  supported,
-  dictationError,
-  elapsedLabel,
-  onChange,
-  onSendPending,
-  onToggleDictation
-}: {
-  value: string;
-  interim: string;
-  pending: PendingPhrase[];
-  dubiousPhrases: string[];
-  recording: boolean;
-  supported: boolean;
-  dictationError: string;
-  elapsedLabel: string;
-  onChange: (value: string) => void;
-  onSendPending: () => void;
-  onToggleDictation: () => void;
-}) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const selectionRef = useRef({ start: 0, end: 0 });
-  const prevValueRef = useRef(value);
-  const userEditRef = useRef(false);
+export const TranscriptCanvas = forwardRef<
+  TranscriptCanvasHandle,
+  {
+    value: string;
+    interim: string;
+    pending: PendingPhrase[];
+    recording: boolean;
+    supported: boolean;
+    dictationError: string;
+    elapsedLabel: string;
+    onChange: (value: string) => void;
+    onSendPending: () => void;
+    onToggleDictation: () => void;
+  }
+>(function TranscriptCanvas(
+  { value, interim, pending, recording, supported, dictationError, elapsedLabel, onChange, onSendPending, onToggleDictation },
+  ref
+) {
+  const editorRef = useRef<HTMLDivElement>(null);
 
-  // Tamano de letra del lienzo (A- / A+), recordado entre sesiones. Se aplica
-  // por style al textarea Y al fondo espejado: si difirieran un pixel, las
-  // marcas amarillas quedarian corridas del texto.
+  // Contenido inicial, UNA sola vez (borrador recuperado o vacio). Despues el
+  // DOM es la fuente: React no vuelve a pisar el innerHTML porque este string
+  // no cambia nunca.
+  const [initialHtml] = useState(() => escapeHtml(value).replace(/\n/g, "<br>"));
+
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const onSendRef = useRef(onSendPending);
+  onSendRef.current = onSendPending;
+  const hasPendingRef = useRef(pending.length > 0);
+  hasPendingRef.current = pending.length > 0;
+
+  // Tamano de letra (A- / A+), recordado entre sesiones.
   const FONT_MIN = 12;
   const FONT_MAX = 24;
   const [fontSize, setFontSize] = useState(14);
@@ -97,63 +89,42 @@ export function TranscriptCanvas({
       return next;
     });
   }
-  const canvasTextStyle = { fontSize: `${fontSize}px`, lineHeight: 1.9 };
 
-  const onSendRef = useRef(onSendPending);
-  onSendRef.current = onSendPending;
-  const hasPendingRef = useRef(pending.length > 0);
-  hasPendingRef.current = pending.length > 0;
-
-  function rememberSelection() {
-    const el = textareaRef.current;
-    if (el) selectionRef.current = { start: el.selectionStart, end: el.selectionEnd };
+  function getText(): string {
+    return editorRef.current?.innerText ?? "";
   }
 
-  function handleChange(event: ChangeEvent<HTMLTextAreaElement>) {
-    // El cambio lo dispara el usuario: se marca para no re-posicionar el cursor.
-    userEditRef.current = true;
-    onChange(event.target.value);
-  }
+  useImperativeHandle(ref, () => ({
+    getText,
+    appendPhrases: (phrases: PendingPhrase[]) => {
+      const editor = editorRef.current;
+      if (!editor || !phrases.length) return getText();
 
-  useIsomorphicLayoutEffect(() => {
-    const el = textareaRef.current;
-    const prev = prevValueRef.current;
-    prevValueRef.current = value;
-    if (!el) return;
+      const fragment = document.createDocumentFragment();
+      // Cada envio arranca en renglon nuevo (pedido del operador: nada de
+      // chorizo continuo).
+      if (editor.innerText.trim().length > 0) fragment.appendChild(document.createElement("br"));
+      phrases.forEach((phrase, index) => {
+        if (index > 0) fragment.appendChild(document.createTextNode(" "));
+        if (phrase.dubious) {
+          const mark = document.createElement("mark");
+          mark.className = "dictado-marca";
+          mark.title = "Frase que el dictado marcó con dudas — click para quitar la marca";
+          mark.textContent = phrase.text;
+          fragment.appendChild(mark);
+        } else {
+          fragment.appendChild(document.createTextNode(phrase.text));
+        }
+      });
+      fragment.appendChild(document.createTextNode(" "));
+      editor.appendChild(fragment);
+      editor.scrollTop = editor.scrollHeight;
 
-    if (userEditRef.current) {
-      // Cambio del usuario: el navegador ya dejo el cursor donde tipeo.
-      userEditRef.current = false;
-      selectionRef.current = { start: el.selectionStart, end: el.selectionEnd };
-      return;
+      const text = getText();
+      onChangeRef.current(text);
+      return text;
     }
-
-    // Cambio programatico (envio de la bandeja). Solo tocamos el cursor si el
-    // lienzo esta enfocado; si no, el operador esta en otro lado.
-    if (document.activeElement !== el) return;
-    const sel = selectionRef.current;
-    if (sel.end >= prev.length) {
-      el.selectionStart = el.selectionEnd = value.length;
-    } else {
-      el.selectionStart = sel.start;
-      el.selectionEnd = sel.end;
-    }
-    selectionRef.current = { start: el.selectionStart, end: el.selectionEnd };
-  }, [value]);
-
-  // El fondo espejado sigue el scroll del textarea (tambien tras cada cambio
-  // de texto: el navegador puede auto-scrollear al escribir al final).
-  function syncScroll(event?: UIEvent<HTMLTextAreaElement>) {
-    const el = event?.currentTarget ?? textareaRef.current;
-    const backdrop = backdropRef.current;
-    if (el && backdrop) {
-      backdrop.scrollTop = el.scrollTop;
-      backdrop.scrollLeft = el.scrollLeft;
-    }
-  }
-  useIsomorphicLayoutEffect(() => {
-    syncScroll();
-  }, [value, dubiousPhrases, fontSize]);
+  }));
 
   // Ctrl+Enter (o Cmd+Enter) manda la bandeja desde cualquier lado.
   useEffect(() => {
@@ -167,32 +138,31 @@ export function TranscriptCanvas({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const backdropContent = useMemo<ReactNode>(() => {
-    if (!dubiousPhrases.length) return null;
-    const ranges = dubiousRanges(value, dubiousPhrases);
-    if (!ranges.length) return null;
-    const nodes: ReactNode[] = [];
-    let cursor = 0;
-    ranges.forEach(([from, to], index) => {
-      if (from > cursor) nodes.push(value.slice(cursor, from));
-      nodes.push(
-        // Bien visible sobre el fondo oscuro: relleno amarillo + borde. El
-        // texto del mark es transparente (el visible es el del textarea).
-        <mark key={index} className="rounded-sm bg-yellow-400/40 text-transparent outline outline-1 outline-yellow-300/60">
-          {value.slice(from, to)}
-        </mark>
-      );
-      cursor = to;
-    });
-    if (cursor < value.length) nodes.push(value.slice(cursor));
-    return nodes;
-  }, [value, dubiousPhrases]);
+  /** Pegar SIEMPRE como texto plano: un paste desde Word no puede meter HTML. */
+  function handlePaste(event: ClipboardEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const text = event.clipboardData.getData("text/plain");
+    if (text) document.execCommand("insertText", false, text);
+  }
 
-  const dubiousActive = backdropContent !== null;
+  /** Click sobre una marca amarilla: la quita y el texto queda normal. */
+  function handleEditorClick(event: MouseEvent<HTMLDivElement>) {
+    const target = event.target as HTMLElement;
+    const mark = target.closest("mark.dictado-marca");
+    if (!mark || !editorRef.current?.contains(mark)) return;
+    mark.replaceWith(document.createTextNode(mark.textContent ?? ""));
+    onChangeRef.current(getText());
+  }
+
+  function toggleBold(event: MouseEvent<HTMLButtonElement>) {
+    // Sin robarle el foco al editor: la seleccion sigue viva para aplicar la negrita.
+    event.preventDefault();
+    document.execCommand("bold");
+  }
 
   return (
     // El alto persigue el final de la pantalla: 100vh menos el encabezado de la
-    // sesion (~250px). El textarea es flex-1, asi que estira con la seccion.
+    // sesion (~250px). El editor es flex-1, asi que estira con la seccion.
     <section className="urban-card flex min-h-[calc(100vh-250px)] flex-col rounded-lg p-4 lg:p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -215,6 +185,15 @@ export function TranscriptCanvas({
           <span className="rounded-md bg-white/[0.06] px-2.5 py-1 font-mono text-xs font-bold text-sky-200">{elapsedLabel}</span>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onMouseDown={toggleBold}
+            title="Negrita sobre el texto seleccionado (Ctrl+B)"
+            aria-label="Negrita"
+            className="urban-button rounded-md border border-white/10 px-2.5 py-2 text-slate-300 hover:bg-white/[0.06]"
+          >
+            <Bold className="h-3.5 w-3.5" />
+          </button>
           <div className="inline-flex items-center overflow-hidden rounded-md border border-white/10">
             <button
               type="button"
@@ -261,35 +240,23 @@ export function TranscriptCanvas({
       {dictationError ? (
         <p className="mb-3 rounded-md border border-amber-300/25 bg-amber-300/10 px-3 py-2 text-xs font-bold leading-5 text-amber-100">{dictationError}</p>
       ) : null}
-      {dubiousActive ? (
-        <p className="mb-2 text-[11px] font-bold text-yellow-200/80">
-          Lo <mark className="rounded-sm bg-yellow-300/25 px-1 text-yellow-100">amarillo</mark> son frases que el dictado marcó con dudas: revisalas; al corregirlas la marca se va sola.
-        </p>
-      ) : null}
 
-      {/* Contenedor del lienzo: el div de atras pinta las marcas, el textarea
-          (transparente) va encima. Fuente, padding e interlineado IDENTICOS. */}
-      <div className="relative min-h-[46vh] flex-1 overflow-hidden rounded-md border border-white/10 bg-slate-950/60 transition focus-within:border-sky-300/50">
-        <div
-          ref={backdropRef}
-          aria-hidden
-          style={canvasTextStyle}
-          className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words px-4 py-3 text-transparent"
-        >
-          {backdropContent}
-          {"​"}
-        </div>
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={handleChange}
-          onSelect={rememberSelection}
-          onScroll={syncScroll}
-          style={canvasTextStyle}
-          placeholder="Acá aparece lo que vas enviando desde la bandeja de dictado. También podés tipear o corregir a mano."
-          className="urban-scrollbar absolute inset-0 h-full w-full resize-none bg-transparent px-4 py-3 text-slate-100 outline-none placeholder:text-slate-600"
-        />
-      </div>
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        spellCheck={false}
+        role="textbox"
+        aria-multiline="true"
+        aria-label="Lienzo de transcripción"
+        data-placeholder="Acá aparece lo que vas enviando desde la bandeja de dictado. También podés tipear, dar formato con negrita o corregir a mano."
+        onInput={() => onChangeRef.current(getText())}
+        onPaste={handlePaste}
+        onClick={handleEditorClick}
+        style={{ fontSize: `${fontSize}px`, lineHeight: 1.9 }}
+        className="lienzo-editor urban-scrollbar min-h-[46vh] flex-1 overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-300/50"
+        dangerouslySetInnerHTML={{ __html: initialHtml }}
+      />
 
       {/* Bandeja de dictado: lo reconocido espera aca hasta que se envia. */}
       {supported && (pending.length > 0 || interim || recording) ? (
@@ -313,9 +280,9 @@ export function TranscriptCanvas({
           <p className="text-sm leading-7 text-slate-200" aria-live="polite">
             {pending.map((phrase) =>
               phrase.dubious ? (
-                <mark key={phrase.id} className="rounded-sm bg-yellow-300/25 px-0.5 text-yellow-100">
-                  {phrase.text}{" "}
-                </mark>
+                <span key={phrase.id}>
+                  <mark className="dictado-marca">{phrase.text}</mark>{" "}
+                </span>
               ) : (
                 <span key={phrase.id}>{phrase.text} </span>
               )
@@ -323,8 +290,13 @@ export function TranscriptCanvas({
             {interim ? <span className="italic text-slate-500">{interim}</span> : null}
             {!pending.length && !interim ? <span className="italic text-slate-500">Escuchando…</span> : null}
           </p>
+          {pending.some((phrase) => phrase.dubious) ? (
+            <p className="mt-1 text-[11px] font-bold text-slate-500">
+              Lo <mark className="dictado-marca">amarillo</mark> son frases que el dictado marcó con dudas: en el lienzo, un click sobre la marca la quita.
+            </p>
+          ) : null}
         </div>
       ) : null}
     </section>
   );
-}
+});
