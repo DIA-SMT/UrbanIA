@@ -16,7 +16,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * - start() es idempotente (evita doble arranque por StrictMode o toggles).
  */
 
-type MinimalSpeechAlternative = { transcript: string };
+type MinimalSpeechAlternative = { transcript: string; confidence?: number };
 type MinimalSpeechResult = { isFinal: boolean; 0: MinimalSpeechAlternative };
 type MinimalSpeechRecognitionEvent = { resultIndex: number; results: ArrayLike<MinimalSpeechResult> };
 
@@ -46,7 +46,12 @@ function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | null 
 
 const RESTART_DELAY_MS = 350;
 
-export function useDictation({ onFinalText }: { onFinalText: (text: string) => void }) {
+/**
+ * onFinalText recibe cada frase final con su confianza (0..1) o null si el
+ * navegador no la informa. La API da confianza POR FRASE, no por palabra: la
+ * revision de "dudosas" trabaja a ese nivel.
+ */
+export function useDictation({ onFinalText }: { onFinalText: (text: string, confidence: number | null) => void }) {
   const [supported, setSupported] = useState(true);
   const [recording, setRecording] = useState(false);
   const [interim, setInterim] = useState("");
@@ -56,9 +61,23 @@ export function useDictation({ onFinalText }: { onFinalText: (text: string) => v
   const activeRef = useRef(false);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const launchRef = useRef<() => void>(() => {});
+  // Ultimo texto interino de la instancia vigente: si el reconocimiento corta
+  // antes de finalizarlo, se promueve a frase para NO PERDER lo dicho.
+  const interimRef = useRef("");
 
   const onFinalRef = useRef(onFinalText);
   onFinalRef.current = onFinalText;
+
+  /**
+   * Promueve el interino pendiente a frase final (confianza desconocida ->
+   * queda marcada para revisar). Antes ese texto se descartaba en cada corte
+   * por silencio y el operador lo vivia como "el dictado me borro palabras".
+   */
+  const flushInterim = useCallback(() => {
+    const leftover = interimRef.current.trim();
+    interimRef.current = "";
+    if (leftover) onFinalRef.current(`${leftover} `, null);
+  }, []);
 
   useEffect(() => {
     setSupported(getSpeechRecognitionConstructor() !== null);
@@ -95,7 +114,9 @@ export function useDictation({ onFinalText }: { onFinalText: (text: string) => v
       return;
     }
 
-    // Tumba cualquier instancia previa antes de crear la nueva.
+    // Tumba cualquier instancia previa antes de crear la nueva (salvando su
+    // interino, si lo tuviera).
+    flushInterim();
     teardownCurrent();
 
     const recognition = new Recognition();
@@ -115,17 +136,23 @@ export function useDictation({ onFinalText }: { onFinalText: (text: string) => v
         const transcript = result[0]?.transcript ?? "";
         if (result.isFinal) {
           const finalPiece = transcript.trim();
-          if (finalPiece) onFinalRef.current(`${finalPiece} `);
+          const confidence = result[0]?.confidence;
+          // 0 o undefined = el navegador no midio: se trata como desconocida,
+          // no como dudosa (si no, TODO saldria marcado en Edge).
+          if (finalPiece) onFinalRef.current(`${finalPiece} `, typeof confidence === "number" && confidence > 0 ? confidence : null);
         } else {
           interimText += transcript;
         }
       }
+      interimRef.current = interimText;
       setInterim(interimText);
     };
 
     recognition.onend = () => {
       // Solo la instancia vigente decide si reinicia (evita dobles capturas).
       if (recognitionRef.current !== recognition) return;
+      // El interino que quedo colgado en el corte pasa a frase: no se pierde.
+      flushInterim();
       setInterim("");
       if (activeRef.current) {
         scheduleRestart();
@@ -156,7 +183,7 @@ export function useDictation({ onFinalText }: { onFinalText: (text: string) => v
       // Chrome tira si se arranca demasiado rapido tras un corte: reintentamos.
       scheduleRestart();
     }
-  }, [teardownCurrent, scheduleRestart]);
+  }, [flushInterim, teardownCurrent, scheduleRestart]);
 
   launchRef.current = launch;
 
@@ -177,10 +204,13 @@ export function useDictation({ onFinalText }: { onFinalText: (text: string) => v
       clearTimeout(restartTimerRef.current);
       restartTimerRef.current = null;
     }
+    // Antes de tumbar la instancia (que desmonta sus handlers), lo interino
+    // pendiente se salva como frase.
+    flushInterim();
     teardownCurrent();
     setInterim("");
     setRecording(false);
-  }, [teardownCurrent]);
+  }, [flushInterim, teardownCurrent]);
 
   useEffect(
     () => () => {

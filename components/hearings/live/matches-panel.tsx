@@ -61,7 +61,9 @@ function MatchesPanelBase({
   }, [matches]);
 
   return (
-    <section className="urban-card flex min-h-[60vh] flex-col rounded-lg p-4 lg:p-5">
+    // Va debajo del lienzo, a lo ancho: sin alto minimo (vacio ocupa poco) y
+    // las normas tocadas en columnas.
+    <section className="urban-card flex flex-col rounded-lg p-4 lg:p-5">
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="inline-flex items-center gap-2 text-sm font-bold text-slate-300">
           <Sparkles className="h-4 w-4 text-[#1f89f6]" />
@@ -83,7 +85,7 @@ function MatchesPanelBase({
       ) : null}
 
       {groups.length ? (
-        <div className="urban-scrollbar grid max-h-[70vh] gap-3 overflow-y-auto pr-1">
+        <div className="urban-scrollbar grid max-h-[52vh] gap-3 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
           {groups.map((group) => (
             <a
               key={group.normId}
