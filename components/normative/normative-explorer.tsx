@@ -52,7 +52,9 @@ export function NormativeExplorer({ data, focusRequest }: { data: NormativeExplo
       <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_260px]"><label className="surface-panel flex items-center gap-3 px-4 py-3"><Search className="h-5 w-5 text-[#1f89f6]" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar altura máxima, estacionamiento, FOT, distrito..." className="min-w-0 flex-1 bg-transparent text-sm outline-none" />{query && <button onClick={() => setQuery("")} className="text-slate-400"><X className="h-4 w-4" /></button>}</label><div className="surface-panel flex items-center justify-between px-4 py-3 text-xs"><span className="text-slate-400">Fuente</span><strong className="text-slate-700 dark:text-slate-200">{data.source === "database" ? "Base estructurada" : "Archivo verificado"}</strong></div></div>
     </header>
 
-    <div className="grid gap-4 xl:grid-cols-[250px_minmax(0,1fr)_300px]">
+    {/* minmax(0,...) tambien abajo de xl: la columna implicita sin minmax se
+        estira con cualquier texto nowrap y desborda el viewport en mobile. */}
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[250px_minmax(0,1fr)_300px]">
       <aside className="surface-panel h-fit overflow-hidden xl:sticky xl:top-24"><div className="border-b border-slate-200 p-4 dark:border-white/10"><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Índice del Código</p><p className="mt-1 text-xs text-slate-400">{data.chapters.length} capítulos · {data.articles.length} artículos</p></div><div className="urban-scrollbar max-h-[65vh] overflow-y-auto p-2"><ChapterButton active={chapterId === "all"} label="Todos los artículos" count={data.articles.length} onClick={() => setChapterId("all")} />{data.chapters.map((chapter) => <ChapterButton key={chapter.id} active={chapterId === chapter.id} label={`Capítulo ${chapter.number}`} detail={chapter.title} count={data.articles.filter((article) => article.chapterId === chapter.id).length} onClick={() => setChapterId(chapter.id)} />)}</div></aside>
 
       <main className="min-w-0">

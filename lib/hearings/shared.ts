@@ -21,6 +21,24 @@ export const hearingStatusStyles: Record<HearingStatus, string> = {
   CANCELLED: "border-slate-300/20 bg-slate-400/[0.06] text-slate-400"
 };
 
+// Riel lateral y tinte del badge de fecha de la card, mismo lenguaje visual
+// que los aportes de participación ciudadana (KIND_META).
+export const hearingStatusRails: Record<HearingStatus, string> = {
+  SCHEDULED: "#38bdf8",
+  LIVE: "#fb7185",
+  PROCESSING: "#fbbf24",
+  COMPLETED: "#34d399",
+  CANCELLED: "#94a3b8"
+};
+
+export const hearingStatusTints: Record<HearingStatus, string> = {
+  SCHEDULED: "bg-sky-400/15 text-sky-100",
+  LIVE: "bg-rose-400/15 text-rose-100",
+  PROCESSING: "bg-amber-400/15 text-amber-100",
+  COMPLETED: "bg-emerald-400/15 text-emerald-100",
+  CANCELLED: "bg-slate-400/15 text-slate-300"
+};
+
 export const hearingSourceLabels: Record<HearingSource, string> = {
   LIVE: "Dictado en vivo",
   YOUTUBE: "YouTube",

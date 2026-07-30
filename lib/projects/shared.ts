@@ -155,6 +155,18 @@ export const normStatusStyles: Record<ProjectStatus, string> = {
   ARCHIVED: "border-slate-300/20 bg-slate-400/[0.06] text-slate-400"
 };
 
+// Riel lateral de la card de una norma, mismo lenguaje visual que los aportes
+// de participación ciudadana (KIND_META).
+export const normStatusRails: Record<ProjectStatus, string> = {
+  DRAFT: "#94a3b8",
+  IN_REVIEW: "#38bdf8",
+  APPROVED: "#34d399",
+  IN_PROGRESS: "#1f89f6",
+  SUSPENDED: "#fbbf24",
+  COMPLETED: "#34d399",
+  ARCHIVED: "#64748b"
+};
+
 export const reformStatusLabels: Record<ReformStatus, string> = {
   DRAFT: "En armado",
   IN_REVIEW: "En revisión",
@@ -167,6 +179,15 @@ export const reformStatusStyles: Record<ReformStatus, string> = {
   IN_REVIEW: "border-sky-300/30 bg-sky-300/10 text-sky-100",
   CONSOLIDATED: "border-emerald-300/30 bg-emerald-300/10 text-emerald-100",
   ARCHIVED: "border-slate-300/20 bg-slate-400/[0.06] text-slate-400"
+};
+
+// Riel lateral de la card en la Fábrica de Normas, mismo lenguaje visual que
+// los aportes de participación ciudadana (KIND_META).
+export const reformStatusRails: Record<ReformStatus, string> = {
+  DRAFT: "#94a3b8",
+  IN_REVIEW: "#38bdf8",
+  CONSOLIDATED: "#34d399",
+  ARCHIVED: "#64748b"
 };
 
 /** Las areas municipales presentadas como "materia" de la norma. */

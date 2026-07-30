@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "pdfjs-dist"],
+  serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "pdfjs-dist", "@napi-rs/canvas"],
   async redirects() {
     // El modulo Proyectos se reconvirtio en la Fabrica de Normas.
     return [

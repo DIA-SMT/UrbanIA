@@ -418,17 +418,19 @@ async function main() {
 
   await prisma.regulation.createMany({
     data: [
+      // Mismas fuentes reales que el conocimiento chunkeado (import-planning-code /
+      // ingest-knowledge): nada de numeros de ordenanza inventados en la base.
       {
         title: "Codigo de Planeamiento Urbano",
         type: RegulationType.URBAN_CODE,
-        number: "Ordenanza 5987/20",
-        summary: "Marco normativo inicial para usos del suelo, alturas y condiciones urbanas."
+        number: "Ordenanza 2648/98",
+        summary: "Texto ordenado a mayo de 2014. Usos del suelo, alturas y condiciones urbanas."
       },
       {
-        title: "Codigo de Edificacion",
+        title: "Digesto Normativo de Catastro y Edificacion",
         type: RegulationType.BUILDING_CODE,
-        number: "Ordenanza 4003/15",
-        summary: "Reglas edilicias y tecnicas para obras privadas y publicas."
+        number: "Edicion mayo 2015 (5ta actualizacion)",
+        summary: "Compilado de normas edilicias y tecnicas de la Direccion de Catastro y Edificacion."
       }
     ],
     skipDuplicates: true

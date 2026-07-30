@@ -18,6 +18,7 @@ import { getNormativeExplorerData } from "@/lib/normative/data";
 import { retrieveRelevantArticles } from "@/lib/normative/search";
 import { checkRateLimit, clientKeyFromRequest } from "@/lib/rate-limit";
 import { attachmentSchema, buildAttachmentBlock } from "@/lib/ai/attachment";
+import { logAssistantQuery } from "@/lib/ai/query-log";
 
 // Igual que en la Consulta al CPU: cubre un artículo completo sin cortar filas de planillas.
 const MAX_ARTICLE_CHARS = 2400;
@@ -259,6 +260,21 @@ export async function handleAssistantQuery(request: Request) {
 
     const { answer, cita } = parseAssistantPayload(response.answer);
     const source = buildAnswerSource(retrieval, cita);
+
+    // Telemetría para el futuro panel "qué pregunta la gente". La charla sobre
+    // la propia conversación ("¿de qué hablamos?") no es demanda ciudadana y no
+    // se registra. logAssistantQuery nunca lanza.
+    if (!analysis.conversacion) {
+      await logAssistantQuery({
+        question: parsed.data.question,
+        answer,
+        retrieval,
+        source,
+        normative: analysis.normativa,
+        mode: assistantContext.mode,
+        module: assistantContext.module
+      });
+    }
 
     return NextResponse.json({ ...response, answer, source });
   } catch (error) {
