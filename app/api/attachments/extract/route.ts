@@ -140,8 +140,16 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Attachment extraction error", error);
+    // Modo diagnostico TEMPORAL (2026-08-01, bug DOMMatrix en Vercel): con el
+    // header se devuelve el mensaje real del error para poder diagnosticar
+    // produccion sin acceso a los logs. Sacar cuando el bug quede cerrado.
+    const debugDetail =
+      request.headers.get("x-debug-extract") === "1" && error instanceof Error ? `${error.name}: ${error.message}` : null;
     return NextResponse.json(
-      { error: "No se pudo leer el archivo", detail: "Verificá que el archivo no esté dañado e intentá de nuevo." },
+      {
+        error: "No se pudo leer el archivo",
+        detail: debugDetail ?? "Verificá que el archivo no esté dañado e intentá de nuevo."
+      },
       { status: 422 }
     );
   }
