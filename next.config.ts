@@ -2,12 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "pdfjs-dist", "@napi-rs/canvas"],
-  // El loader de @napi-rs/canvas elige el binario nativo con un require
-  // computado (canvas-<plataforma>) que el tracer no puede seguir: sin esto,
-  // la funcion serverless viaja sin el .node y pdfjs muere con "DOMMatrix is
-  // not defined" al procesar cualquier PDF.
+  // Dos dependencias de pdfjs se cargan dinamicamente y el tracer no las ve:
+  // el binario nativo de @napi-rs/canvas (require computado canvas-<plataforma>,
+  // sin el "DOMMatrix is not defined") y su propio worker pdf.worker.mjs
+  // (import dinamico, sin el "Setting up fake worker failed"). Ambos vistos
+  // en produccion, 2026-08-01. Se fuerzan a mano en el bundle de las funciones.
   outputFileTracingIncludes: {
-    "/**": ["node_modules/@napi-rs/canvas-linux-x64-gnu/**"]
+    "/**": ["node_modules/@napi-rs/canvas-linux-x64-gnu/**", "node_modules/pdfjs-dist/legacy/build/**"]
   },
   async redirects() {
     // El modulo Proyectos se reconvirtio en la Fabrica de Normas.
