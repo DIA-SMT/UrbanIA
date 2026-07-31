@@ -152,3 +152,65 @@ export async function removeNormDocument(storagePath: string): Promise<void> {
   const { error } = await supabase.storage.from(NORMS_BUCKET).remove([storagePath]);
   if (error) throw new Error(error.message);
 }
+
+/* ----------------- Bucket temporal de adjuntos de los chats ---------------- */
+/*
+ * Los adjuntos de Migue y de la Consulta al CPU NO se persisten: el bucket es
+ * solo un puente para esquivar el tope de ~4,5 MB del body en Vercel. PRIVADO
+ * (nada de URLs públicas: son documentos de vecinos), y el objeto se borra
+ * apenas se extrae el texto. El prefijo por fecha permite barrer huérfanos a
+ * mano si alguna extracción nunca se confirmó.
+ */
+
+const CHAT_BUCKET = process.env.SUPABASE_CHAT_BUCKET ?? "adjuntos-chat";
+
+let chatBucketReady: Promise<void> | null = null;
+
+/** Crea el bucket privado si no existe (idempotente, una vez por instancia). */
+function ensureChatBucket(): Promise<void> {
+  chatBucketReady ??= (async () => {
+    const supabase = client();
+    const { error } = await supabase.storage.createBucket(CHAT_BUCKET, { public: false, fileSizeLimit: "15MB" });
+    if (error && !/already exists/i.test(error.message)) {
+      chatBucketReady = null;
+      throw new Error(error.message);
+    }
+  })();
+  return chatBucketReady;
+}
+
+/** URL firmada para subir un adjunto de chat directo al bucket temporal. */
+export async function createChatAttachmentUploadUrl(fileName: string): Promise<{ storagePath: string; signedUrl: string }> {
+  await ensureChatBucket();
+  const supabase = client();
+  const storagePath = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${safeFileName(fileName)}`;
+
+  const { data, error } = await supabase.storage.from(CHAT_BUCKET).createSignedUploadUrl(storagePath);
+  if (error || !data) throw new Error(error?.message ?? "No se pudo firmar la subida");
+
+  return { storagePath, signedUrl: data.signedUrl };
+}
+
+/** Baja el adjunto temporal para extraerle el texto. */
+export async function downloadChatAttachment(storagePath: string): Promise<Uint8Array> {
+  const supabase = client();
+  const { data, error } = await supabase.storage.from(CHAT_BUCKET).download(storagePath);
+  if (error || !data) throw new Error(error?.message ?? "No se pudo descargar el adjunto");
+  return new Uint8Array(await data.arrayBuffer());
+}
+
+/**
+ * Borra el adjunto temporal. Best-effort: no lanza.
+ * Ojo al debuggear: el CDN de Supabase puede seguir sirviendo el objeto
+ * borrado unos minutos (verificado 2026-07-31: list() vacío pero download
+ * responde). Es caché, no un borrado fallido; y al ser bucket privado, solo
+ * responde con credenciales.
+ */
+export async function removeChatAttachment(storagePath: string): Promise<void> {
+  try {
+    const supabase = client();
+    await supabase.storage.from(CHAT_BUCKET).remove([storagePath]);
+  } catch {
+    // Queda huérfano bajo el prefijo de fecha; se barre a mano.
+  }
+}
