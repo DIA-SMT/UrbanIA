@@ -57,6 +57,8 @@ export function hasOcrConfig(): boolean {
 }
 
 async function loadPdf(buffer: Uint8Array): Promise<PdfDocument> {
+  const { ensurePdfjsNodeGlobals } = await import("./node-polyfills");
+  await ensurePdfjsNodeGlobals();
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
   // Copia defensiva: pdfjs transfiere y detacha el buffer que recibe (ver
   // extract-text.ts, mismo motivo).
