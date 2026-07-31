@@ -103,6 +103,8 @@ export function collapseSpacedLetters(value: string): string {
  * base de la trazabilidad: permiten decir de que pagina salio cada cosa.
  */
 export async function extractPdfText(buffer: Uint8Array, options: PdfExtractOptions = {}): Promise<PdfExtraction> {
+  const { ensurePdfjsNodeGlobals } = await import("./node-polyfills");
+  await ensurePdfjsNodeGlobals();
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
   // Copia defensiva: pdfjs TRANSFIERE el buffer que recibe y lo deja detachado,
   // asi que reusar el mismo Uint8Array en una segunda llamada revienta con
