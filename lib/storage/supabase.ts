@@ -39,12 +39,10 @@ export type UploadedDocument = { storagePath: string; url: string };
 /**
  * Sube el archivo al bucket bajo <meetingId>/<timestamp>-<nombre> y devuelve su URL pública.
  *
- * TODO (bug latente en produccion): el archivo pasa por la ruta de API
- * /api/hearings/[id]/documents, que acepta hasta 15 MB. En Vercel el body de
- * una funcion serverless se corta en ~4,5 MB, asi que ahi va a fallar todo lo
- * que supere ese tamano. El importador de normas ya resuelve esto subiendo
- * directo al bucket con signed URL (createNormDocumentUploadUrl): cuando se
- * arregle, conviene mover audiencias al mismo patron.
+ * Solo para archivos que YA están en el server (p. ej. la carga de audiencia
+ * por PDF). La subida manual de documentos va por signed URL directo al bucket
+ * (createHearingDocumentUploadUrl), igual que el importador de normas: el body
+ * de una función en Vercel se corta en ~4,5 MB y acá se prometen 15.
  */
 export async function uploadHearingDocument(input: {
   meetingId: string;
@@ -63,6 +61,37 @@ export async function uploadHearingDocument(input: {
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
   return { storagePath, url: data.publicUrl };
+}
+
+/**
+ * URL firmada para que el browser suba el documento directo al bucket de
+ * audiencias, sin pasar por una función (mismo patrón que las normas).
+ */
+export async function createHearingDocumentUploadUrl(input: {
+  meetingId: string;
+  fileName: string;
+}): Promise<{ storagePath: string; token: string; signedUrl: string }> {
+  const supabase = client();
+  const storagePath = `${input.meetingId}/${Date.now()}-${safeFileName(input.fileName)}`;
+
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(storagePath);
+  if (error || !data) throw new Error(error?.message ?? "No se pudo firmar la subida");
+
+  return { storagePath, token: data.token, signedUrl: data.signedUrl };
+}
+
+/** Baja el documento del bucket (verificación e ingesta al conocimiento). */
+export async function downloadHearingDocument(storagePath: string): Promise<Uint8Array> {
+  const supabase = client();
+  const { data, error } = await supabase.storage.from(BUCKET).download(storagePath);
+  if (error || !data) throw new Error(error?.message ?? "No se pudo descargar el documento");
+  return new Uint8Array(await data.arrayBuffer());
+}
+
+/** Link público de un documento de audiencia ya subido. */
+export function getHearingDocumentPublicUrl(storagePath: string): string {
+  const supabase = client();
+  return supabase.storage.from(BUCKET).getPublicUrl(storagePath).data.publicUrl;
 }
 
 /** Borra el objeto del bucket. No falla si ya no existe. */

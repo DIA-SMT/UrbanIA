@@ -3,7 +3,11 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Loader2, Paperclip, Trash2, Upload } from "lucide-react";
+import { uploadToBucket } from "@/components/shared/upload-to-bucket";
 import type { HearingDocumentView } from "@/lib/hearings/shared";
+
+// Debe coincidir con MAX_FILE_BYTES del handler de documentos.
+const MAX_FILE_BYTES = 15 * 1024 * 1024;
 
 function formatSize(bytes: number | null): string {
   if (bytes === null) return "";
@@ -29,19 +33,50 @@ export function HearingDocuments({
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
+  /**
+   * Subida directa al bucket en tres pasos (firmar → PUT → registrar): el
+   * archivo nunca pasa por una función de Vercel, cuyo body se corta en
+   * ~4,5 MB; así los 15 MB prometidos son reales.
+   */
   async function upload(file: File) {
     setError("");
+    if (file.size > MAX_FILE_BYTES) {
+      setError(`"${file.name}" pesa ${formatSize(file.size)} y el límite es 15 MB.`);
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
     setUploading(true);
+    setProgress(0);
     try {
-      const body = new FormData();
-      body.append("file", file);
-      const response = await fetch(`/api/hearings/${hearingId}?action=documents`, { method: "POST", body });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        throw new Error(payload?.detail || payload?.error || "No se pudo subir el documento.");
+      const signResponse = await fetch(`/api/hearings/${hearingId}?action=sign-document`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, sizeBytes: file.size })
+      });
+      const signed = await signResponse.json().catch(() => null);
+      if (!signResponse.ok || !signed?.signedUrl) {
+        throw new Error(signed?.detail || signed?.error || "No se pudo preparar la subida.");
+      }
+
+      await uploadToBucket(signed.signedUrl, file, setProgress);
+
+      const registerResponse = await fetch(`/api/hearings/${hearingId}?action=documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storagePath: signed.storagePath,
+          fileName: file.name,
+          contentType: file.type || undefined,
+          sizeBytes: file.size
+        })
+      });
+      if (!registerResponse.ok) {
+        const payload = await registerResponse.json().catch(() => null);
+        throw new Error(payload?.detail || payload?.error || "No se pudo registrar el documento.");
       }
       router.refresh();
     } catch (err) {
@@ -98,7 +133,7 @@ export function HearingDocuments({
               className="urban-button inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-black text-slate-200 disabled:opacity-60"
             >
               {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-              {uploading ? "Subiendo…" : "Subir documento"}
+              {uploading ? (progress > 0 && progress < 100 ? `Subiendo… ${progress}%` : "Subiendo…") : "Subir documento"}
             </button>
           </>
         ) : null}
