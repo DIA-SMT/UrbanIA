@@ -14,6 +14,7 @@ import { handleFinalize } from "@/lib/hearings/api/finalize";
 import { handleGenerateAnalysis } from "@/lib/hearings/api/generate-analysis";
 import { handleLiveMatch } from "@/lib/hearings/api/live-match";
 import { handleRetryIngest } from "@/lib/hearings/api/retry-ingest";
+import { handleSummaryPdf } from "@/lib/hearings/api/summary";
 import { getHearing, updateHearing } from "@/lib/hearings/data";
 import { removeHearingDocument } from "@/lib/storage/supabase";
 
@@ -64,11 +65,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   return handler(request, id);
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  // `?action=resumen` genera el resumen ejecutivo imprimible (staff).
+  if (new URL(request.url).searchParams.get("action") === "resumen") {
+    return handleSummaryPdf(request, id);
+  }
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
-  const { id } = await params;
   const hearing = await getHearing(id).catch(() => null);
   if (!hearing) {
     return NextResponse.json({ error: "Audiencia no encontrada" }, { status: 404 });
