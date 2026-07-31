@@ -17,7 +17,7 @@ export type ChatAttachment = {
   text: string;
 };
 
-export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024; // Debe coincidir con el endpoint.
+export const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024; // Debe coincidir con el endpoint (y con el techo real de ~4,5 MB de Vercel).
 export const ATTACHMENT_ACCEPT = ".pdf,.txt";
 
 export function formatFileSize(bytes: number): string {
@@ -56,7 +56,7 @@ export function useAttachment() {
     // Chequeo de peso en el cliente: evita subir 50 MB para recibir un 413.
     if (file.size > MAX_ATTACHMENT_BYTES) {
       setError(
-        `"${file.name}" pesa ${formatFileSize(file.size)} y el límite es 5 MB. Probá subir solo las páginas que necesitás: abrí el PDF, elegí Imprimir → "Guardar como PDF" y seleccioná el rango de páginas.`
+        `"${file.name}" pesa ${formatFileSize(file.size)} y el límite es 4 MB. Probá subir solo las páginas que necesitás: abrí el PDF, elegí Imprimir → "Guardar como PDF" y seleccioná el rango de páginas.`
       );
       event.target.value = "";
       return;

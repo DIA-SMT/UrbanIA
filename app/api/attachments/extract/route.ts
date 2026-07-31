@@ -12,7 +12,10 @@ import { checkRateLimit, clientKeyFromRequest } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
+// 4 MB y no 5: en Vercel el body de una función se corta en ~4,5 MB, así que
+// prometer 5 era mentirle al usuario (el archivo de 4,8 MB muere en la
+// plataforma con un 413 antes de llegar acá, verificado 2026-08-01).
+const MAX_FILE_BYTES = 4 * 1024 * 1024; // 4 MB
 const MAX_PDF_PAGES = 40;
 // El OCR por visión cuesta tiempo (~3-5 s por página) y tokens: se transcriben
 // solo las primeras páginas de un escaneo. Alcanza para notas y expedientes
@@ -70,7 +73,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: "Archivo demasiado pesado",
-        detail: `"${name}" pesa ${sizeMb} y el límite es 5 MB. Probá subir solo las páginas que necesitás: abrí el PDF, elegí Imprimir → "Guardar como PDF" y seleccioná el rango de páginas.`
+        detail: `"${name}" pesa ${sizeMb} y el límite es 4 MB. Probá subir solo las páginas que necesitás: abrí el PDF, elegí Imprimir → "Guardar como PDF" y seleccioná el rango de páginas.`
       },
       { status: 413 }
     );
@@ -140,16 +143,8 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Attachment extraction error", error);
-    // Modo diagnostico TEMPORAL (2026-08-01, bug DOMMatrix en Vercel): con el
-    // header se devuelve el mensaje real del error para poder diagnosticar
-    // produccion sin acceso a los logs. Sacar cuando el bug quede cerrado.
-    const debugDetail =
-      request.headers.get("x-debug-extract") === "1" && error instanceof Error ? `${error.name}: ${error.message}` : null;
     return NextResponse.json(
-      {
-        error: "No se pudo leer el archivo",
-        detail: debugDetail ?? "Verificá que el archivo no esté dañado e intentá de nuevo."
-      },
+      { error: "No se pudo leer el archivo", detail: "Verificá que el archivo no esté dañado e intentá de nuevo." },
       { status: 422 }
     );
   }

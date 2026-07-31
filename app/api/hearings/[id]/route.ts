@@ -7,7 +7,7 @@ import { handleAnalyze } from "@/lib/hearings/api/analyze";
 import { handleCompleteFicha } from "@/lib/hearings/api/complete-ficha";
 import { handleConclusions } from "@/lib/hearings/api/conclusions";
 import { handleDocumentDelete } from "@/lib/hearings/api/document-delete";
-import { handleDocumentUpload } from "@/lib/hearings/api/documents";
+import { handleDocumentSign, handleDocumentUpload } from "@/lib/hearings/api/documents";
 import { handleDraft } from "@/lib/hearings/api/draft";
 import { handleFicha } from "@/lib/hearings/api/ficha";
 import { handleFinalize } from "@/lib/hearings/api/finalize";
@@ -41,6 +41,7 @@ const POST_ACTIONS = {
   "complete-ficha": handleCompleteFicha,
   conclusions: handleConclusions,
   documents: handleDocumentUpload,
+  "sign-document": handleDocumentSign,
   draft: handleDraft,
   finalize: handleFinalize,
   "generate-analysis": handleGenerateAnalysis,

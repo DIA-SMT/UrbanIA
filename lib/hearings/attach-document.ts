@@ -4,7 +4,7 @@
 
 import { prisma } from "@/lib/db/prisma";
 import { ensureHearingRecord } from "@/lib/hearings/record";
-import { uploadHearingDocument } from "@/lib/storage/supabase";
+import { getHearingDocumentPublicUrl, uploadHearingDocument } from "@/lib/storage/supabase";
 
 /**
  * Guarda un archivo como documento adjunto de una audiencia: sube el objeto a
@@ -28,21 +28,47 @@ export async function attachHearingDocument(input: {
     bytes: input.bytes
   });
 
+  const registered = await registerHearingDocument({
+    meetingId: input.meetingId,
+    fileName: input.fileName,
+    contentType: input.contentType,
+    storagePath: uploaded.storagePath,
+    fileSize: input.fileSize,
+    uploadedByName: input.uploadedByName
+  });
+
+  return { documentId: registered.documentId, url: registered.url, storagePath: uploaded.storagePath };
+}
+
+/**
+ * Registra como HearingDocument un objeto que YA está en el bucket (subida
+ * directa del browser con signed URL). No sube nada: solo la fila del
+ * expediente y la URL pública.
+ */
+export async function registerHearingDocument(input: {
+  meetingId: string;
+  fileName: string;
+  contentType: string;
+  storagePath: string;
+  fileSize: number;
+  uploadedByName?: string | null;
+}): Promise<{ documentId: string; url: string }> {
   const recordId = await ensureHearingRecord(input.meetingId);
   const extension = input.fileName.slice(input.fileName.lastIndexOf(".")).toLowerCase();
+  const url = getHearingDocumentPublicUrl(input.storagePath);
 
   const document = await prisma.hearingDocument.create({
     data: {
       hearingRecordId: recordId,
       name: input.fileName,
       type: input.contentType || extension.replace(".", "").toUpperCase(),
-      url: uploaded.url,
-      storagePath: uploaded.storagePath,
+      url,
+      storagePath: input.storagePath,
       sizeBytes: input.fileSize,
       uploadedBy: input.uploadedByName ?? null
     },
     select: { id: true }
   });
 
-  return { documentId: document.id, url: uploaded.url, storagePath: uploaded.storagePath };
+  return { documentId: document.id, url };
 }
