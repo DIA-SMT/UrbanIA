@@ -10,7 +10,7 @@ import { z } from "zod";
 // margen chico por si el cliente agrega notas.
 export const attachmentSchema = z.object({
   name: z.string().trim().min(1).max(160),
-  text: z.string().trim().min(1).max(13_000),
+  text: z.string().trim().min(1).max(32_000),
   truncated: z.boolean().optional()
 });
 
