@@ -701,8 +701,8 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
                 onClick={files.openPicker}
                 disabled={files.uploading}
                 className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:text-slate-400 dark:hover:border-sky-400/40 dark:hover:bg-sky-400/10 dark:hover:text-sky-300"
-                aria-label="Adjuntar archivo (PDF o TXT, hasta 5 MB)"
-                title="Adjuntar archivo (PDF o TXT, hasta 5 MB)"
+                aria-label="Adjuntar archivo (PDF o TXT, hasta 15 MB)"
+                title="Adjuntar archivo (PDF o TXT, hasta 15 MB)"
               >
                 {files.uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
               </button>
