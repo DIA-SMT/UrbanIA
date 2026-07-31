@@ -31,9 +31,12 @@ export const dynamic = "force-dynamic";
 const MAX_MULTIPART_BYTES = 4 * 1024 * 1024; // 4 MB
 /** Tope de la subida directa. Igual que los documentos de audiencias. */
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // 15 MB
-const MAX_PDF_PAGES = 40;
+// 60 páginas / 30.000 caracteres: un PPT institucional de ~27 páginas (12 MB)
+// entra COMPLETO (medido 2026-07-31: 27.701 chars). Con 12.000 el asistente
+// veía el 43% y resumía a ciegas la mitad del documento.
+const MAX_PDF_PAGES = 60;
 const MAX_OCR_PAGES = 8;
-const MAX_TEXT_CHARS = 12_000;
+const MAX_TEXT_CHARS = 30_000;
 const RATE_LIMIT = { limit: 6, windowMs: 60_000 };
 
 const ALLOWED_EXTENSIONS = [".pdf", ".txt"] as const;
