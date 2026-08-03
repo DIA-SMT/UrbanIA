@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { transcribeAudioFile } from "@/lib/ai/transcription";
 import { prisma } from "@/lib/db/prisma";
+import { transcribeChunkWithSpeakers } from "@/lib/hearings/asr-gemini";
 import { downloadHearingAudioPart } from "@/lib/storage/supabase";
 
 /**
@@ -53,12 +54,34 @@ export async function handleTranscribePart(request: Request, id: string) {
 
   try {
     const bytes = await downloadHearingAudioPart(media.storagePath);
-    const segments = await transcribeAudioFile({
-      bytes,
-      fileName: media.fileName,
-      offsetMs: media.offsetMs ?? 0,
-      fallbackDurationMs: (media.durationSec ?? 0) * 1000
-    });
+    const offsetMs = media.offsetMs ?? 0;
+
+    // Gemini primero: transcribe mejor y separa oradores (ver asr-gemini.ts).
+    // Si falla —modelo caido, tramo raro— se cae a Whisper: mejor una
+    // transcripcion sin oradores que ninguna. Mismo criterio que la ingesta de
+    // YouTube. Un fallo por falta de credito NO se reintenta: comparten API key
+    // y volveria a fallar igual, cobrando el intento.
+    let segments: Array<{ startMs: number; endMs: number; content: string; speakerLabel: string }>;
+    try {
+      const result = await transcribeChunkWithSpeakers({ bytes, fileName: media.fileName, offsetMs });
+      segments = result.segments;
+    } catch (asrError) {
+      const reason = asrError instanceof Error ? asrError.message : String(asrError);
+      if (/\b40[23]\b|insufficient|balance|credit|quota|payment required|limit exceeded/i.test(reason)) throw asrError;
+      console.error(`Gemini falló en ${media.fileName}, se cae a Whisper:`, reason);
+      const fallback = await transcribeAudioFile({
+        bytes,
+        fileName: media.fileName,
+        offsetMs,
+        fallbackDurationMs: (media.durationSec ?? 0) * 1000
+      });
+      segments = fallback.map((segment) => ({
+        startMs: segment.startMs,
+        endMs: segment.endMs,
+        content: segment.text,
+        speakerLabel: "Audiencia en vivo"
+      }));
+    }
 
     // Idempotencia: se limpia lo que este tramo pueda haber dejado en un intento
     // anterior (por ejemplo si guardo el texto y despues fallo al marcarse como
@@ -80,10 +103,11 @@ export async function handleTranscribePart(request: Request, id: string) {
           meetingId: id,
           startMs: segment.startMs,
           endMs: segment.endMs,
-          content: segment.text,
-          // La grabacion en vivo es un solo canal de sala: no hay separacion de
-          // voces. La etiqueta lo dice en vez de inventar oradores.
-          speakerLabel: "Audiencia en vivo"
+          content: segment.content,
+          // "Hablante 1", "Hablante 2"... o un nombre real si quedo probado en
+          // el audio. El prompt tiene prohibido inventarlos: en un registro
+          // publico, un nombre equivocado es peor que ninguno.
+          speakerLabel: segment.speakerLabel
         }))
       });
     }

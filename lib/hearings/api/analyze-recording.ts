@@ -47,7 +47,10 @@ export async function handleAnalyzeRecording(_request: Request, id: string) {
   const segments = await prisma.transcriptSegment.findMany({
     where: { meetingId: id },
     orderBy: { startMs: "asc" },
-    select: { startMs: true, content: true }
+    // speakerLabel incluido a proposito: matchFullTranscript reescribe los
+    // segmentos y, sin el, pisaria "Hablante 1/2/3" con la etiqueta generica,
+    // perdiendo la separacion de voces que acaba de hacer la transcripcion.
+    select: { startMs: true, content: true, speakerLabel: true }
   });
   if (!segments.length) {
     return NextResponse.json(
@@ -62,7 +65,7 @@ export async function handleAnalyzeRecording(_request: Request, id: string) {
       // Sin codigo nuevo asociado (audiencia de tema libre) el catalogo sale
       // vacio y simplemente no hay cruces: el resto del analisis corre igual.
       reformId: meeting.reformId ?? "",
-      chunks: segments.map((segment) => ({ text: segment.content, atMs: segment.startMs })),
+      chunks: segments.map((segment) => ({ text: segment.content, atMs: segment.startMs, speaker: segment.speakerLabel })),
       speakerLabel: "Audiencia en vivo"
     });
     return NextResponse.json({ ok: true, ...result });
