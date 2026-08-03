@@ -47,6 +47,16 @@ export function getBrandLogoDataUri(): string | null {
   return readLogoDataUri("public/brand/logo-municipalidad-smt-transparent.png");
 }
 
+/** Isologo municipal oficial en color para pies de documentos institucionales. */
+export function getMunicipalIsoLogoDataUri(): string | null {
+  return readLogoDataUri("public/brand/logo-municipalidad-smt-iso.png");
+}
+
+/** Marca Ciudad SMT en blanco para cabeceras sobre fondos azules. */
+export function getCitySmtWhiteLogoDataUri(): string | null {
+  return readLogoDataUri("public/brand/logo-ciudad-smt-blanco.png");
+}
+
 /** Logo de la Direccion de IA para el pie, o null si falta el asset. */
 export function getDiaLogoDataUri(): string | null {
   return readLogoDataUri("public/brand/logo-direccion-ia.png");
