@@ -19,8 +19,9 @@ import { getHearing, updateHearing } from "@/lib/hearings/data";
 import { removeHearingDocument } from "@/lib/storage/supabase";
 
 export const dynamic = "force-dynamic";
-/** El paso mas lento es generar el analisis; 60 s es el techo del plan Hobby. */
-export const maxDuration = 60;
+/** El paso mas lento es el resumen ejecutivo (modelo fuerte redactando ~9k
+ *  tokens, 90-150 s). Con Fluid Compute el techo de Hobby es 300 s. */
+export const maxDuration = 300;
 
 /*
  * Todas las operaciones sobre UNA audiencia entran por esta ruta, con la

@@ -23,7 +23,10 @@ import {
 // La transcripción entera de una audiencia larga no entra ni hace falta:
 // 60k caracteres cubren ~2 horas de exposición hablada.
 const MAX_TRANSCRIPT_CHARS = 60_000;
-const MAX_DOC_CHARS = 12_000;
+// Documentos ENTEROS: con 12k, un PPT institucional de 27 páginas entraba al
+// 43% y el resumen salía pobre y general (comparado contra el resumen de la
+// Comisión FAU hecho a mano, 2026-08-03).
+const MAX_DOC_CHARS = 30_000;
 const MAX_DOCS = 2;
 
 import { escapeHtml, renderSummaryBody, SUMMARY_STYLES, type SummaryPayload } from "@/lib/hearings/summary-document";
@@ -65,14 +68,21 @@ async function documentExcerpts(meetingId: string): Promise<string[]> {
 
 const CONTRACT = [
   "Respondé SOLO con un objeto JSON válido, sin markdown ni texto fuera del JSON, con esta forma exacta:",
-  `{"titulo": "...", "bajada": "...", "expositor": "...", "destinatario": "...", "estructura": "I. ... · II. ... · III. ...", "secciones": [{"titulo": "...", "parrafos": ["...", "..."], "destacados": ["..."]}], "lineasDeAccion": ["..."]}`,
-  "- titulo: editorial y fiel al contenido, sin comillas internas.",
-  "- bajada: 1 o 2 oraciones que enmarquen el aporte.",
-  "- expositor/destinatario: como corresponda a ESTA audiencia.",
-  "- estructura: los bloques del documento separados por ' · '.",
-  "- secciones: entre 4 y 8, numerables, cada una con 2 a 5 párrafos sustanciosos; destacados solo si hay frases o datos que merecen resaltarse (opcional).",
-  "- lineasDeAccion: bullets accionables SOLO si surgen del material (opcional).",
-  "Reglas: basate EXCLUSIVAMENTE en la transcripción, el análisis y los documentos provistos. No inventes cifras, nombres ni posiciones. Si algo no está en el material, no lo escribas. Español institucional claro, sin jerga innecesaria."
+  `{"titulo": "...", "bajada": "...", "expositor": "...", "destinatario": "...", "estructura": "I. ... · II. ... · III. ...", "secciones": [{"titulo": "...", "parrafos": ["..."], "destacados": ["..."], "datos": [{"valor": "65 %", "descripcion": "..."}], "tabla": {"titulo": "...", "columnas": ["..."], "filas": [["..."]]}, "subsecciones": [{"titulo": "...", "parrafos": ["..."], "destacados": ["..."], "datos": [...], "tabla": {...}}]}], "lineasDeAccion": ["..."]}`,
+  "",
+  "El documento objetivo es un RESUMEN EJECUTIVO TÉCNICO de nivel profesional, no una síntesis escolar. La vara:",
+  "- EXHAUSTIVIDAD: recorré TODO el material; cada tema sustantivo de la exposición debe tener su sección o subsección. Apuntá a un documento de 15.000 a 22.000 caracteres en total.",
+  "- ESPECIFICIDAD OBLIGATORIA: cada cifra, porcentaje, medición, superficie, año o cantidad que aparezca en el material DEBE citarse con su valor exacto. Cada ordenanza, decreto, estudio, programa o instituto DEBE nombrarse tal como aparece (con número, autor o sigla). Un párrafo sin información específica es un párrafo fallido.",
+  "- PROHIBIDO el relleno genérico: nada de 'se destacó la importancia de', 'se abordaron diversos temas', 'se hizo hincapié en la necesidad'. Escribí QUÉ se dijo, con sus datos.",
+  "",
+  "Campos:",
+  "- secciones: entre 5 y 8, con la lógica del material (encuadre, principios, diagnóstico, propuestas, instrumentos...). Usá subsecciones (2 a 5) cuando una sección cubra dimensiones o escalas distintas — p. ej. el diagnóstico dividido en dimensión urbana, normativa, interseccional, ambiental.",
+  "- datos: los números más potentes de cada bloque como cifras destacadas (valor corto + descripción de una línea). Usalos cada vez que el material los ofrezca.",
+  "- tabla: SOLO si el material trae una serie de indicadores comparables (p. ej. un indicador por nivel de vulnerabilidad); columnas y filas fieles al material.",
+  "- destacados: frases textuales de la exposición o hallazgos que merecen resaltarse, 1 o 2 por sección donde aplique.",
+  "- lineasDeAccion: las propuestas accionables que surgen del material, concretas.",
+  "",
+  "Reglas de verdad: basate EXCLUSIVAMENTE en la transcripción, el análisis y los documentos provistos. No inventes cifras, nombres ni posiciones; si un dato no está en el material, no existe. Español institucional claro."
 ].join("\n");
 
 export async function handleSummaryPdf(_request: Request, id: string) {
@@ -140,7 +150,9 @@ export async function handleSummaryPdf(_request: Request, id: string) {
         },
         { role: "user", content: `${material}\n\n${CONTRACT}` }
       ],
-      { json: true, maxTokens: 4500, temperature: 0.3 }
+      // Mismo modelo fuerte que las consultas normativas: el liviano por defecto
+      // producía resúmenes genéricos sin datos (comparado 2026-08-03).
+      { json: true, maxTokens: 9000, temperature: 0.25, model: process.env.OPENROUTER_CPU_MODEL || "openai/gpt-4o" }
     );
     payload = JSON.parse(response.answer) as SummaryPayload;
     if (!payload?.titulo || !Array.isArray(payload.secciones) || payload.secciones.length === 0) {
