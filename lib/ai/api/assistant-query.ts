@@ -210,19 +210,34 @@ export async function handleAssistantQuery(request: Request) {
     // (el mismo pipeline de la Consulta al CPU). Si falla, seguimos sin evidencia
     // para no tumbar el asistente.
     let retrieval: RagRetrieval = { fragments: [], sources: [], hasEvidence: false };
+    // Diagnóstico TEMPORAL (2026-08-03, bug RAG en Vercel): con el header
+    // x-debug-retrieval se devuelven los conteos por pata para ver desde afuera
+    // qué recuperó cada motor en producción. Sacar cuando el bug quede cerrado.
+    let retrievalDebug: { semantic: number; articles: number; normativa: boolean } | null = null;
     if (!analysis.conversacion) {
-      try {
-        const [semanticRetrieval, articleFragments] = await Promise.all([
-          retrieveRelevantFragments(analysis.consulta, {
-            mode: assistantContext.mode,
-            topK: analysis.normativa ? 6 : 5
-          }),
-          analysis.normativa ? retrieveArticleFragments(analysis.consulta) : Promise.resolve([])
-        ]);
-        retrieval = mergeRetrieval(semanticRetrieval, articleFragments);
-      } catch (retrievalError) {
-        console.error("RAG retrieval error", retrievalError);
+      // allSettled y no all: si una pata falla (p. ej. embeddings caídos en
+      // serverless), la otra sobrevive. Con Promise.all, el fallo del retrieval
+      // semántico descartaba los artículos que la búsqueda por palabra clave SÍ
+      // había encontrado, y Migue quedaba "sin evidencia" (bug de prod).
+      const [semanticResult, articlesResult] = await Promise.allSettled([
+        retrieveRelevantFragments(analysis.consulta, {
+          mode: assistantContext.mode,
+          topK: analysis.normativa ? 6 : 5
+        }),
+        analysis.normativa ? retrieveArticleFragments(analysis.consulta) : Promise.resolve([])
+      ]);
+      if (semanticResult.status === "rejected") {
+        console.error("RAG retrieval error", semanticResult.reason);
       }
+      const semanticRetrieval: RagRetrieval =
+        semanticResult.status === "fulfilled" ? semanticResult.value : { fragments: [], sources: [], hasEvidence: false };
+      const articleFragments = articlesResult.status === "fulfilled" ? articlesResult.value : [];
+      retrieval = mergeRetrieval(semanticRetrieval, articleFragments);
+      retrievalDebug = {
+        semantic: semanticRetrieval.fragments.length,
+        articles: articleFragments.length,
+        normativa: analysis.normativa
+      };
     }
 
     // Para charla no normativa sin evidencia, el bloque "no encontré información"
@@ -276,7 +291,12 @@ export async function handleAssistantQuery(request: Request) {
       });
     }
 
-    return NextResponse.json({ ...response, answer, source });
+    return NextResponse.json({
+      ...response,
+      answer,
+      source,
+      ...(request.headers.get("x-debug-retrieval") === "1" && retrievalDebug ? { debug: retrievalDebug } : {})
+    });
   } catch (error) {
     console.error("OpenRouter assistant error", error);
 

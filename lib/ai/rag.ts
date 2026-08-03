@@ -134,7 +134,14 @@ export async function retrieveKnowledge(
         toVectorLiteral(vector),
         fetchCount
       );
-    })(),
+      // Si el embedding local no está disponible (p. ej. serverless sin el
+      // modelo), la búsqueda de texto sigue sola: degradar NO es tumbar todo.
+      // Sin este catch, el fallo tiraba el Promise.all entero y Migue quedaba
+      // "sin evidencia" aunque el texto tuviera la respuesta (bug de prod).
+    })().catch((error) => {
+      console.error("Retrieval vectorial no disponible; se sigue solo con texto.", error instanceof Error ? error.message : error);
+      return [] as VectorRow[];
+    }),
     (async () => {
       const orQuery = buildOrTsQuery(question);
       if (!orQuery) return [] as TextRow[];
