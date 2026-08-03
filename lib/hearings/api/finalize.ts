@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { saveRecordConclusions, syncRecordLifecycle } from "@/lib/hearings/record";
+import { ingestHearingTranscript } from "@/lib/knowledge/ingest-hearing-report";
 
 
 const conclusionsSchema = z.object({
@@ -81,6 +82,16 @@ export async function handleFinalize(request: Request, id: string) {
       }
     });
     await syncRecordLifecycle(id, "COMPLETED");
+
+    // Migue aprende de la transcripción (fuente MEETING), igual que en la
+    // ingesta batch. Con await: en serverless un fire-and-forget puede morir
+    // con la función. Best-effort: un fallo del indexado no impide el cierre.
+    try {
+      const indexed = await ingestHearingTranscript(id);
+      if (indexed) console.log(`[conocimiento] Transcripción de audiencia indexada: ${indexed.chunks} fragmentos.`);
+    } catch (error) {
+      console.error("[conocimiento] No se pudo indexar la transcripción de la audiencia:", error);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
