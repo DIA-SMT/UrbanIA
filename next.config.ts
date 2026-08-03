@@ -16,7 +16,22 @@ const nextConfig: NextConfig = {
     "/api/assistant": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
     "/api/cpu": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
     "/api/hearings": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
-    "/api/hearings/[id]": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"]
+    "/api/hearings/[id]": [
+      "node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**",
+      // El resumen ejecutivo se exporta con @sparticuz/chromium en Vercel.
+      // Sus .br se resuelven en runtime y el tracer de Next no los detecta.
+      "node_modules/@sparticuz/chromium/bin/**"
+    ]
+  },
+  outputFileTracingExcludes: {
+    // Vercel ejecuta Linux x64. El paquete onnxruntime también instala binarios
+    // de macOS, Windows y Linux ARM64; si quedan en esta función, junto con
+    // Chromium exceden con facilidad el tamaño permitido del bundle.
+    "/api/hearings/[id]": [
+      "node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
+      "node_modules/onnxruntime-node/bin/napi-v6/win32/**",
+      "node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**"
+    ]
   },
   async redirects() {
     // El modulo Proyectos se reconvirtio en la Fabrica de Normas.

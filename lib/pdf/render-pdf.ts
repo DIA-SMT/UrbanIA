@@ -17,15 +17,35 @@ export async function renderHtmlToPdf(html: string): Promise<Buffer> {
         return puppeteer.launch({
           args: chromium.args,
           executablePath: await chromium.executablePath(),
-          headless: true
+          headless: true,
+          timeout: 60_000
         });
       })()
-    : await puppeteer.launch({ channel: "chrome", headless: true });
+    : await puppeteer.launch({ channel: "chrome", headless: true, timeout: 60_000 });
 
   try {
     const page = await browser.newPage();
     // El HTML es autocontenido (estilos inline, logos en data URI): "load" alcanza.
     await page.setContent(html, { waitUntil: "load", timeout: 60_000 });
+    await page.emulateMediaType("print");
+    await page.evaluate(() => document.fonts.ready);
+
+    // Los documentos institucionales usan alturas A4 fijas y overflow:hidden.
+    // Sin este control, un texto más largo podría quedar recortado sin que la
+    // exportación falle. Los demás PDFs no usan estas clases y siguen igual.
+    const overflow = await page.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLElement>(".pdf-page, .cover-body, .continuation-body"))
+        .map((element) => ({
+          className: element.className,
+          hiddenHeight: element.scrollHeight - element.clientHeight,
+          hiddenWidth: element.scrollWidth - element.clientWidth
+        }))
+        .filter((element) => element.hiddenHeight > 1 || element.hiddenWidth > 1)
+    );
+    if (overflow.length) {
+      throw new Error(`El documento excede el área imprimible: ${JSON.stringify(overflow)}`);
+    }
+
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,

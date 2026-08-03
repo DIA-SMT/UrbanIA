@@ -22,7 +22,8 @@
     "hearings:ingest": "tsx --env-file=.env.local scripts/ingest-hearings.ts",
     "dev:turbo": "next dev --turbo",
     "hearings:ingest-docs": "tsx --env-file=.env.local scripts/ingest-hearing-documents.ts",
-    "hearings:ingest-transcripts": "tsx --env-file=.env.local scripts/ingest-hearing-transcripts.ts"
+    "hearings:ingest-transcripts": "tsx --env-file=.env.local scripts/ingest-hearing-transcripts.ts",
+    "pdf:sample:audiencia": "tsx scripts/render-hearing-summary-sample.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
