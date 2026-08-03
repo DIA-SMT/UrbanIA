@@ -2,6 +2,22 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "pdfjs-dist", "@napi-rs/canvas"],
+  // Dos dependencias de pdfjs se cargan dinamicamente y el tracer no las ve:
+  // el binario nativo de @napi-rs/canvas (require computado canvas-<plataforma>,
+  // sin el "DOMMatrix is not defined") y su propio worker pdf.worker.mjs
+  // (import dinamico, sin el "Setting up fake worker failed"). Ambos vistos
+  // en produccion, 2026-08-01. Se fuerzan a mano en el bundle de las funciones.
+  // El binario de onnxruntime (34 MB) va SOLO a las rutas que embeben: metido
+  // en "/**" sumaba 34 MB a cada funcion y el deploy revento el limite de
+  // tamano (fallo del 2026-08-03). canvas+pdfjs si van globales: son livianos
+  // y los usan varias rutas de PDF.
+  outputFileTracingIncludes: {
+    "/**": ["node_modules/@napi-rs/canvas-linux-x64-gnu/**", "node_modules/pdfjs-dist/legacy/build/**"],
+    "/api/assistant": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
+    "/api/cpu": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
+    "/api/hearings": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
+    "/api/hearings/[id]": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"]
+  },
   async redirects() {
     // El modulo Proyectos se reconvirtio en la Fabrica de Normas.
     return [

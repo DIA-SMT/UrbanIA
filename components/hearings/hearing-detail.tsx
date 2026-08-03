@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ClipboardList,
   ExternalLink,
+  FileDown,
   FileText,
   Loader2,
   MapPin,
@@ -333,6 +334,20 @@ export function HearingDetail({
                 <Radio className="h-3.5 w-3.5" />
                 Continuar en vivo
               </Link>
+            ) : null}
+            {canEdit && (hearing.transcriptSegments.length > 0 || hearing.documents.length > 0) ? (
+              // La IA redacta el borrador con la transcripción y los documentos;
+              // tarda ~30-60 s y abre la vista imprimible con membrete.
+              <a
+                href={`/api/hearings/${hearing.id}?action=resumen`}
+                target="_blank"
+                rel="noreferrer"
+                title="La IA redacta un borrador de resumen ejecutivo con la transcripción y los documentos de la audiencia (tarda hasta un minuto)"
+                className="urban-button inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-black text-slate-200"
+              >
+                <FileDown className="h-3.5 w-3.5" />
+                Resumen ejecutivo (PDF)
+              </a>
             ) : null}
             {canDelete ? (
               <button

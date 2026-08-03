@@ -12,7 +12,11 @@ import { join } from "node:path";
 export const EMBEDDING_MODEL = "Xenova/multilingual-e5-small";
 export const EMBEDDING_DIMENSIONS = 384;
 
-env.cacheDir = join(process.cwd(), ".cache", "transformers");
+// En Vercel process.cwd() es /var/task, de SOLO lectura: el modelo ni siquiera
+// podía descargarse y el retrieval vectorial moría en cada consulta (bug de
+// prod). /tmp es lo único escribible en una función; el modelo se baja una vez
+// por instancia tibia.
+env.cacheDir = process.env.VERCEL ? "/tmp/transformers-cache" : join(process.cwd(), ".cache", "transformers");
 
 let extractorPromise: Promise<FeatureExtractionPipeline> | null = null;
 

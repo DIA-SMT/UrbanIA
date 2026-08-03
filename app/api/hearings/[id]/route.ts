@@ -7,19 +7,21 @@ import { handleAnalyze } from "@/lib/hearings/api/analyze";
 import { handleCompleteFicha } from "@/lib/hearings/api/complete-ficha";
 import { handleConclusions } from "@/lib/hearings/api/conclusions";
 import { handleDocumentDelete } from "@/lib/hearings/api/document-delete";
-import { handleDocumentUpload } from "@/lib/hearings/api/documents";
+import { handleDocumentSign, handleDocumentUpload } from "@/lib/hearings/api/documents";
 import { handleDraft } from "@/lib/hearings/api/draft";
 import { handleFicha } from "@/lib/hearings/api/ficha";
 import { handleFinalize } from "@/lib/hearings/api/finalize";
 import { handleGenerateAnalysis } from "@/lib/hearings/api/generate-analysis";
 import { handleLiveMatch } from "@/lib/hearings/api/live-match";
 import { handleRetryIngest } from "@/lib/hearings/api/retry-ingest";
+import { handleSummaryPdf } from "@/lib/hearings/api/summary";
 import { getHearing, updateHearing } from "@/lib/hearings/data";
 import { removeHearingDocument } from "@/lib/storage/supabase";
 
 export const dynamic = "force-dynamic";
-/** El paso mas lento es generar el analisis; 60 s es el techo del plan Hobby. */
-export const maxDuration = 60;
+/** El paso mas lento es el resumen ejecutivo (modelo fuerte redactando ~9k
+ *  tokens, 90-150 s). Con Fluid Compute el techo de Hobby es 300 s. */
+export const maxDuration = 300;
 
 /*
  * Todas las operaciones sobre UNA audiencia entran por esta ruta, con la
@@ -41,6 +43,7 @@ const POST_ACTIONS = {
   "complete-ficha": handleCompleteFicha,
   conclusions: handleConclusions,
   documents: handleDocumentUpload,
+  "sign-document": handleDocumentSign,
   draft: handleDraft,
   finalize: handleFinalize,
   "generate-analysis": handleGenerateAnalysis,
@@ -63,11 +66,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   return handler(request, id);
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  // `?action=resumen` genera el resumen ejecutivo imprimible (staff).
+  if (new URL(request.url).searchParams.get("action") === "resumen") {
+    return handleSummaryPdf(request, id);
+  }
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
-  const { id } = await params;
   const hearing = await getHearing(id).catch(() => null);
   if (!hearing) {
     return NextResponse.json({ error: "Audiencia no encontrada" }, { status: 404 });

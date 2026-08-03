@@ -9,6 +9,9 @@ import { handleAssistantQuery } from "@/lib/ai/api/assistant-query";
  * que quede dicho —como en el resto de las rutas del proyecto.
  */
 export const dynamic = "force-dynamic";
+/** Techo del plan Hobby: da margen para retrieval + modelo, y para la descarga
+ *  del modelo de embeddings en un arranque frío (~110 MB a /tmp). */
+export const maxDuration = 60;
 
 /*
  * Migue: preguntar y calificar la respuesta entran por esta unica ruta. El plan
