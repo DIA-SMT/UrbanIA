@@ -150,6 +150,28 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
 
   try {
+    // Borrar una audiencia se lleva tambien su GRABACION, y de eso no hay copia
+    // en ningun otro lado (salvo que se haya corrido hearings:backup-audio).
+    // Antes de perder horas de registro publico, se pide una confirmacion
+    // explicita que diga cuanto audio se va a borrar.
+    const audio = await prisma.meetingMedia.aggregate({
+      where: { meetingId: id, kind: "AUDIO" },
+      _count: { _all: true },
+      _sum: { durationSec: true }
+    });
+    if (audio._count._all > 0 && new URL(request.url).searchParams.get("confirmAudio") !== "1") {
+      const minutos = Math.max(1, Math.round((audio._sum.durationSec ?? 0) / 60));
+      return NextResponse.json(
+        {
+          error: "La audiencia tiene grabación",
+          detail: `Se van a borrar ${audio._count._all} ${audio._count._all === 1 ? "tramo" : "tramos"} de audio (unos ${minutos} minutos de grabación) y no se pueden recuperar.`,
+          audioParts: audio._count._all,
+          audioMinutes: minutos
+        },
+        { status: 409 }
+      );
+    }
+
     // Los HearingDocument caen por cascade, pero los archivos del bucket no:
     // se borran a mano (best-effort) antes de eliminar la reunion.
     const documents = await prisma.hearingDocument.findMany({

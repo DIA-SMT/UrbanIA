@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { uploadToBucket } from "@/components/shared/upload-to-bucket";
+import { forgetPendingPart, listPendingParts, savePendingPart } from "@/components/hearings/live/pending-audio-store";
 import type { RecordedPart } from "@/components/hearings/live/use-recorder";
 import { UploadQueue, type UploadQueueState } from "@/components/hearings/live/upload-queue";
 
@@ -25,6 +26,8 @@ export type UseAudioUpload = UploadQueueState & {
   enqueue: (part: RecordedPart) => void;
   /** Espera a que la cola quede vacia. False si quedaron tramos sin subir. */
   flush: () => Promise<boolean>;
+  /** Tramos rescatados del navegador de una sesion anterior, para avisarlo. */
+  recovered: number;
 };
 
 export function useAudioUpload({
@@ -76,6 +79,9 @@ export function useAudioUpload({
         const payload = await confirmResponse.json().catch(() => null);
         throw new Error(payload?.detail || payload?.error || `No se pudo registrar el tramo (${confirmResponse.status}).`);
       }
+
+      // Confirmado por el servidor: recien ahora se suelta la copia local.
+      await forgetPendingPart(meetingId, part.index);
     },
     [meetingId]
   );
@@ -103,8 +109,31 @@ export function useAudioUpload({
     return () => clearInterval(interval);
   }, []);
 
-  const enqueue = useCallback((part: RecordedPart) => queueRef.current?.enqueue(part), []);
+  const enqueue = useCallback(
+    (part: RecordedPart) => {
+      // Copia local ANTES de intentar subir: si se corta todo justo ahora, el
+      // tramo sobrevive al cierre del navegador y se recupera al volver.
+      void savePendingPart(meetingId, part);
+      queueRef.current?.enqueue(part);
+    },
+    [meetingId]
+  );
+
+  // Recuperacion: tramos que quedaron guardados de una sesion anterior (se
+  // cerro el navegador con la subida a medias). Se reencolan al entrar.
+  const [recovered, setRecovered] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    void listPendingParts(meetingId).then((parts) => {
+      if (cancelled || !parts.length) return;
+      setRecovered(parts.length);
+      parts.forEach((part) => queueRef.current?.enqueue(part));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [meetingId]);
   const flush = useCallback(async () => (await queueRef.current?.flush()) ?? true, []);
 
-  return { ...state, enqueue, flush };
+  return { ...state, enqueue, flush, recovered };
 }

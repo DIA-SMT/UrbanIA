@@ -62,6 +62,7 @@ export function RecorderPanel({
   pending,
   stuck,
   uploadError,
+  recovered,
   onStart,
   onStop
 }: {
@@ -75,6 +76,8 @@ export function RecorderPanel({
   pending: number;
   stuck: boolean;
   uploadError: string;
+  /** Tramos rescatados del navegador tras una caida de la sesion anterior. */
+  recovered: number;
   onStart: () => void;
   onStop: () => void;
 }) {
@@ -146,6 +149,13 @@ export function RecorderPanel({
           ) : null}
         </div>
       </div>
+
+      {recovered > 0 ? (
+        <p className="mt-3 rounded-md border border-emerald-300/25 bg-emerald-300/10 px-3 py-2 text-xs font-bold leading-5 text-emerald-100">
+          Se recuperaron {recovered} {recovered === 1 ? "tramo de audio" : "tramos de audio"} que habían quedado sin subir en esta
+          computadora. Se están subiendo ahora.
+        </p>
+      ) : null}
 
       {!supported ? (
         <p className="mt-3 rounded-md border border-amber-300/25 bg-amber-300/10 px-3 py-2 text-xs font-bold leading-5 text-amber-100">

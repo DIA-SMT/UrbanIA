@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, Loader2, LogOut, Square, TriangleAlert } from "lucide-react";
 import { HearingFields } from "@/components/hearings/live/hearing-fields";
 import { NotesCanvas } from "@/components/hearings/live/notes-canvas";
+import { clearPendingParts } from "@/components/hearings/live/pending-audio-store";
 import { RecorderPanel } from "@/components/hearings/live/recorder-panel";
 import { useAudioUpload } from "@/components/hearings/live/use-audio-upload";
 import { useRecorder } from "@/components/hearings/live/use-recorder";
@@ -230,6 +231,9 @@ export function LiveSession({
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.detail || payload?.error || "No se pudo finalizar la audiencia.");
       }
+      // Audiencia cerrada: el audio ya esta en el servidor y las copias locales
+      // no tienen mas razon de existir (ocupan disco del navegador).
+      await clearPendingParts(meetingId);
       router.push(`/audiencias/${meetingId}`);
     } catch (error) {
       setFinalizeError(error instanceof Error ? error.message : "No se pudo finalizar la audiencia.");
@@ -315,6 +319,7 @@ export function LiveSession({
         pending={upload.pending}
         stuck={upload.stuck}
         uploadError={upload.error}
+        recovered={upload.recovered}
         onStart={() => void recorder.start()}
         onStop={() => void recorder.stop()}
       />

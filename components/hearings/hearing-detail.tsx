@@ -269,7 +269,21 @@ export function HearingDetail({
     setDeleteError("");
     setDeleting(true);
     try {
-      const response = await fetch(`/api/hearings/${hearing.id}`, { method: "DELETE" });
+      let response = await fetch(`/api/hearings/${hearing.id}`, { method: "DELETE" });
+
+      // El servidor frena el borrado si hay grabación y dice cuánto audio se
+      // pierde. Se vuelve a preguntar con ese dato antes de confirmar: de la
+      // grabación no hay copia en ningún otro lado.
+      if (response.status === 409) {
+        const payload = await response.json().catch(() => null);
+        const detail = payload?.detail ?? "Esta audiencia tiene una grabación que se va a borrar.";
+        if (!window.confirm(`${detail}\n\n¿Borrar la audiencia igual?`)) {
+          setDeleting(false);
+          return;
+        }
+        response = await fetch(`/api/hearings/${hearing.id}?confirmAudio=1`, { method: "DELETE" });
+      }
+
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.detail || payload?.error || "No se pudo eliminar la audiencia.");
