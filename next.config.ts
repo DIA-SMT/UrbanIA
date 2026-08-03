@@ -11,8 +11,18 @@ const nextConfig: NextConfig = {
   // en "/**" sumaba 34 MB a cada funcion y el deploy revento el limite de
   // tamano (fallo del 2026-08-03). canvas+pdfjs si van globales: son livianos
   // y los usan varias rutas de PDF.
+  // Los logos institucionales (lib/brand/document-shell.ts) se leen con
+  // readFileSync(cwd + ruta armada en runtime): el tracer tampoco los ve, asi
+  // que en Vercel las funciones salian SIN public/brand. Los exports de normas
+  // degradan en silencio (documento sin escudo), pero el resumen ejecutivo de
+  // audiencias los exige y devolvia "Identidad institucional no disponible".
+  // Son ~155 KB entre los cinco PNG: van globales.
   outputFileTracingIncludes: {
-    "/**": ["node_modules/@napi-rs/canvas-linux-x64-gnu/**", "node_modules/pdfjs-dist/legacy/build/**"],
+    "/**": [
+      "node_modules/@napi-rs/canvas-linux-x64-gnu/**",
+      "node_modules/pdfjs-dist/legacy/build/**",
+      "public/brand/**"
+    ],
     "/api/assistant": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
     "/api/cpu": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
     "/api/hearings": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
