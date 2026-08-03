@@ -23,6 +23,7 @@
     "dev:turbo": "next dev --turbo",
     "hearings:ingest-docs": "tsx --env-file=.env.local scripts/ingest-hearing-documents.ts",
     "hearings:ingest-transcripts": "tsx --env-file=.env.local scripts/ingest-hearing-transcripts.ts",
+    "hearings:backup-audio": "tsx scripts/backup-hearing-audio.ts",
     "pdf:sample:audiencia": "tsx scripts/render-hearing-summary-sample.ts"
   },
   "dependencies": {

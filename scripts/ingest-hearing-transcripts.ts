@@ -1,7 +1,8 @@
 /**
  * Backfill: indexa al conocimiento de Migue la transcripción de las audiencias
- * ya cargadas (las nuevas se indexan solas al procesarse). Cubre todas las
- * fuentes (TXT, PDF, YouTube, audio), porque todas terminan como segmentos.
+ * ya cargadas (las nuevas se indexan solas: la ingesta batch al procesarse y el
+ * dictado en vivo al finalizar). Cubre todas las fuentes (TXT, PDF, YouTube,
+ * audio, en vivo), porque todas terminan como segmentos.
  *
  * Uso:
  *   npm run hearings:ingest-transcripts            → las que faltan indexar

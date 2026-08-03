@@ -153,6 +153,102 @@ export async function removeNormDocument(storagePath: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/* ---------------- Bucket del audio de las audiencias (privado) ------------- */
+/*
+ * La grabacion de una audiencia en vivo NO va al bucket de documentos: ese es
+ * publico y esto son voces de vecinos identificables. Bucket PRIVADO, y para
+ * escuchar se firma una URL que vence.
+ *
+ * La grabacion se guarda en TRAMOS independientes (part-000, part-001, ...),
+ * no en un archivo unico: cada tramo se sube apenas se cierra (si el navegador
+ * muere, se pierde el ultimo tramo y no la audiencia entera) y cada uno entra
+ * solo en una llamada a Whisper, sin necesidad de partirlo con ffmpeg del lado
+ * del servidor. El indice va con ceros a la izquierda para que el orden
+ * alfabetico sea el cronologico.
+ */
+
+const AUDIO_BUCKET = process.env.SUPABASE_HEARING_AUDIO_BUCKET ?? "audiencias-audio";
+/** Un tramo de 5 min en opus mono 32 kbps pesa ~1,2 MB; el tope deja aire de sobra. */
+const AUDIO_PART_LIMIT = "25MB";
+
+let audioBucketReady: Promise<void> | null = null;
+
+/** Crea el bucket privado si no existe (idempotente, una vez por instancia). */
+function ensureAudioBucket(): Promise<void> {
+  audioBucketReady ??= (async () => {
+    const supabase = client();
+    const { error } = await supabase.storage.createBucket(AUDIO_BUCKET, { public: false, fileSizeLimit: AUDIO_PART_LIMIT });
+    if (error && !/already exists/i.test(error.message)) {
+      audioBucketReady = null;
+      throw new Error(error.message);
+    }
+  })();
+  return audioBucketReady;
+}
+
+/** Ruta del tramo dentro del bucket. Indice con ceros: orden alfabetico = cronologico. */
+export function hearingAudioPartPath(meetingId: string, partIndex: number, extension: string): string {
+  return `${meetingId}/part-${String(partIndex).padStart(4, "0")}.${extension}`;
+}
+
+/**
+ * URL firmada para que el navegador suba UN tramo directo al bucket, sin pasar
+ * por una funcion (el body de una funcion en Vercel se corta en ~4,5 MB).
+ */
+export async function createHearingAudioUploadUrl(input: {
+  meetingId: string;
+  partIndex: number;
+  extension: string;
+}): Promise<{ storagePath: string; signedUrl: string }> {
+  await ensureAudioBucket();
+  const supabase = client();
+  const storagePath = hearingAudioPartPath(input.meetingId, input.partIndex, input.extension);
+
+  const { data, error } = await supabase.storage.from(AUDIO_BUCKET).createSignedUploadUrl(storagePath);
+  if (error || !data) throw new Error(error?.message ?? "No se pudo firmar la subida del audio");
+
+  return { storagePath, signedUrl: data.signedUrl };
+}
+
+/** Baja un tramo para mandarlo a transcribir. */
+export async function downloadHearingAudioPart(storagePath: string): Promise<Uint8Array> {
+  const supabase = client();
+  const { data, error } = await supabase.storage.from(AUDIO_BUCKET).download(storagePath);
+  if (error || !data) throw new Error(error?.message ?? "No se pudo descargar el tramo de audio");
+  return new Uint8Array(await data.arrayBuffer());
+}
+
+/**
+ * URL firmada para escuchar/descargar un tramo. Vence: el bucket es privado a
+ * proposito y un link que no caduca es un bucket publico con pasos extra.
+ */
+export async function createHearingAudioDownloadUrl(storagePath: string, expiresInSeconds = 60 * 60): Promise<string> {
+  const supabase = client();
+  const { data, error } = await supabase.storage.from(AUDIO_BUCKET).createSignedUrl(storagePath, expiresInSeconds);
+  if (error || !data) throw new Error(error?.message ?? "No se pudo firmar la descarga del audio");
+  return data.signedUrl;
+}
+
+/** Borra tramos puntuales del bucket. No falla si ya no estan. */
+export async function removeHearingAudioParts(storagePaths: string[]): Promise<void> {
+  if (!storagePaths.length) return;
+  const supabase = client();
+  const { error } = await supabase.storage.from(AUDIO_BUCKET).remove(storagePaths);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Borra TODO el audio de una audiencia (al eliminarla). Lista la carpeta en vez
+ * de confiar en las filas de MeetingMedia: si una subida quedo huerfana porque
+ * el registro nunca se creo, igual se limpia.
+ */
+export async function removeHearingAudioFolder(meetingId: string): Promise<void> {
+  const supabase = client();
+  const { data, error } = await supabase.storage.from(AUDIO_BUCKET).list(meetingId);
+  if (error || !data?.length) return;
+  await supabase.storage.from(AUDIO_BUCKET).remove(data.map((file) => `${meetingId}/${file.name}`));
+}
+
 /* ----------------- Bucket temporal de adjuntos de los chats ---------------- */
 /*
  * Los adjuntos de Migue y de la Consulta al CPU NO se persisten: el bucket es

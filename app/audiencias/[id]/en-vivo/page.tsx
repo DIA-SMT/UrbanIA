@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 /**
  * Sesion en vivo de una audiencia, direccionable por id: sirve tanto para
  * arrancar (recien creada) como para RETOMAR una audiencia en curso tras salir.
- * Carga el borrador autoguardado y los cruces ya persistidos.
+ * Carga las notas autoguardadas y la ficha.
  */
 export default async function AudienciaEnVivoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,17 +29,24 @@ export default async function AudienciaEnVivoPage({ params }: { params: Promise<
     redirect(`/audiencias/${id}`);
   }
 
-  // Sin código nuevo (tema libre) igual se dicta: solo se desactiva el cruce.
+  // Audiencia retomada (se cerro el navegador, se reinicio la maquina, o el
+  // operador salio y volvio): la grabacion tiene que CONTINUAR la numeracion y
+  // los tiempos. Arrancar de cero pisaria en el bucket los tramos ya subidos.
+  const audioParts = hearing.mediaFiles.filter((media) => media.kind === "AUDIO");
+  const firstPartIndex = audioParts.reduce((max, part) => Math.max(max, (part.partIndex ?? -1) + 1), 0);
+  const baseOffsetMs = audioParts.reduce((end, part) => Math.max(end, (part.offsetMs ?? 0) + (part.durationSec ?? 0) * 1000), 0);
+
   return (
     <AppShell>
       <LiveSession
         meetingId={hearing.id}
         title={hearing.title}
-        reformId={hearing.reformId}
         aiAvailable={hasOpenRouterConfig()}
-        initialTranscript={hearing.draftTranscript ?? ""}
-        initialMatches={hearing.matches}
+        initialNotes={hearing.liveNotes ?? ""}
         initialFicha={hearing.ficha}
+        recordedParts={audioParts.length}
+        firstPartIndex={firstPartIndex}
+        baseOffsetMs={baseOffsetMs}
       />
     </AppShell>
   );

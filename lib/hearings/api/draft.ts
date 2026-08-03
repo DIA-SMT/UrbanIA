@@ -23,14 +23,15 @@ const fichaSchema = z
   .partial();
 
 const bodySchema = z.object({
-  transcript: z.string().max(200000).optional(),
+  /** Notas del operador durante la audiencia. NO es la transcripcion. */
+  notes: z.string().max(200000).optional(),
   ficha: fichaSchema.optional()
 });
 
 /**
- * Autoguardado del borrador de una audiencia en vivo: persiste la transcripcion
- * en curso en metadata.draftTranscript sin finalizar, para poder salir y volver
- * a editarla. Los cruces ya se persisten aparte (live-match).
+ * Autoguardado del borrador de una audiencia en vivo: notas y ficha, sin
+ * finalizar, para poder salir y retomar. El audio no pasa por aca — cada tramo
+ * se sube por su cuenta apenas se cierra (ver lib/hearings/api/audio.ts).
  */
 export async function handleDraft(request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
@@ -62,7 +63,7 @@ export async function handleDraft(request: Request, id: string) {
         ...(goesLive ? { hearingStatus: "LIVE", status: "PROCESSING" } : {}),
         metadata: {
           ...previousMetadata,
-          ...(parsed.data.transcript !== undefined ? { draftTranscript: parsed.data.transcript } : {}),
+          ...(parsed.data.notes !== undefined ? { liveNotes: parsed.data.notes } : {}),
           draftSavedAt: savedAt
         }
       }
