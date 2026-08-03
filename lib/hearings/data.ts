@@ -238,6 +238,7 @@ export async function getHearing(id: string): Promise<HearingDetail | null> {
     kind: media.kind,
     status: media.status,
     partIndex: media.partIndex,
+    offsetMs: media.offsetMs,
     durationSec: media.durationSec,
     errorMessage: media.errorMessage
   }));

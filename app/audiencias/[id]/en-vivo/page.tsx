@@ -29,6 +29,13 @@ export default async function AudienciaEnVivoPage({ params }: { params: Promise<
     redirect(`/audiencias/${id}`);
   }
 
+  // Audiencia retomada (se cerro el navegador, se reinicio la maquina, o el
+  // operador salio y volvio): la grabacion tiene que CONTINUAR la numeracion y
+  // los tiempos. Arrancar de cero pisaria en el bucket los tramos ya subidos.
+  const audioParts = hearing.mediaFiles.filter((media) => media.kind === "AUDIO");
+  const firstPartIndex = audioParts.reduce((max, part) => Math.max(max, (part.partIndex ?? -1) + 1), 0);
+  const baseOffsetMs = audioParts.reduce((end, part) => Math.max(end, (part.offsetMs ?? 0) + (part.durationSec ?? 0) * 1000), 0);
+
   return (
     <AppShell>
       <LiveSession
@@ -37,6 +44,9 @@ export default async function AudienciaEnVivoPage({ params }: { params: Promise<
         aiAvailable={hasOpenRouterConfig()}
         initialNotes={hearing.liveNotes ?? ""}
         initialFicha={hearing.ficha}
+        recordedParts={audioParts.length}
+        firstPartIndex={firstPartIndex}
+        baseOffsetMs={baseOffsetMs}
       />
     </AppShell>
   );

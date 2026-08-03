@@ -30,13 +30,22 @@ export function LiveSession({
   meetingId,
   title,
   initialNotes = "",
-  initialFicha
+  initialFicha,
+  recordedParts = 0,
+  firstPartIndex = 0,
+  baseOffsetMs = 0
 }: {
   meetingId: string;
   title: string;
   aiAvailable?: boolean;
   initialNotes?: string;
   initialFicha?: HearingFicha;
+  /** Tramos ya subidos en sesiones anteriores de esta misma audiencia. */
+  recordedParts?: number;
+  /** Numero del proximo tramo: si volviera a arrancar en 0 pisaria lo ya subido. */
+  firstPartIndex?: number;
+  /** Donde termina lo ya grabado, para que los tiempos no se solapen al retomar. */
+  baseOffsetMs?: number;
 }) {
   const router = useRouter();
 
@@ -59,15 +68,17 @@ export function LiveSession({
   const lastSavedRef = useRef("");
   const savingRef = useRef(false);
 
-  const upload = useAudioUpload({ meetingId });
+  const upload = useAudioUpload({ meetingId, alreadyUploaded: recordedParts });
   // enqueue es estable (useCallback sin dependencias), asi que la grabadora no
   // se reconstruye en cada render.
-  const recorder = useRecorder({ onPart: upload.enqueue });
+  const recorder = useRecorder({ onPart: upload.enqueue, firstPartIndex, baseOffsetMs });
 
   /* --------------------------- Cronometro grabado -------------------------- */
   // Cuenta el tiempo GRABADO, no el tiempo en pantalla: si el operador detiene y
   // reanuda, el reloj retoma donde iba en vez de mentir.
-  const recordedMsRef = useRef(0);
+  // Arranca en lo ya grabado: el reloj de una audiencia retomada tiene que
+  // seguir donde iba, no volver a 00:00.
+  const recordedMsRef = useRef(baseOffsetMs);
   const recordingSinceRef = useRef<number | null>(null);
   useEffect(() => {
     if (recorder.recording && recordingSinceRef.current === null) {

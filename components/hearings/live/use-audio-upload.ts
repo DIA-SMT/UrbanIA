@@ -27,8 +27,18 @@ export type UseAudioUpload = UploadQueueState & {
   flush: () => Promise<boolean>;
 };
 
-export function useAudioUpload({ meetingId }: { meetingId: string }): UseAudioUpload {
-  const [state, setState] = useState<UploadQueueState>({ uploaded: 0, pending: 0, stuck: false, error: "" });
+export function useAudioUpload({
+  meetingId,
+  alreadyUploaded = 0
+}: {
+  meetingId: string;
+  /**
+   * Tramos que ya estaban subidos al entrar (audiencia retomada). Cuentan como
+   * subidos: si no, el cierre creeria que no se grabo nada y avisaria de mas.
+   */
+  alreadyUploaded?: number;
+}): UseAudioUpload {
+  const [state, setState] = useState<UploadQueueState>({ uploaded: alreadyUploaded, pending: 0, stuck: false, error: "" });
   const queueRef = useRef<UploadQueue<RecordedPart> | null>(null);
 
   /** Firmar → PUT al bucket → registrar el tramo. Tira si algo falla. */
@@ -76,7 +86,8 @@ export function useAudioUpload({ meetingId }: { meetingId: string }): UseAudioUp
   if (!queueRef.current) {
     queueRef.current = new UploadQueue<RecordedPart>({
       upload: (part) => uploadRef.current(part),
-      onChange: setState
+      // Lo ya subido se suma al contador de la cola, que arranca en cero.
+      onChange: (queueState) => setState({ ...queueState, uploaded: queueState.uploaded + alreadyUploaded })
     });
   }
 

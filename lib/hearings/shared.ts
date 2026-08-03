@@ -224,6 +224,8 @@ export type HearingMediaView = {
   status: string;
   /** Orden del tramo dentro de la grabacion. Null si es un archivo unico. */
   partIndex: number | null;
+  /** En que ms de la audiencia arranca este tramo. Null si es un archivo unico. */
+  offsetMs: number | null;
   durationSec: number | null;
   /** Motivo del fallo si status es ERROR. */
   errorMessage: string | null;

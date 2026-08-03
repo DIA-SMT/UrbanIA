@@ -82,7 +82,21 @@ export type UseRecorder = {
   stop: () => Promise<void>;
 };
 
-export function useRecorder({ onPart }: { onPart: (part: RecordedPart) => void }): UseRecorder {
+export function useRecorder({
+  onPart,
+  firstPartIndex = 0,
+  baseOffsetMs = 0
+}: {
+  onPart: (part: RecordedPart) => void;
+  /**
+   * Numero del primer tramo de ESTA sesion de grabacion. Al retomar una
+   * audiencia que ya tiene tramos subidos hay que seguir la numeracion: si
+   * volviera a arrancar en 0, el nuevo tramo pisaria al que ya estaba guardado.
+   */
+  firstPartIndex?: number;
+  /** Donde termina lo ya grabado, para que los tiempos no se solapen al retomar. */
+  baseOffsetMs?: number;
+}): UseRecorder {
   const [supported, setSupported] = useState(false);
   const [recording, setRecording] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -118,7 +132,8 @@ export function useRecorder({ onPart }: { onPart: (part: RecordedPart) => void }
     const format = formatRef.current;
     if (!format) return null;
 
-    const offsetMs = Math.max(0, Date.now() - startedAtRef.current);
+    // El offset arranca donde termino lo ya grabado en sesiones anteriores.
+    const offsetMs = baseOffsetMs + Math.max(0, Date.now() - startedAtRef.current);
     const chunks: Blob[] = [];
     let recorder: MediaRecorder;
     try {
@@ -139,12 +154,12 @@ export function useRecorder({ onPart }: { onPart: (part: RecordedPart) => void }
         mimeType: format.mimeType,
         extension: format.extension,
         offsetMs,
-        durationMs: Math.max(0, Date.now() - startedAtRef.current - offsetMs)
+        durationMs: Math.max(0, Date.now() - startedAtRef.current - (offsetMs - baseOffsetMs))
       });
     };
     recorder.start();
     return recorder;
-  }, []);
+  }, [baseOffsetMs]);
 
   /** Cierra el tramo vigente y abre el siguiente, solapados. */
   const rotate = useCallback(() => {
@@ -200,9 +215,9 @@ export function useRecorder({ onPart }: { onPart: (part: RecordedPart) => void }
       });
       streamRef.current = stream;
       startedAtRef.current = Date.now();
-      partIndexRef.current = 0;
+      partIndexRef.current = firstPartIndex;
 
-      const first = startPart(stream, 0);
+      const first = startPart(stream, firstPartIndex);
       if (!first) throw new Error("No se pudo iniciar la grabación.");
       recorderRef.current = first;
 
@@ -243,7 +258,7 @@ export function useRecorder({ onPart }: { onPart: (part: RecordedPart) => void }
     } finally {
       setStarting(false);
     }
-  }, [requestWakeLock, rotate, startPart, starting]);
+  }, [firstPartIndex, requestWakeLock, rotate, startPart, starting]);
 
   /**
    * Corta la grabacion y espera a que el ULTIMO tramo salga por onPart: quien
