@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs";
-import OpenAI from "openai";
+import OpenAI, { toFile } from "openai";
 
 /**
  * Transcripcion de audio (Whisper) a traves de OpenRouter, con la misma
@@ -27,14 +27,23 @@ export function hasTranscriptionConfig(): boolean {
 /**
  * Transcribe un archivo de audio. `offsetMs` desplaza los timestamps cuando el
  * archivo es un chunk de una grabacion mas larga.
+ *
+ * El audio entra por `filePath` (worker e ingesta batch, que trabajan sobre
+ * archivos en disco) o por `bytes` (grabacion en vivo: el tramo se baja del
+ * bucket dentro de una funcion serverless y no hay por que pasar por disco).
  */
 export async function transcribeAudioFile({
   filePath,
+  bytes,
+  fileName = "audio.webm",
   offsetMs = 0,
   fallbackDurationMs = 0,
   language = "es"
 }: {
-  filePath: string;
+  filePath?: string;
+  bytes?: Uint8Array;
+  /** Nombre con extension real: por ahi deduce el formato el proveedor. */
+  fileName?: string;
   offsetMs?: number;
   fallbackDurationMs?: number;
   language?: string;
@@ -42,6 +51,9 @@ export async function transcribeAudioFile({
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new Error("Falta OPENROUTER_API_KEY: la transcripcion corre por OpenRouter.");
+  }
+  if (!filePath && !bytes) {
+    throw new Error("transcribeAudioFile necesita filePath o bytes.");
   }
 
   const client = new OpenAI({
@@ -54,7 +66,7 @@ export async function transcribeAudioFile({
   });
 
   const response = await client.audio.transcriptions.create({
-    file: createReadStream(filePath),
+    file: filePath ? createReadStream(filePath) : await toFile(Buffer.from(bytes!), fileName),
     model: process.env.OPENROUTER_TRANSCRIPTION_MODEL || DEFAULT_TRANSCRIPTION_MODEL,
     language,
     response_format: "verbose_json"

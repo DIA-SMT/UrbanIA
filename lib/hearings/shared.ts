@@ -211,10 +211,22 @@ export type HearingInsightView = {
   importance: number;
 };
 
+/**
+ * Archivo de audio/video de la audiencia. En la grabacion en vivo cada fila es
+ * un TRAMO, y su `status` es el estado de su transcripcion: la lista de tramos
+ * es la cola de trabajo que maneja el boton "Analizar audio".
+ */
 export type HearingMediaView = {
   id: string;
   fileName: string;
   kind: string;
+  /** PENDING (falta transcribir), PROCESSING, READY (ya transcripto) o ERROR. */
+  status: string;
+  /** Orden del tramo dentro de la grabacion. Null si es un archivo unico. */
+  partIndex: number | null;
+  durationSec: number | null;
+  /** Motivo del fallo si status es ERROR. */
+  errorMessage: string | null;
 };
 
 /**

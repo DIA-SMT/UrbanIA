@@ -4,7 +4,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { handleAnalyze } from "@/lib/hearings/api/analyze";
+import { handleAnalyzeRecording } from "@/lib/hearings/api/analyze-recording";
 import { handleAudioPart, handleAudioPartUrl } from "@/lib/hearings/api/audio";
+import { handleTranscribePart } from "@/lib/hearings/api/transcribe-part";
 import { handleCompleteFicha } from "@/lib/hearings/api/complete-ficha";
 import { handleConclusions } from "@/lib/hearings/api/conclusions";
 import { handleDocumentDelete } from "@/lib/hearings/api/document-delete";
@@ -43,6 +45,10 @@ const POST_ACTIONS = {
   // Grabacion en vivo: firmar la subida de un tramo y registrarlo ya subido.
   "audio-part-url": handleAudioPartUrl,
   "audio-part": handleAudioPart,
+  // Analisis de la grabacion: un tramo por llamada (el navegador maneja el
+  // recorrido) y despues el cierre con cruces, resumen e indexado.
+  "transcribe-part": handleTranscribePart,
+  "analyze-recording": handleAnalyzeRecording,
   "complete-ficha": handleCompleteFicha,
   conclusions: handleConclusions,
   documents: handleDocumentUpload,

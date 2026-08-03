@@ -30,6 +30,7 @@ import {
 import { HearingFields } from "@/components/hearings/live/hearing-fields";
 import { ConclusionsFields } from "@/components/hearings/conclusions-fields";
 import { HearingDocuments } from "@/components/hearings/hearing-documents";
+import { AudioAnalysisPanel } from "@/components/hearings/audio-analysis-panel";
 import {
   emptyHearingConclusions,
   emptyHearingFicha,
@@ -409,6 +410,10 @@ export function HearingDetail({
           ) : null}
         </div>
       ) : null}
+
+      {/* Audiencia grabada en vivo: de aca sale la transcripcion. Va arriba de
+          los avisos porque es la accion que destraba todo lo demas. */}
+      {canEdit ? <AudioAnalysisPanel hearingId={hearing.id} media={hearing.mediaFiles} /> : null}
 
       {hearing.ingestWarning || canGenerateAnalysis ? (
         <div className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-4">

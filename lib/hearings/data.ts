@@ -173,7 +173,9 @@ const detailInclude = {
   participants: { orderBy: { displayName: "asc" } },
   insights: { orderBy: { importance: "desc" } },
   transcriptSegments: { orderBy: { startMs: "asc" } },
-  mediaFiles: { orderBy: { createdAt: "asc" } },
+  // Por partIndex y no por createdAt: los tramos se suben con reintentos, asi
+  // que el orden de llegada no es el orden de la audiencia.
+  mediaFiles: { orderBy: [{ partIndex: "asc" }, { createdAt: "asc" }] },
   actionItems: { orderBy: { createdAt: "asc" } },
   _count: { select: { normMatches: true, participants: true } }
 } satisfies Prisma.MeetingInclude;
@@ -233,7 +235,11 @@ export async function getHearing(id: string): Promise<HearingDetail | null> {
   const mediaFiles: HearingMediaView[] = meeting.mediaFiles.map((media) => ({
     id: media.id,
     fileName: media.fileName,
-    kind: media.kind
+    kind: media.kind,
+    status: media.status,
+    partIndex: media.partIndex,
+    durationSec: media.durationSec,
+    errorMessage: media.errorMessage
   }));
 
   const actionItems: HearingActionItemView[] = meeting.actionItems.map((item) => ({

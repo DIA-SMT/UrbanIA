@@ -206,14 +206,19 @@ export async function matchFullTranscript({
   });
   await syncRecordLifecycle(meetingId, "COMPLETED");
 
-  // Migue aprende de la transcripción (fuente MEETING). Fire-and-forget para no
-  // demorar la carga: en la subida síncrona la respuesta no espera el embedding,
-  // y en el worker de background da igual. Un fallo acá no afecta la audiencia.
-  void ingestHearingTranscript(meetingId)
-    .then((result) => {
-      if (result) console.log(`[conocimiento] Transcripción de audiencia indexada: ${result.chunks} fragmentos.`);
-    })
-    .catch((error) => console.error("[conocimiento] No se pudo indexar la transcripción de la audiencia:", error));
+  // Migue aprende de la transcripción (fuente MEETING).
+  //
+  // Con await y NO fire-and-forget: esto corre dentro de una función serverless
+  // y una promesa suelta se muere cuando la función responde, así que el
+  // indexado no llegaba a pasar en producción. Cuesta unos segundos de más en
+  // la respuesta y es la diferencia entre que Migue conozca la audiencia o no.
+  // Best-effort igual: si el indexado falla, el acta ya está guardada.
+  try {
+    const indexed = await ingestHearingTranscript(meetingId);
+    if (indexed) console.log(`[conocimiento] Transcripción de audiencia indexada: ${indexed.chunks} fragmentos.`);
+  } catch (error) {
+    console.error("[conocimiento] No se pudo indexar la transcripción de la audiencia:", error);
+  }
 
   return { segments: usable.length, matches, analyzed, warning };
 }
