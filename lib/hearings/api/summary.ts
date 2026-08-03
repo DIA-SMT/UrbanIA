@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { getHearing } from "@/lib/hearings/data";
-import { askUrbanAssistant, hasOpenRouterConfig } from "@/lib/ai/openrouter";
+import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { downloadHearingDocument } from "@/lib/storage/supabase";
 import { extractPdfText, sanitizePdfText } from "@/lib/pdf/extract-text";
+import { renderHtmlToPdf } from "@/lib/pdf/render-pdf";
+import { generateSummary } from "@/lib/hearings/summary-generate";
 import {
   DOCUMENT_SHELL_STYLES,
   renderFooter,
@@ -66,25 +68,6 @@ async function documentExcerpts(meetingId: string): Promise<string[]> {
   return excerpts;
 }
 
-const CONTRACT = [
-  "Respondé SOLO con un objeto JSON válido, sin markdown ni texto fuera del JSON, con esta forma exacta:",
-  `{"titulo": "...", "bajada": "...", "expositor": "...", "destinatario": "...", "estructura": "I. ... · II. ... · III. ...", "secciones": [{"titulo": "...", "parrafos": ["..."], "destacados": ["..."], "datos": [{"valor": "65 %", "descripcion": "..."}], "tabla": {"titulo": "...", "columnas": ["..."], "filas": [["..."]]}, "subsecciones": [{"titulo": "...", "parrafos": ["..."], "destacados": ["..."], "datos": [...], "tabla": {...}}]}], "lineasDeAccion": ["..."]}`,
-  "",
-  "El documento objetivo es un RESUMEN EJECUTIVO TÉCNICO de nivel profesional, no una síntesis escolar. La vara:",
-  "- EXHAUSTIVIDAD: recorré TODO el material; cada tema sustantivo de la exposición debe tener su sección o subsección. Apuntá a un documento de 15.000 a 22.000 caracteres en total.",
-  "- ESPECIFICIDAD OBLIGATORIA: cada cifra, porcentaje, medición, superficie, año o cantidad que aparezca en el material DEBE citarse con su valor exacto. Cada ordenanza, decreto, estudio, programa o instituto DEBE nombrarse tal como aparece (con número, autor o sigla). Un párrafo sin información específica es un párrafo fallido.",
-  "- PROHIBIDO el relleno genérico: nada de 'se destacó la importancia de', 'se abordaron diversos temas', 'se hizo hincapié en la necesidad'. Escribí QUÉ se dijo, con sus datos.",
-  "",
-  "Campos:",
-  "- secciones: entre 5 y 8, con la lógica del material (encuadre, principios, diagnóstico, propuestas, instrumentos...). Usá subsecciones (2 a 5) cuando una sección cubra dimensiones o escalas distintas — p. ej. el diagnóstico dividido en dimensión urbana, normativa, interseccional, ambiental.",
-  "- datos: los números más potentes de cada bloque como cifras destacadas (valor corto + descripción de una línea). Usalos cada vez que el material los ofrezca.",
-  "- tabla: SOLO si el material trae una serie de indicadores comparables (p. ej. un indicador por nivel de vulnerabilidad); columnas y filas fieles al material.",
-  "- destacados: frases textuales de la exposición o hallazgos que merecen resaltarse, 1 o 2 por sección donde aplique.",
-  "- lineasDeAccion: las propuestas accionables que surgen del material, concretas.",
-  "",
-  "Reglas de verdad: basate EXCLUSIVAMENTE en la transcripción, el análisis y los documentos provistos. No inventes cifras, nombres ni posiciones; si un dato no está en el material, no existe. Español institucional claro."
-].join("\n");
-
 export async function handleSummaryPdf(_request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return errorPage("Base de datos no disponible", "No se puede generar el resumen en este momento.", 503);
@@ -141,39 +124,41 @@ export async function handleSummaryPdf(_request: Request, id: string) {
 
   let payload: SummaryPayload;
   try {
-    const response = await askUrbanAssistant(
-      [
-        {
-          role: "system",
-          content:
-            "Sos el equipo de redacción de la Dirección de Inteligencia Artificial de la Municipalidad de San Miguel de Tucumán. Redactás resúmenes ejecutivos institucionales de audiencias públicas técnicas: fieles al material, estructurados y en español claro."
-        },
-        { role: "user", content: `${material}\n\n${CONTRACT}` }
-      ],
-      // Mismo modelo fuerte que las consultas normativas: el liviano por defecto
-      // producía resúmenes genéricos sin datos (comparado 2026-08-03).
-      { json: true, maxTokens: 9000, temperature: 0.25, model: process.env.OPENROUTER_CPU_MODEL || "openai/gpt-4o" }
-    );
-    payload = JSON.parse(response.answer) as SummaryPayload;
-    if (!payload?.titulo || !Array.isArray(payload.secciones) || payload.secciones.length === 0) {
-      throw new Error("Respuesta sin secciones");
-    }
+    // Dos pasadas con el modelo fuerte: esqueleto + secciones en paralelo. Un
+    // solo prompt producía secciones de un párrafo con relleno (2026-08-03).
+    payload = await generateSummary(material);
   } catch (error) {
     console.error("No se pudo generar el resumen de la audiencia", error);
     return errorPage("No se pudo generar el resumen", "El servicio de análisis no devolvió un documento válido. Probá de nuevo en unos minutos.", 502);
   }
 
-  const documentHtml = renderSummaryDocument(payload, {
-    hearingTitle: hearing.title,
-    when,
-    docCode: `AUD-${id.slice(-6).toUpperCase()}`
-  });
+  const options = { hearingTitle: hearing.title, when, docCode: `AUD-${id.slice(-6).toUpperCase()}` };
 
-  return new NextResponse(documentHtml, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+  // PDF binario directo. Si Chromium fallara en la función, el mismo documento
+  // baja como HTML imprimible (el flujo viejo) en vez de perder la corrida.
+  try {
+    const pdf = await renderHtmlToPdf(renderSummaryDocument(payload, options, { print: false }));
+    const fileName = `Resumen_${hearing.title.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_").slice(0, 80) || "audiencia"}.pdf`;
+    return new NextResponse(new Uint8Array(pdf), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${fileName}"`
+      }
+    });
+  } catch (error) {
+    console.error("Chromium no disponible para el PDF; se sirve HTML imprimible.", error);
+    return new NextResponse(renderSummaryDocument(payload, options, { print: true }), {
+      headers: { "Content-Type": "text/html; charset=utf-8" }
+    });
+  }
 }
 
 /** Envuelve el cuerpo del resumen con el shell institucional imprimible. */
-function renderSummaryDocument(payload: SummaryPayload, options: { hearingTitle: string; when: string; docCode: string }): string {
+function renderSummaryDocument(
+  payload: SummaryPayload,
+  options: { hearingTitle: string; when: string; docCode: string },
+  mode: { print: boolean }
+): string {
   return [
     "<!doctype html>",
     `<html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(payload.titulo)}</title><style>${SUMMARY_STYLES}${DOCUMENT_SHELL_STYLES}</style></head><body>`,
@@ -181,7 +166,7 @@ function renderSummaryDocument(payload: SummaryPayload, options: { hearingTitle:
     renderLetterhead({ subtitle: "Audiencias Públicas · Resumen ejecutivo", docCode: options.docCode, statusLabel: "Documento de trabajo" }),
     `<main class="doc-body">${renderSummaryBody(payload, options)}</main>`,
     renderFooter({ docCode: options.docCode }),
-    `<script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 350); });</script>`,
+    mode.print ? `<script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 350); });</script>` : "",
     "</body></html>"
   ].join("");
 }
