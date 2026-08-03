@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -55,7 +55,61 @@ function formatAtMs(atMs: number | null): string {
   return `${String(Math.floor(totalSeconds / 60)).padStart(2, "0")}:${String(totalSeconds % 60).padStart(2, "0")}`;
 }
 
+function safePdfFilename(value: string | null): string {
+  const fallback = "Resumen_ejecutivo_audiencia.pdf";
+  if (!value) return fallback;
+
+  const cleaned = value
+    .trim()
+    .replace(/^['"]|['"]$/g, "")
+    .replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g, "_")
+    .replace(/[. ]+$/g, "")
+    .trim();
+
+  if (!cleaned) return fallback;
+  return cleaned.toLowerCase().endsWith(".pdf") ? cleaned : `${cleaned}.pdf`;
+}
+
+function summaryFilename(contentDisposition: string | null): string {
+  if (!contentDisposition) return safePdfFilename(null);
+
+  const encoded = contentDisposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i)?.[1];
+  if (encoded) {
+    try {
+      return safePdfFilename(decodeURIComponent(encoded.trim().replace(/^"|"$/g, "")));
+    } catch {
+      // Si el valor RFC 5987 está mal codificado, todavía puede existir el
+      // filename tradicional como alternativa.
+    }
+  }
+
+  const plain = contentDisposition.match(/filename\s*=\s*(?:"([^"]+)"|([^;]+))/i);
+  return safePdfFilename(plain?.[1] ?? plain?.[2] ?? null);
+}
+
+async function summaryResponseMessage(response: Response): Promise<string | null> {
+  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+
+  if (contentType.includes("application/json")) {
+    const payload = await response.json().catch(() => null);
+    return payload?.detail || payload?.error || null;
+  }
+
+  if (contentType.includes("text/")) {
+    const body = await response.text().catch(() => "");
+    if (!body.trim()) return null;
+    if (contentType.includes("text/html")) {
+      const document = new DOMParser().parseFromString(body, "text/html");
+      return document.querySelector("p")?.textContent?.trim() || document.querySelector("h1")?.textContent?.trim() || null;
+    }
+    return body.trim().slice(0, 400);
+  }
+
+  return null;
+}
+
 type NormGroup = { normId: string; code: string; title: string; articleNumber: string | null; matches: HearingMatchView[] };
+type SummaryDownload = { url: string; fileName: string };
 
 /**
  * Detalle de consulta de una audiencia: vista limpia por defecto y "Ver todo el
@@ -120,11 +174,22 @@ export function HearingDetail({
   const [expanded, setExpanded] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [summaryDownloading, setSummaryDownloading] = useState(false);
+  const [summaryError, setSummaryError] = useState("");
+  const [summaryDownload, setSummaryDownload] = useState<SummaryDownload | null>(null);
+  const summaryDownloadUrl = useRef<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState("");
   const [retryStarted, setRetryStarted] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState("");
+
+  useEffect(
+    () => () => {
+      if (summaryDownloadUrl.current) URL.revokeObjectURL(summaryDownloadUrl.current);
+    },
+    []
+  );
 
   // Audiencia ya transcripta a la que le falta el resumen: el analisis es el
   // ultimo paso de la ingesta y puede haber fallado solo (tipico: quedarse sin
@@ -263,6 +328,48 @@ export function HearingDetail({
     }
   }
 
+  async function downloadSummary() {
+    setSummaryError("");
+    setSummaryDownloading(true);
+    if (summaryDownloadUrl.current) {
+      URL.revokeObjectURL(summaryDownloadUrl.current);
+      summaryDownloadUrl.current = null;
+    }
+    setSummaryDownload(null);
+    try {
+      const response = await fetch(`/api/hearings/${hearing.id}?action=resumen`, {
+        method: "GET",
+        headers: { Accept: "application/pdf" },
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        const detail = await summaryResponseMessage(response);
+        throw new Error(detail || `No se pudo generar el resumen ejecutivo (error ${response.status}).`);
+      }
+
+      const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+      if (!contentType.startsWith("application/pdf")) {
+        const detail = await summaryResponseMessage(response);
+        throw new Error(detail || "El servidor respondió, pero no entregó un archivo PDF válido.");
+      }
+
+      const pdf = await response.blob();
+      if (pdf.size === 0) throw new Error("El PDF generado está vacío. Probá de nuevo en unos minutos.");
+
+      const objectUrl = URL.createObjectURL(pdf);
+      const fileName = summaryFilename(response.headers.get("content-disposition"));
+      summaryDownloadUrl.current = objectUrl;
+      // Después de un fetch largo Chrome puede bloquear descargas automáticas.
+      // Conservamos el archivo y mostramos acciones reales para descargarlo o abrirlo.
+      setSummaryDownload({ url: objectUrl, fileName });
+    } catch (error) {
+      setSummaryError(error instanceof Error ? error.message : "No se pudo descargar el resumen ejecutivo.");
+    } finally {
+      setSummaryDownloading(false);
+    }
+  }
+
   async function remove() {
     if (!window.confirm("¿Eliminar esta audiencia de forma permanente? Se pierden sus cruces, transcripción y análisis.")) return;
     setDeleteError("");
@@ -337,17 +444,18 @@ export function HearingDetail({
             ) : null}
             {canEdit && (hearing.transcriptSegments.length > 0 || hearing.documents.length > 0) ? (
               // La IA redacta el borrador con la transcripción y los documentos;
-              // tarda ~30-60 s y abre la vista imprimible con membrete.
-              <a
-                href={`/api/hearings/${hearing.id}?action=resumen`}
-                target="_blank"
-                rel="noreferrer"
+              // tarda ~30-60 s y descarga el PDF sin salir de esta pantalla.
+              <button
+                type="button"
+                onClick={downloadSummary}
+                disabled={summaryDownloading}
+                aria-busy={summaryDownloading}
                 title="La IA redacta un borrador de resumen ejecutivo con la transcripción y los documentos de la audiencia (tarda hasta un minuto)"
-                className="urban-button inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-black text-slate-200"
+                className="urban-button inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-black text-slate-200 disabled:cursor-wait disabled:opacity-60"
               >
-                <FileDown className="h-3.5 w-3.5" />
-                Resumen ejecutivo (PDF)
-              </a>
+                {summaryDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                {summaryDownloading ? "Generando PDF…" : summaryDownload ? "Volver a generar PDF" : "Generar resumen PDF"}
+              </button>
             ) : null}
             {canDelete ? (
               <button
@@ -363,6 +471,51 @@ export function HearingDetail({
           </div>
         </div>
         {deleteError ? <p className="mt-2 text-xs font-bold text-amber-200">{deleteError}</p> : null}
+        {summaryDownloading ? (
+          <p role="status" aria-live="polite" className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-sky-200">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Generando el resumen y preparando el archivo PDF. Puede tardar hasta un minuto.
+          </p>
+        ) : null}
+        {summaryError ? (
+          <p role="alert" aria-live="assertive" className="mt-2 text-xs font-bold text-amber-200">
+            {summaryError}
+          </p>
+        ) : null}
+        {summaryDownload ? (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-300/25 bg-emerald-300/10 px-3 py-2.5"
+          >
+            <div className="flex min-w-0 items-center gap-2 text-xs text-emerald-100">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <span>
+                <strong className="font-black">PDF generado correctamente.</strong>{" "}
+                Elegí si querés descargarlo o abrirlo en el visor.
+              </span>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <a
+                href={summaryDownload.url}
+                download={summaryDownload.fileName}
+                className="urban-button inline-flex items-center gap-1.5 rounded-md bg-emerald-400 px-3 py-1.5 text-xs font-black text-emerald-950"
+              >
+                <FileDown className="h-3.5 w-3.5" />
+                Descargar PDF
+              </a>
+              <a
+                href={summaryDownload.url}
+                target="_blank"
+                rel="noreferrer"
+                className="urban-button inline-flex items-center gap-1.5 rounded-md border border-emerald-200/25 bg-white/[0.05] px-3 py-1.5 text-xs font-black text-emerald-50"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Abrir PDF
+              </a>
+            </div>
+          </div>
+        ) : null}
 
         {hearing.reformCode ? (
           <Link

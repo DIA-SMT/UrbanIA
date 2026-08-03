@@ -7,11 +7,11 @@ import { downloadHearingDocument } from "@/lib/storage/supabase";
 import { extractPdfText, sanitizePdfText } from "@/lib/pdf/extract-text";
 import { renderHtmlToPdf } from "@/lib/pdf/render-pdf";
 import { generateSummary } from "@/lib/hearings/summary-generate";
+import { renderInstitutionalSummary, type SummaryPayload } from "@/lib/hearings/summary-document";
 import {
-  DOCUMENT_SHELL_STYLES,
-  renderFooter,
-  renderLetterhead,
-  renderWatermark
+  getCitySmtWhiteLogoDataUri,
+  getDiaLogoDataUri,
+  getMunicipalIsoLogoDataUri
 } from "@/lib/brand/document-shell";
 
 /**
@@ -31,35 +31,84 @@ const MAX_TRANSCRIPT_CHARS = 60_000;
 const MAX_DOC_CHARS = 30_000;
 const MAX_DOCS = 2;
 
-import { escapeHtml, renderSummaryBody, SUMMARY_STYLES, type SummaryPayload } from "@/lib/hearings/summary-document";
+type DocumentExcerpt = {
+  name: string;
+  material: string;
+  truncated: boolean;
+};
 
-function errorPage(title: string, detail: string, status: number): NextResponse {
-  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head><body style="font-family:system-ui;max-width:520px;margin:80px auto;color:#0f172a"><h1 style="font-size:20px">${escapeHtml(title)}</h1><p style="line-height:1.6;color:#475569">${escapeHtml(detail)}</p></body></html>`;
-  return new NextResponse(html, { status, headers: { "Content-Type": "text/html; charset=utf-8" } });
+function errorResponse(title: string, detail: string, status: number): NextResponse {
+  return NextResponse.json(
+    { error: title, detail },
+    {
+      status,
+      headers: { "Cache-Control": "no-store" }
+    }
+  );
+}
+
+function generationErrorDetail(error: unknown): string {
+  const status =
+    typeof error === "object" && error !== null && "status" in error && typeof error.status === "number"
+      ? error.status
+      : null;
+  const message = error instanceof Error ? error.message : "";
+
+  if (status === 401 || status === 403) {
+    return "El servicio de IA rechazó las credenciales configuradas. Contactá al equipo administrador.";
+  }
+  if (status === 402) {
+    return "El servicio de IA no tiene crédito disponible para completar el resumen. Contactá al equipo administrador.";
+  }
+  if (status === 429) {
+    return "El servicio de IA está recibiendo demasiadas solicitudes. Esperá unos minutos y volvé a intentar.";
+  }
+  if (status === 408 || status === 504 || /timeout|timed out/i.test(message)) {
+    return "El servicio de IA demoró más de lo permitido. Volvé a intentar en unos minutos.";
+  }
+  if (/esqueleto|secciones|párrafos|respuesta.*(?:json|válid)|incompleto/i.test(message)) {
+    return "La IA devolvió un contenido incompleto incluso después de reintentarlo. Volvé a generar el resumen.";
+  }
+  return "El servicio de análisis no pudo completar el documento. Volvé a intentar en unos minutos.";
+}
+
+function encodeContentDispositionFileName(value: string): string {
+  return encodeURIComponent(value).replace(/['()*]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`);
 }
 
 /** Texto de los documentos PDF/TXT aportados, recortado, para darle contexto al redactor. */
-async function documentExcerpts(meetingId: string): Promise<string[]> {
+async function documentExcerpts(meetingId: string): Promise<DocumentExcerpt[]> {
   const documents = await prisma.hearingDocument.findMany({
     where: { hearingRecord: { meetingId }, storagePath: { not: null } },
     orderBy: { id: "desc" },
     select: { name: true, storagePath: true },
-    take: 6
+    take: 20
   });
 
-  const excerpts: string[] = [];
+  const excerpts: DocumentExcerpt[] = [];
   for (const document of documents) {
     if (excerpts.length >= MAX_DOCS || !document.storagePath) continue;
     const extension = document.name.slice(document.name.lastIndexOf(".")).toLowerCase();
     if (extension !== ".pdf" && extension !== ".txt") continue;
     try {
       const bytes = await downloadHearingDocument(document.storagePath);
-      const text =
-        extension === ".pdf"
-          ? sanitizePdfText((await extractPdfText(bytes, { maxPages: 60, maxChars: MAX_DOC_CHARS })).text)
-          : sanitizePdfText(new TextDecoder("utf-8").decode(bytes)).slice(0, MAX_DOC_CHARS);
+      let text = "";
+      let truncated = false;
+      if (extension === ".pdf") {
+        const extraction = await extractPdfText(bytes, { maxPages: 60, maxChars: MAX_DOC_CHARS });
+        text = sanitizePdfText(extraction.text);
+        truncated = extraction.truncated || extraction.readPages < extraction.pages;
+      } else {
+        const fullText = sanitizePdfText(new TextDecoder("utf-8").decode(bytes));
+        text = fullText.slice(0, MAX_DOC_CHARS);
+        truncated = fullText.length > text.length;
+      }
       if (text.trim().length >= 200) {
-        excerpts.push(`DOCUMENTO APORTADO "${document.name}":\n${text}`);
+        excerpts.push({
+          name: document.name,
+          material: `DOCUMENTO APORTADO "${document.name}"${truncated ? " (EXTRACTO PARCIAL)" : ""}:\n${text}`,
+          truncated
+        });
       }
     } catch (error) {
       console.warn(`Resumen: no se pudo leer "${document.name}".`, error instanceof Error ? error.message : error);
@@ -70,30 +119,37 @@ async function documentExcerpts(meetingId: string): Promise<string[]> {
 
 export async function handleSummaryPdf(_request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
-    return errorPage("Base de datos no disponible", "No se puede generar el resumen en este momento.", 503);
+    return errorResponse("Base de datos no disponible", "No se puede generar el resumen en este momento.", 503);
   }
   const session = await getSessionUser();
   if (!session || !isStaff(session.role)) {
-    return errorPage("Sesión requerida", "Ingresá con tu cuenta municipal para generar el resumen.", 401);
+    return errorResponse("Sesión requerida", "Ingresá con tu cuenta municipal para generar el resumen.", 401);
   }
   if (!hasOpenRouterConfig()) {
-    return errorPage("IA no configurada", "Falta configurar el servicio de análisis para esta instancia.", 503);
+    return errorResponse("IA no configurada", "Falta configurar el servicio de análisis para esta instancia.", 503);
   }
 
   const hearing = await getHearing(id).catch(() => null);
   if (!hearing) {
-    return errorPage("Audiencia no encontrada", "El enlace no corresponde a una audiencia del registro.", 404);
+    return errorResponse("Audiencia no encontrada", "El enlace no corresponde a una audiencia del registro.", 404);
   }
 
-  const transcript = hearing.transcriptSegments
+  const fullTranscript = hearing.transcriptSegments
     .map((segment) => `${segment.speakerLabel ? `${segment.speakerLabel}: ` : ""}${segment.content}`)
-    .join("\n")
-    .slice(0, MAX_TRANSCRIPT_CHARS);
+    .join("\n");
+  const transcriptWasTruncated = fullTranscript.length > MAX_TRANSCRIPT_CHARS;
+  const transcript = transcriptWasTruncated
+    ? [
+        fullTranscript.slice(0, MAX_TRANSCRIPT_CHARS / 2),
+        "[TRAMO INTERMEDIO OMITIDO POR EXTENSIÓN; EL RESUMEN ANALIZA EL INICIO Y EL CIERRE]",
+        fullTranscript.slice(-MAX_TRANSCRIPT_CHARS / 2)
+      ].join("\n\n")
+    : fullTranscript;
 
   const excerpts = await documentExcerpts(id);
 
   if (transcript.trim().length < 400 && excerpts.length === 0) {
-    return errorPage(
+    return errorResponse(
       "Material insuficiente",
       "Esta audiencia todavía no tiene transcripción ni documentos con texto: no hay de dónde redactar un resumen.",
       422
@@ -117,7 +173,7 @@ export async function handleSummaryPdf(_request: Request, id: string) {
     hearing.analysis?.summary ? `ANÁLISIS PREVIO DEL EQUIPO:\n${hearing.analysis.summary}` : null,
     hearing.analysis?.topics.length ? `TEMAS DETECTADOS: ${hearing.analysis.topics.join("; ")}` : null,
     transcript.trim() ? `TRANSCRIPCIÓN (puede estar recortada):\n${transcript}` : null,
-    ...excerpts
+    ...excerpts.map((excerpt) => excerpt.material)
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -129,44 +185,75 @@ export async function handleSummaryPdf(_request: Request, id: string) {
     payload = await generateSummary(material);
   } catch (error) {
     console.error("No se pudo generar el resumen de la audiencia", error);
-    return errorPage("No se pudo generar el resumen", "El servicio de análisis no devolvió un documento válido. Probá de nuevo en unos minutos.", 502);
+    return errorResponse("No se pudo generar el resumen", generationErrorDetail(error), 502);
   }
 
   const options = { hearingTitle: hearing.title, when, docCode: `AUD-${id.slice(-6).toUpperCase()}` };
+  const monthYear = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" }).format(new Date());
+  const sourceSummary = [
+    transcript.trim()
+      ? transcriptWasTruncated
+        ? "Transcripción parcial: inicio y cierre"
+        : "Transcripción completa"
+      : null,
+    excerpts.length
+      ? `${excerpts.length} ${excerpts.length === 1 ? "documento" : "documentos"}: ${excerpts
+          .map((excerpt) => `${excerpt.name}${excerpt.truncated ? " (extracto)" : ""}`)
+          .join(", ")}`
+      : null
+  ]
+    .filter(Boolean)
+    .join(" | ");
+  const municipalHeaderLogo = getCitySmtWhiteLogoDataUri();
+  const municipalFooterLogo = getMunicipalIsoLogoDataUri();
+  const diaLogo = getDiaLogoDataUri();
+  if (!municipalHeaderLogo || !municipalFooterLogo || !diaLogo) {
+    return errorResponse(
+      "Identidad institucional no disponible",
+      "Falta uno de los recursos oficiales necesarios para generar el PDF. Contactá al equipo administrador.",
+      500
+    );
+  }
+  const documentOptions = {
+    ...options,
+    monthYear: monthYear.charAt(0).toUpperCase() + monthYear.slice(1),
+    sourceSummary,
+    municipalHeaderLogo,
+    municipalFooterLogo,
+    diaLogo
+  };
 
-  // PDF binario directo. Si Chromium fallara en la función, el mismo documento
-  // baja como HTML imprimible (el flujo viejo) en vez de perder la corrida.
+  // La acción siempre entrega un PDF binario. Si Chromium falla, mostramos un
+  // error explícito para que el usuario pueda reintentar sin descargar HTML con
+  // una extensión o una expectativa equivocadas.
   try {
-    const pdf = await renderHtmlToPdf(renderSummaryDocument(payload, options, { print: false }));
-    const fileName = `Resumen_${hearing.title.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_").slice(0, 80) || "audiencia"}.pdf`;
+    const pdf = await renderHtmlToPdf(renderInstitutionalSummary(payload, documentOptions));
+    const readableTitle =
+      hearing.title
+        .replace(/[<>:"/\\|?*\u0000-\u001f]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 80) || "Audiencia";
+    const fileName = `Resumen ejecutivo - ${readableTitle}.pdf`;
+    const fallbackName = `Resumen_${readableTitle
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^A-Za-z0-9 _-]/g, "")
+      .trim()
+      .replace(/\s+/g, "_") || "audiencia"}.pdf`;
     return new NextResponse(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${fileName}"`
+        "Content-Disposition": `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodeContentDispositionFileName(fileName)}`,
+        "Cache-Control": "no-store"
       }
     });
   } catch (error) {
-    console.error("Chromium no disponible para el PDF; se sirve HTML imprimible.", error);
-    return new NextResponse(renderSummaryDocument(payload, options, { print: true }), {
-      headers: { "Content-Type": "text/html; charset=utf-8" }
-    });
+    console.error("No se pudo renderizar el PDF de la audiencia.", error);
+    return errorResponse(
+      "No se pudo generar el PDF",
+      "El documento fue redactado, pero el servicio de exportación no respondió. Probá de nuevo en unos minutos.",
+      503
+    );
   }
-}
-
-/** Envuelve el cuerpo del resumen con el shell institucional imprimible. */
-function renderSummaryDocument(
-  payload: SummaryPayload,
-  options: { hearingTitle: string; when: string; docCode: string },
-  mode: { print: boolean }
-): string {
-  return [
-    "<!doctype html>",
-    `<html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(payload.titulo)}</title><style>${SUMMARY_STYLES}${DOCUMENT_SHELL_STYLES}</style></head><body>`,
-    renderWatermark(),
-    renderLetterhead({ subtitle: "Audiencias Públicas · Resumen ejecutivo", docCode: options.docCode, statusLabel: "Documento de trabajo" }),
-    `<main class="doc-body">${renderSummaryBody(payload, options)}</main>`,
-    renderFooter({ docCode: options.docCode }),
-    mode.print ? `<script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 350); });</script>` : "",
-    "</body></html>"
-  ].join("");
 }
