@@ -248,7 +248,12 @@ export async function getHearing(id: string): Promise<HearingDetail | null> {
     meeting.metadata && typeof meeting.metadata === "object" && !Array.isArray(meeting.metadata)
       ? (meeting.metadata as Record<string, Prisma.JsonValue>)
       : {};
-  const draftTranscript = typeof metadata.draftTranscript === "string" ? metadata.draftTranscript : null;
+  // Notas que el operador escribe durante la audiencia (no son la transcripcion:
+  // esa la produce Whisper sobre el audio grabado). Las audiencias que quedaron
+  // a medias con el dictado viejo traen su texto en draftTranscript: se lee como
+  // notas para no perderlo.
+  const legacyDraft = typeof metadata.draftTranscript === "string" ? metadata.draftTranscript : null;
+  const liveNotes = typeof metadata.liveNotes === "string" ? metadata.liveNotes : legacyDraft;
 
   // Expediente unificado: si hay HearingRecord, es LA fuente de la ficha, las
   // conclusiones y los documentos. metadata solo se lee cuando no hay record
@@ -291,7 +296,7 @@ export async function getHearing(id: string): Promise<HearingDetail | null> {
     modality: meeting.modality,
     hearingSource: meeting.hearingSource,
     createdAt: meeting.createdAt.toISOString(),
-    draftTranscript,
+    liveNotes,
     ficha,
     conclusions,
     conclusionsByTeam,

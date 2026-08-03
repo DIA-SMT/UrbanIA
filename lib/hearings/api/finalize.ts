@@ -1,36 +1,25 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import { Prisma, ProcessingStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
-import { saveRecordConclusions, syncRecordLifecycle } from "@/lib/hearings/record";
-import { ingestHearingTranscript } from "@/lib/knowledge/ingest-hearing-report";
-
-
-const conclusionsSchema = z.object({
-  summary: z.string().max(8000),
-  agreements: z.string().max(8000),
-  disagreements: z.string().max(8000),
-  nextSteps: z.string().max(8000),
-  technicalRecommendations: z.string().max(8000),
-  decisions: z.string().max(8000),
-  proposalStatusAfter: z.string().max(400),
-  observedTopics: z.string().max(2000),
-  importance: z.string().max(40),
-  technicalObservation: z.string().max(8000),
-  citizenObservation: z.string().max(8000)
-});
+import { syncRecordLifecycle } from "@/lib/hearings/record";
 
 const bodySchema = z.object({
-  transcript: z.string().trim().min(20).max(200000),
-  conclusions: conclusionsSchema.optional()
+  /** Notas que el operador escribio durante la audiencia. No es la transcripcion. */
+  notes: z.string().max(200000).optional()
 });
 
 /**
- * Cierra la audiencia: guarda la transcripcion final, persiste las conclusiones
- * (foto 2) ya revisadas por el operador en el HearingRecord (expediente
- * unificado; no re-corre la IA: eso lo hizo /analyze) y deja la audiencia en
- * COMPLETED. Sin conclusiones, guarda solo la transcripcion (fallback sin IA).
+ * Cierra una audiencia en vivo. Desde que se saco el dictado, al cerrar NO hay
+ * transcripcion: lo que quedo de la audiencia es el AUDIO grabado en tramos
+ * (filas de MeetingMedia) mas las notas y la ficha que cargo el operador.
+ *
+ * La transcripcion, los cruces con las normas y las conclusiones llegan
+ * despues, cuando alguien aprieta "Analizar audio" en el detalle. Por eso la
+ * audiencia se cierra con hearingStatus COMPLETED (la audiencia efectivamente
+ * termino) pero con status PENDING mientras tenga audio sin transcribir: es lo
+ * que el detalle lee para mostrar que falta analizarla.
  */
 export async function handleFinalize(request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
@@ -41,30 +30,20 @@ export async function handleFinalize(request: Request, id: string) {
   if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Transcripción inválida", detail: "La transcripción debe tener al menos 20 caracteres." }, { status: 400 });
+    return NextResponse.json({ error: "Datos inválidos", detail: "No se pudieron leer las notas de la audiencia." }, { status: 400 });
   }
 
   try {
-    // kind acotado: finalize borra los TranscriptSegment del meeting, asi que
-    // apuntarlo a una reunion comun destruiria su acta.
+    // kind acotado: esta ruta cambia el estado de la audiencia y no tiene por
+    // que poder apuntarse a una reunion comun.
     const meeting = await prisma.meeting.findFirst({ where: { id, kind: "PUBLIC_HEARING" }, select: { id: true, metadata: true } });
     if (!meeting) return NextResponse.json({ error: "Audiencia no encontrada" }, { status: 404 });
 
-    const transcript = parsed.data.transcript;
-    const conclusions = parsed.data.conclusions ?? null;
-
-    // Transcripcion final como segmento unico (la segmentacion por hablante es
-    // trabajo de la ingesta batch con Whisper).
-    await prisma.transcriptSegment.deleteMany({ where: { meetingId: id } });
-    await prisma.transcriptSegment.create({
-      data: { meetingId: id, startMs: 0, endMs: 0, content: transcript, speakerLabel: "Audiencia en vivo" }
+    // Audio pendiente de transcribir: define si la audiencia queda lista o a la
+    // espera del analisis.
+    const pendingAudio = await prisma.meetingMedia.count({
+      where: { meetingId: id, kind: "AUDIO", status: ProcessingStatus.PENDING }
     });
-
-    // Conclusiones revisadas por el humano: al HearingRecord (columnas firmadas
-    // que re-correr la IA no pisa). MeetingAnalysis queda solo para salidas IA.
-    if (conclusions) {
-      await saveRecordConclusions(id, conclusions);
-    }
 
     const previousMetadata =
       meeting.metadata && typeof meeting.metadata === "object" && !Array.isArray(meeting.metadata)
@@ -74,26 +53,24 @@ export async function handleFinalize(request: Request, id: string) {
     await prisma.meeting.update({
       where: { id },
       data: {
-        status: "READY",
+        status: pendingAudio > 0 ? ProcessingStatus.PENDING : ProcessingStatus.READY,
         hearingStatus: "COMPLETED",
-        description: conclusions?.summary || undefined,
-        // El borrador ya quedo como TranscriptSegment: se limpia de metadata.
-        metadata: { ...previousMetadata, draftTranscript: null, draftSavedAt: null, finalizedAt: new Date().toISOString() }
+        metadata: {
+          ...previousMetadata,
+          // Las notas viven en metadata y NO en el expediente: no son el acta.
+          // El acta la va a escribir Whisper sobre el audio, y mezclarlas seria
+          // dar por transcripcion algo que el operador anoto a las apuradas.
+          ...(parsed.data.notes !== undefined ? { liveNotes: parsed.data.notes } : {}),
+          // El borrador ya no tiene sentido: la audiencia esta cerrada.
+          draftTranscript: null,
+          draftSavedAt: null,
+          finalizedAt: new Date().toISOString()
+        }
       }
     });
     await syncRecordLifecycle(id, "COMPLETED");
 
-    // Migue aprende de la transcripción (fuente MEETING), igual que en la
-    // ingesta batch. Con await: en serverless un fire-and-forget puede morir
-    // con la función. Best-effort: un fallo del indexado no impide el cierre.
-    try {
-      const indexed = await ingestHearingTranscript(id);
-      if (indexed) console.log(`[conocimiento] Transcripción de audiencia indexada: ${indexed.chunks} fragmentos.`);
-    } catch (error) {
-      console.error("[conocimiento] No se pudo indexar la transcripción de la audiencia:", error);
-    }
-
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, pendingAudio });
   } catch (error) {
     console.error("No se pudo finalizar la audiencia", error);
     return NextResponse.json({ error: "No se pudo finalizar la audiencia" }, { status: 500 });

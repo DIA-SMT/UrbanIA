@@ -312,8 +312,11 @@ export type HearingDetail = HearingListItem & {
   modality: string | null;
   hearingSource: HearingSource | null;
   createdAt: string;
-  /** Borrador de transcripcion en curso (autoguardado del vivo), si lo hay. */
-  draftTranscript: string | null;
+  /**
+   * Notas que el operador escribio durante la audiencia en vivo (autoguardadas).
+   * NO son la transcripcion: esa la produce Whisper sobre el audio grabado.
+   */
+  liveNotes: string | null;
   /** Ficha estructurada cargada a mano (foto 1). Vive en el HearingRecord. */
   ficha: HearingFicha;
   /**

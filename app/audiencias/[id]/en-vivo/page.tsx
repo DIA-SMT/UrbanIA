@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 /**
  * Sesion en vivo de una audiencia, direccionable por id: sirve tanto para
  * arrancar (recien creada) como para RETOMAR una audiencia en curso tras salir.
- * Carga el borrador autoguardado y los cruces ya persistidos.
+ * Carga las notas autoguardadas y la ficha.
  */
 export default async function AudienciaEnVivoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,16 +29,13 @@ export default async function AudienciaEnVivoPage({ params }: { params: Promise<
     redirect(`/audiencias/${id}`);
   }
 
-  // Sin código nuevo (tema libre) igual se dicta: solo se desactiva el cruce.
   return (
     <AppShell>
       <LiveSession
         meetingId={hearing.id}
         title={hearing.title}
-        reformId={hearing.reformId}
         aiAvailable={hasOpenRouterConfig()}
-        initialTranscript={hearing.draftTranscript ?? ""}
-        initialMatches={hearing.matches}
+        initialNotes={hearing.liveNotes ?? ""}
         initialFicha={hearing.ficha}
       />
     </AppShell>

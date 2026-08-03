@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { handleAnalyze } from "@/lib/hearings/api/analyze";
+import { handleAudioPart, handleAudioPartUrl } from "@/lib/hearings/api/audio";
 import { handleCompleteFicha } from "@/lib/hearings/api/complete-ficha";
 import { handleConclusions } from "@/lib/hearings/api/conclusions";
 import { handleDocumentDelete } from "@/lib/hearings/api/document-delete";
@@ -12,11 +13,10 @@ import { handleDraft } from "@/lib/hearings/api/draft";
 import { handleFicha } from "@/lib/hearings/api/ficha";
 import { handleFinalize } from "@/lib/hearings/api/finalize";
 import { handleGenerateAnalysis } from "@/lib/hearings/api/generate-analysis";
-import { handleLiveMatch } from "@/lib/hearings/api/live-match";
 import { handleRetryIngest } from "@/lib/hearings/api/retry-ingest";
 import { handleSummaryPdf } from "@/lib/hearings/api/summary";
 import { getHearing, updateHearing } from "@/lib/hearings/data";
-import { removeHearingDocument } from "@/lib/storage/supabase";
+import { removeHearingAudioFolder, removeHearingDocument } from "@/lib/storage/supabase";
 
 export const dynamic = "force-dynamic";
 /** El paso mas lento es el resumen ejecutivo (modelo fuerte redactando ~9k
@@ -40,6 +40,9 @@ export const maxDuration = 300;
  */
 const POST_ACTIONS = {
   analyze: handleAnalyze,
+  // Grabacion en vivo: firmar la subida de un tramo y registrarlo ya subido.
+  "audio-part-url": handleAudioPartUrl,
+  "audio-part": handleAudioPart,
   "complete-ficha": handleCompleteFicha,
   conclusions: handleConclusions,
   documents: handleDocumentUpload,
@@ -47,7 +50,6 @@ const POST_ACTIONS = {
   draft: handleDraft,
   finalize: handleFinalize,
   "generate-analysis": handleGenerateAnalysis,
-  "live-match": handleLiveMatch,
   "retry-ingest": handleRetryIngest
 } as const;
 
@@ -153,6 +155,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         await removeHearingDocument(document.storagePath).catch((error) => console.error("No se pudo borrar el objeto del bucket", error));
       }
     }
+
+    // El audio de la grabacion en vivo tampoco cae por cascade. Se borra la
+    // carpeta entera del bucket en vez de recorrer las filas de MeetingMedia:
+    // si alguna subida quedo sin registrar, igual se limpia.
+    await removeHearingAudioFolder(id).catch((error) => console.error("No se pudo borrar el audio del bucket", error));
 
     await prisma.meeting.delete({ where: { id } });
     return NextResponse.json({ ok: true });
