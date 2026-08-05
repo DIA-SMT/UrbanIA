@@ -18,6 +18,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState(() => findActiveGroup(pathname));
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [userLoaded, setUserLoaded] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/auth?action=me")
+      .then((response) => response.json())
+      .then((payload) => {
+        if (mounted) setUser(payload.user ?? null);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (mounted) setUserLoaded(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // El filtro es cosmético (que un observador no vea un menú que le va a
+  // rebotar); el permiso real se valida siempre en el server.
+  const visibleSections = sidebarSections.filter((section) => !section.adminOnly || user?.role === "ADMIN");
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("urbania-theme") === "dark" ? "dark" : "light";
@@ -78,7 +100,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
           <nav className="urban-scrollbar mt-3 flex-1 space-y-1 overflow-y-auto pb-4" aria-label="Navegacion principal">
-            {sidebarSections.map((section) => <SidebarGroup key={section.title} section={section} pathname={pathname} open={openGroup === section.title} collapsed={collapsed} onToggle={() => { if (collapsed) toggleSidebar(); setOpenGroup((current) => current === section.title && !collapsed ? "" : section.title); }} />)}
+            {visibleSections.map((section) => <SidebarGroup key={section.title} section={section} pathname={pathname} open={openGroup === section.title} collapsed={collapsed} onToggle={() => { if (collapsed) toggleSidebar(); setOpenGroup((current) => current === section.title && !collapsed ? "" : section.title); }} />)}
           </nav>
         </motion.aside>
 
@@ -88,7 +110,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-sm lg:hidden" aria-label="Cerrar navegacion" />
               <motion.aside initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }} transition={{ type: "spring", damping: 28, stiffness: 300 }} className="fixed inset-y-0 left-0 z-50 w-[278px] overflow-y-auto bg-white p-4 shadow-2xl dark:bg-[#091725] lg:hidden">
                 <div className="flex items-center justify-between"><Brand /><button onClick={() => setMobileOpen(false)} className="icon-button"><X className="h-5 w-5" /></button></div>
-                <nav className="mt-7 space-y-1">{sidebarSections.map((section) => <SidebarGroup key={section.title} section={section} pathname={pathname} open={openGroup === section.title} onToggle={() => setOpenGroup((current) => current === section.title ? "" : section.title)} />)}</nav>
+                <nav className="mt-7 space-y-1">{visibleSections.map((section) => <SidebarGroup key={section.title} section={section} pathname={pathname} open={openGroup === section.title} onToggle={() => setOpenGroup((current) => current === section.title ? "" : section.title)} />)}</nav>
               </motion.aside>
             </>
           )}
@@ -105,7 +127,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
               <div className="ml-auto flex items-center gap-2">
                 <button onClick={toggleTheme} className="icon-button" aria-label={theme === "light" ? "Activar modo oscuro" : "Activar modo claro"}>{theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}</button>
-                <UserMenu />
+                <UserMenu user={user} loaded={userLoaded} />
               </div>
             </div>
           </header>
@@ -124,32 +146,14 @@ type SessionUser = { name: string; role: string };
 
 const roleLabels: Record<string, string> = {
   ADMIN: "Administración",
-  OFFICIAL: "Funcionario/a",
-  TECHNICIAN: "Equipo técnico",
+  OBSERVER: "Observador/a",
+  CPU_USER: "Usuario CPU",
   CITIZEN: "Ciudadano/a"
 };
 
-function UserMenu() {
-  const [user, setUser] = useState<SessionUser | null>(null);
-  const [loaded, setLoaded] = useState(false);
+function UserMenu({ user, loaded }: { user: SessionUser | null; loaded: boolean }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    fetch("/api/auth?action=me")
-      .then((response) => response.json())
-      .then((payload) => {
-        if (mounted) setUser(payload.user ?? null);
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        if (mounted) setLoaded(true);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     if (!open) return;
