@@ -13,3 +13,6 @@ output/
 data/sources/
 .cache/
 .claude/settings.local.json
+
+# Copias locales del audio de audiencias (npm run hearings:backup-audio)
+backups/
