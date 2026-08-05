@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "pdfjs-dist", "@napi-rs/canvas"],
+  // ffmpeg-static en la lista: el paquete resuelve la ruta del binario relativa
+  // a su propio archivo, y empaquetado por Next esa ruta apunta adentro de
+  // .next/ donde el ejecutable no existe (spawn ...vendor-chunks/ffmpeg ENOENT).
+  // Externalizado, se resuelve en runtime desde node_modules, donde si esta.
+  serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "pdfjs-dist", "@napi-rs/canvas", "ffmpeg-static"],
   // Dos dependencias de pdfjs se cargan dinamicamente y el tracer no las ve:
   // el binario nativo de @napi-rs/canvas (require computado canvas-<plataforma>,
   // sin el "DOMMatrix is not defined") y su propio worker pdf.worker.mjs
