@@ -31,7 +31,11 @@ const nextConfig: NextConfig = {
       // El resumen ejecutivo se exporta con @sparticuz/chromium en Vercel.
       // Sus .br se resuelven en runtime y el tracer de Next no los detecta.
       "node_modules/@sparticuz/chromium/bin/**"
-    ]
+    ],
+    // La descarga del audio completo une los tramos con ffmpeg. El binario
+    // (~80 MB) va SOLO a esta ruta: sumado a Chromium+onnx en la ruta general
+    // arriesgaria el limite de tamano del bundle.
+    "/api/hearings/audio": ["node_modules/ffmpeg-static/**"]
   },
   outputFileTracingExcludes: {
     // Vercel ejecuta Linux x64. El paquete onnxruntime también instala binarios

@@ -4,7 +4,12 @@ import { z } from "zod";
 
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
-import { createHearingAudioUploadUrl, hasSupabaseStorage } from "@/lib/storage/supabase";
+import {
+  createHearingAudioUploadUrl,
+  hasSupabaseStorage,
+  hearingAudioFullPath,
+  removeHearingAudioParts
+} from "@/lib/storage/supabase";
 
 /**
  * Subida de los tramos de audio de una audiencia en vivo.
@@ -125,6 +130,10 @@ export async function handleAudioPart(request: Request, id: string) {
     const media = existing
       ? await prisma.meetingMedia.update({ where: { id: existing.id }, data })
       : await prisma.meetingMedia.create({ data });
+
+    // Un tramo nuevo deja viejo al MP3 unido (si alguien ya lo descargo):
+    // se borra el derivado y la proxima descarga lo regenera. Best-effort.
+    void removeHearingAudioParts([hearingAudioFullPath(id)]).catch(() => {});
 
     return NextResponse.json({ ok: true, mediaId: media.id });
   } catch (error) {
