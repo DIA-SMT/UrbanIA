@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -362,22 +363,55 @@ function RowActions({
   onEdit: () => void;
   onStatus: (action: "suspend" | "reactivate" | "revoke") => void;
 }) {
-  const [open, setOpen] = useState(false);
+  // El menú se monta en un portal con posición fija: el panel de la tabla tiene
+  // overflow para el scroll horizontal y un dropdown absoluto adentro queda
+  // recortado por ese contenedor.
+  const [position, setPosition] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
+  const open = position !== null;
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+
+  const MENU_MAX_HEIGHT = 280;
+
+  function toggle() {
+    if (open) {
+      setPosition(null);
+      return;
+    }
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const right = window.innerWidth - rect.right;
+    // Sin lugar abajo → abre hacia arriba, anclado al borde superior del botón.
+    if (rect.bottom + MENU_MAX_HEIGHT > window.innerHeight && rect.top > MENU_MAX_HEIGHT) {
+      setPosition({ bottom: window.innerHeight - rect.top + 6, right });
+    } else {
+      setPosition({ top: rect.bottom + 6, right });
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
     function onClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (menuRef.current?.contains(target) || buttonRef.current?.contains(target)) return;
+      setPosition(null);
     }
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") setPosition(null);
+    }
+    // Con posición fija, cualquier scroll desalinearía el menú: se cierra.
+    function onScroll() {
+      setPosition(null);
     }
     document.addEventListener("mousedown", onClickOutside);
     document.addEventListener("keydown", onKeyDown);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
     return () => {
       document.removeEventListener("mousedown", onClickOutside);
       document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
     };
   }, [open]);
 
@@ -395,9 +429,10 @@ function RowActions({
   ];
 
   return (
-    <div ref={menuRef} className="relative inline-block text-left">
+    <div className="inline-block text-left">
       <button
-        onClick={() => setOpen((current) => !current)}
+        ref={buttonRef}
+        onClick={toggle}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={`Acciones sobre ${fullName(user)}`}
@@ -405,42 +440,50 @@ function RowActions({
       >
         <MoreHorizontal className="h-4 w-4" />
       </button>
-      {open ? (
-        <div role="menu" className="absolute right-0 top-full z-50 mt-1.5 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl dark:border-white/10 dark:bg-[#0d1b2a]">
-          {items.map((item) => {
-            const Icon = item.icon;
-            const className = `flex w-full items-center gap-2.5 px-3.5 py-2 text-sm font-semibold transition ${
-              item.tone === "danger"
-                ? "text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-400/10"
-                : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/[0.05]"
-            } ${item.disabled ? "cursor-not-allowed opacity-40" : ""}`;
-            if (item.href && !item.disabled) {
-              return (
-                <Link key={item.label} role="menuitem" href={item.href} className={className} onClick={() => setOpen(false)}>
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            }
-            return (
-              <button
-                key={item.label}
-                role="menuitem"
-                disabled={item.disabled}
-                title={item.disabled ? "No podés modificar tu propia cuenta" : undefined}
-                onClick={() => {
-                  setOpen(false);
-                  item.onClick?.();
-                }}
-                className={className}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
+      {open && position
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              style={{ top: position.top, bottom: position.bottom, right: position.right }}
+              className="fixed z-[80] w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl dark:border-white/10 dark:bg-[#0d1b2a]"
+            >
+              {items.map((item) => {
+                const Icon = item.icon;
+                const className = `flex w-full items-center gap-2.5 px-3.5 py-2 text-sm font-semibold transition ${
+                  item.tone === "danger"
+                    ? "text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-400/10"
+                    : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/[0.05]"
+                } ${item.disabled ? "cursor-not-allowed opacity-40" : ""}`;
+                if (item.href && !item.disabled) {
+                  return (
+                    <Link key={item.label} role="menuitem" href={item.href} className={className} onClick={() => setPosition(null)}>
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  );
+                }
+                return (
+                  <button
+                    key={item.label}
+                    role="menuitem"
+                    disabled={item.disabled}
+                    title={item.disabled ? "No podés modificar tu propia cuenta" : undefined}
+                    onClick={() => {
+                      setPosition(null);
+                      item.onClick?.();
+                    }}
+                    className={className}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

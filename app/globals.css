@@ -72,6 +72,25 @@ body {
   }
 }
 
+/* Los <option> heredan el color del select (blanco en tema oscuro), pero
+   Chromium dibuja el popup nativo con fondo claro: texto blanco sobre blanco.
+   Colores explicitos en ambos temas para que la lista siempre se lea, y
+   color-scheme dark en los selects del tema oscuro para que el popup
+   tambien se pinte oscuro donde el navegador lo soporta. */
+select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+html.dark select {
+  color-scheme: dark;
+}
+
+html.dark select option {
+  background-color: #0d1b2a;
+  color: #eef7ff;
+}
+
 .urban-card {
   border: 1px solid rgba(148, 163, 184, 0.16);
   background: rgba(8, 24, 40, 0.88);
