@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AudioLines, Loader2, TriangleAlert, Wand2 } from "lucide-react";
+import { AudioLines, Download, Loader2, TriangleAlert, Wand2 } from "lucide-react";
 
 import type { HearingMediaView } from "@/lib/hearings/shared";
 
@@ -25,6 +25,8 @@ export function AudioAnalysisPanel({ hearingId, media }: { hearingId: string; me
   const [phase, setPhase] = useState<"idle" | "transcribing" | "closing">("idle");
   const [done, setDone] = useState(0);
   const [error, setError] = useState("");
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
 
   const parts = useMemo(() => media.filter((item) => item.kind === "AUDIO"), [media]);
   const pending = useMemo(() => parts.filter((part) => part.status !== "READY"), [parts]);
@@ -89,6 +91,34 @@ export function AudioAnalysisPanel({ hearingId, media }: { hearingId: string; me
     }
   }, [hearingId, pending, router, runPool, running]);
 
+  /**
+   * Baja la grabacion completa en un MP3 unico. La primera vez el servidor une
+   * los tramos (tarda un rato); despues el archivo queda guardado y es
+   * instantaneo. La URL firmada fuerza la descarga con nombre propio.
+   */
+  const downloadAudio = useCallback(async () => {
+    if (downloading) return;
+    setDownloading(true);
+    setDownloadError("");
+    try {
+      const response = await fetch(`/api/hearings/audio?id=${hearingId}`);
+      const payload = (await response.json().catch(() => null)) as { url?: string; detail?: string; error?: string } | null;
+      if (!response.ok || !payload?.url) {
+        throw new Error(payload?.detail || payload?.error || "No se pudo preparar el audio.");
+      }
+      const anchor = document.createElement("a");
+      anchor.href = payload.url;
+      anchor.rel = "noopener";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    } catch (audioError) {
+      setDownloadError(audioError instanceof Error ? audioError.message : "No se pudo descargar el audio.");
+    } finally {
+      setDownloading(false);
+    }
+  }, [downloading, hearingId]);
+
   if (!parts.length) return null;
 
   const total = parts.length;
@@ -115,24 +145,42 @@ export function AudioAnalysisPanel({ hearingId, media }: { hearingId: string; me
           ) : null}
         </div>
 
-        {pending.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={analyze}
-            disabled={running}
-            className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
+            onClick={downloadAudio}
+            disabled={downloading}
+            title="Descarga toda la grabación unida en un MP3. La primera vez puede tardar unos minutos."
+            className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-bold text-slate-200 disabled:opacity-60"
           >
-            {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-            {running
-              ? phase === "closing"
-                ? "Cruzando con las normas…"
-                : `Transcribiendo ${progress} de ${total}…`
-              : failed.length
-                ? "Reintentar análisis"
-                : "Analizar audio"}
+            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {downloading ? "Preparando el MP3…" : "Descargar audio"}
           </button>
-        ) : null}
+          {pending.length > 0 ? (
+            <button
+              type="button"
+              onClick={analyze}
+              disabled={running}
+              className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
+            >
+              {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+              {running
+                ? phase === "closing"
+                  ? "Cruzando con las normas…"
+                  : `Transcribiendo ${progress} de ${total}…`
+                : failed.length
+                  ? "Reintentar análisis"
+                  : "Analizar audio"}
+            </button>
+          ) : null}
+        </div>
       </div>
+
+      {downloadError ? (
+        <p className="mt-3 rounded-md border border-amber-300/25 bg-amber-300/10 px-3 py-2 text-xs font-bold leading-5 text-amber-100">
+          {downloadError}
+        </p>
+      ) : null}
 
       {running || progress < total ? (
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
