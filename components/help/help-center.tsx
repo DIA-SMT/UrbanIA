@@ -82,8 +82,8 @@ export function HelpCenter({ isStaffSession }: { isStaffSession: boolean }) {
           {!isStaffSession ? (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/40 bg-amber-400/10 p-4 dark:border-amber-300/25">
               <p className="text-sm font-bold leading-6 text-amber-800 dark:text-amber-100">
-                Estas herramientas requieren una cuenta municipal (gabinete, funcionarios o equipo técnico). Podés leer
-                las guías igual, pero para usarlas necesitás ingresar con esa cuenta.
+                Estas herramientas requieren una cuenta municipal (la asigna Administración). Podés leer las guías
+                igual, pero para usarlas necesitás ingresar con esa cuenta.
               </p>
               <Link
                 href="/ingresar"

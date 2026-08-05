@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser } from "@/lib/auth/api";
 import { CitizenParticipation } from "@/components/citizen/citizen-participation";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic";
 export default async function ParticipacionPage() {
   const session = await getSessionUser();
   if (!session) redirect("/ingresar");
-  if (!isStaff(session.role)) redirect("/");
+  // Es una bandeja de lectura/triage: el rol Observador también puede verla.
+  if (!canViewInternal(session.role)) redirect("/");
 
   return <CitizenParticipation />;
 }

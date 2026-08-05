@@ -135,7 +135,7 @@ export const staffTools: ToolGuide[] = [
     href: "/ingresar",
     oneLiner: "La sesión que habilita las herramientas de gestión.",
     paraQue:
-      "Las herramientas internas exigen sesión con rol municipal: Administración, Funcionario/a o Equipo técnico. Sin sesión, la plataforma muestra solo la cara pública.",
+      "Las herramientas internas exigen sesión con rol municipal. Los roles son tres: Administración (gestiona todo, incluidas las cuentas), Usuario CPU (crea y edita contenido) y Observador/a (ve el sistema interno en solo lectura). Sin sesión, la plataforma muestra solo la cara pública.",
     pasos: [
       "Entrá a Ingresar con el correo y la contraseña de tu cuenta municipal.",
       "Verificá tu rol en el menú de usuario (arriba a la derecha): define qué podés hacer.",

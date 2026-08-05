@@ -1,9 +1,17 @@
 import {
   CalendarDays,
+  Fingerprint,
+  Inbox,
+  KeyRound,
   LifeBuoy,
+  Lock,
   Map,
   MessagesSquare,
   Scale,
+  ScrollText,
+  Settings,
+  ShieldCheck,
+  UserCog,
   Users
 } from "lucide-react";
 
@@ -14,6 +22,8 @@ type SidebarSection = {
   icon: SidebarIcon;
   /** Si está presente, la sección es un link directo sin desplegable. */
   href?: string;
+  /** Solo se muestra a administradores (el server igual re-valida el permiso). */
+  adminOnly?: boolean;
   items: SidebarItem[];
 };
 
@@ -47,6 +57,20 @@ export const sidebarSections: SidebarSection[] = [
     icon: Users,
     href: "/participacion",
     items: []
+  },
+  {
+    title: "Configuración",
+    icon: Settings,
+    adminOnly: true,
+    items: [
+      { label: "Usuarios", href: "/admin/configuracion/usuarios", icon: UserCog },
+      { label: "Roles", href: "/admin/configuracion/roles", icon: ShieldCheck },
+      { label: "Permisos", href: "/admin/configuracion/permisos", icon: KeyRound },
+      { label: "Solicitudes de acceso", href: "/admin/configuracion/solicitudes", icon: Inbox },
+      { label: "Integración SIDITUC", href: "/admin/configuracion/sidituc", icon: Fingerprint },
+      { label: "Seguridad", href: "/admin/configuracion/seguridad", icon: Lock },
+      { label: "Auditoría", href: "/admin/configuracion/auditoria", icon: ScrollText }
+    ]
   },
   {
     title: "Ayuda",

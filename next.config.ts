@@ -34,7 +34,15 @@ const nextConfig: NextConfig = {
       "node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**",
       // El resumen ejecutivo se exporta con @sparticuz/chromium en Vercel.
       // Sus .br se resuelven en runtime y el tracer de Next no los detecta.
-      "node_modules/@sparticuz/chromium/bin/**"
+      "node_modules/@sparticuz/chromium/bin/**",
+      // Los logos se leen desde el filesystem para convertirlos en data URI.
+      // Vercel sirve public por separado y no los agrega a la funcion salvo que
+      // el tracer los incluya de manera explicita. (Ademas van globales via
+      // public/brand/** en "/**": el mismo fix llego por dos caminos y ambos
+      // son inofensivos, asi que se conservan los dos.)
+      "public/brand/logo-ciudad-smt-blanco.png",
+      "public/brand/logo-municipalidad-smt-iso.png",
+      "public/brand/logo-direccion-ia.png"
     ],
     // La descarga del audio completo une los tramos con ffmpeg. El binario
     // (~80 MB) va SOLO a esta ruta: sumado a Chromium+onnx en la ruta general

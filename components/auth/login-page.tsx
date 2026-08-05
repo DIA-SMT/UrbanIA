@@ -22,7 +22,8 @@ const errorMessages: Record<string, string> = {
   missing: "Completa todos los campos. La contrasena debe tener al menos 6 caracteres.",
   credentials: "El correo o la contrasena no son correctos. Si tu cuenta todavia no tiene contrasena, elegi Registrarte para activarla.",
   exists: "Esta cuenta ya tiene una contrasena. Ingresa con tus credenciales.",
-  unavailable: "El acceso no esta disponible por un problema de configuracion del servidor."
+  unavailable: "El acceso no esta disponible por un problema de configuracion del servidor.",
+  blocked: "Tu cuenta no tiene acceso habilitado. Comunicate con la administracion de UrbanIA."
 };
 
 export function LoginPage({ initialError, initialMode = "login", maxBirthDate, minBirthDate }: LoginPageProps) {
