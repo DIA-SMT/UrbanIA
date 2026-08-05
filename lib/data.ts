@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  LifeBuoy,
   Map,
   MessagesSquare,
   Scale,
@@ -45,6 +46,12 @@ export const sidebarSections: SidebarSection[] = [
     title: "Aportes ciudadanos",
     icon: Users,
     href: "/participacion",
+    items: []
+  },
+  {
+    title: "Ayuda",
+    icon: LifeBuoy,
+    href: "/ayuda",
     items: []
   }
 ];
