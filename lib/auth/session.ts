@@ -1,4 +1,5 @@
 import type { UserRole } from "@prisma/client";
+import { canViewInternal } from "@/lib/auth/permissions";
 
 type SessionPayload = {
   userId: string;
@@ -10,7 +11,7 @@ const encoder = new TextEncoder();
 export const sessionCookieName = "urbania_session";
 
 export function canAccessAdmin(role: UserRole) {
-  return role === "ADMIN" || role === "OFFICIAL" || role === "TECHNICIAN";
+  return canViewInternal(role);
 }
 
 export async function createSessionToken(payload: SessionPayload) {

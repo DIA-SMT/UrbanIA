@@ -7,7 +7,7 @@ import type { MigueMode, MigueRole } from "@/lib/ai/migue";
 export type AssistantAccess = {
   mode: MigueMode;
   role: MigueRole;
-  /** Solo personal municipal con sesion valida (ADMIN, OFFICIAL o TECHNICIAN). */
+  /** Solo personal municipal con sesion valida (ADMIN, OBSERVER o CPU_USER). */
   isStaff: boolean;
 };
 

@@ -29,6 +29,19 @@ export async function handleLogin(request: Request) {
       return NextResponse.redirect(new URL("/ingresar?error=credentials", request.url), 303);
     }
 
+    // La contraseña correcta no alcanza: una cuenta suspendida o revocada por
+    // un admin no entra. Se chequea después de verificar la contraseña para no
+    // revelar el estado de la cuenta a quien no la posee.
+    if (user.status !== "ACTIVE") {
+      return NextResponse.redirect(new URL("/ingresar?error=blocked", request.url), 303);
+    }
+
+    // Último acceso, visible en Configuración > Usuarios. Fuera del camino
+    // crítico: si falla, el login no se cae.
+    prisma.user
+      .update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
+      .catch(() => undefined);
+
     const response = NextResponse.redirect(new URL(canAccessAdmin(user.role) ? "/admin" : "/", request.url), 303);
     const token = await createSessionToken({ userId: user.id, role: user.role });
 

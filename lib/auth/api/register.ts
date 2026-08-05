@@ -62,6 +62,12 @@ export async function handleRegister(request: Request) {
       return NextResponse.redirect(new URL("/ingresar?mode=register&error=exists", request.url), 303);
     }
 
+    // Una cuenta suspendida o revocada no puede "resucitarse" registrándose de
+    // nuevo: el registro emite sesión al final y saltearía el bloqueo del login.
+    if (existingUser && existingUser.status !== "ACTIVE") {
+      return NextResponse.redirect(new URL("/ingresar?error=blocked", request.url), 303);
+    }
+
     // El DNI es único: si ya está tomado por otra cuenta, no se puede registrar.
     const dniOwner = await prisma.user.findUnique({ where: { dni: normalizedDni } });
 
