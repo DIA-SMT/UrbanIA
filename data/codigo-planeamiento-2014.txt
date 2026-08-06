@@ -318,56 +318,7 @@ ARTÍCULO 20º.- PLANILLAS DE REGLAMENTACIONES PARTICULARES SOBRE USOS DEL SUELO
 Los usos permitidos, las restricciones que condicionan los mismos, los requerimientos de estacionamiento y lugar de carga y  descarga se consignan en las Planillas de Reglamentaciones Particulares sobre Usos del Suelo según Distritos que se agregan a  continuación según el siguiente orden: 
 
 
-	Hojas
-	Administración Pública 
-	1/63
-	Comercios minoristas 
-	2 á 8/63
-	Servicios Personales y Comunales 
-	9 á 12/63
-	Servicios de Talleres 
-	13 á 16/63
-	Educación 
-	17/63
-	Culto, Cultura y Esparcimiento 
-	18 y 19/63
-	Sanidad 
-	20/63
-	Residencia 
-	21/63
-	Industrias: 
-	1) Productos alimenticios, bebidas y tabaco 
-	22 á 27/63
-	2) Textiles y cueros 
-	28 á30/63
-	3) Madera y productos de la madera 
-	31 y 32/63
-	4) Fabricación de papel y productos del papel, imprenta y editoriales 
-	33/63
-	5) Fabricación de sustancias químicas y derivados del petróleo y del carbón 
-	34 á 39/63
-	6) Fabricación de productos minerales no metálicos exceptuando los derivados del petróleo y del carbón 
-	40/63
-	7) Fabricación de otros productos minerales no metálicos 
-	41 y 42/63
-	8) Industrias metálicas básicas 
-	43/63
-	9) Industrias de productos metálicos, maquinarias y equipos 
-	44 á 51/63
-	10) Otras industrias manufactureras 
-	52 y 53/63
-	Comercios mayoristas y/o depósitos:
-	Minería - Agropecuario - Forestales - Alimentos y bebidas - Tabaco - Textiles - Confecciones - Maderas - Productos químicos, pinturas y barnices - Artículos de caucho y plástico - Cueros y pieles curtidas - Materiales para construcción - Productos Lácteos - Artes Gráficas -Joyerías, relojerías y afines - Metales, excluidas maquinarias - Vehículos y maquinarias  - Aparatos eléctricos - Productos medicinales
-	54 á 62/63
-	Servicios de telecomunicaciones 
-	63/63
-	Transporte 
-	63/63
-	Transferencia y selección de residuos sólidos urbanos 
-	63/63
-	
-
-
+[Índice de las Planillas de Reglamentaciones Particulares sobre Usos del Suelo según Distritos: rubros y hojas (1/63 a 63/63). La transcripción a texto pierde la correspondencia entre rubro y hoja, por eso no se incluye acá: ver la lámina de la página 16 del texto original.] 
 
 Los distritos de Localizaciones Especiales (LE), Grandes Equipamientos (GE), Parque Urbano (PU) y Corredor Costanero (CC)  que no aparecen consignados en las Planillas de Reglamentaciones sobre Usos del Suelo según Distritos, se regirán por lo  dispuesto en los Capítulos III (artículos 15, 16, 17 y 18) y Capítulo VI (artículos 36, 37 y 38). 
 ARTÍCULO 21º.- DISPOSICIONES ESPECIALES PARA USOS PARTICULARES POR SUS CARACTERÍSTICAS Depósitos complementarios 
@@ -377,23 +328,8 @@ Toda actividad que por su índole implique la necesidad de maniobras de vehícul
 Las actividades que requieren espacios para carga y descarga se indican en las Planillas de Reglamentaciones Particulares sobre  Usos del Suelo según distrito mediante: 
 - Número de ordenanza en el caso que existan normas especiales para ese uso.  
 - Un signo numeral #. En este caso, la superficie exigida dependerá de la superficie total construida de la actividad, estipulada  en el siguiente cuadro:
-Sup. Total Construida de la actividad 
-	Nº de Espacios de Carga y Descarga
-	de 300,00 a 1.000,00 m² 
-	1
-	de 1001,00 a 3.000,00 m² 
-	2
-	de 3001,00 a 5.000,00 m² 
-	3
-	de 3001,00 a 5.000,00 m² 
-	3
-	más de 5.001,00 m² 
-	4
-	
+[Cuadro de espacios de carga y descarga según superficie total construida (de 1 a 4 espacios). La transcripción a texto pierde la correspondencia entre rango y cantidad, por eso no se incluye acá: ver la lámina de la página 16 del texto original.] 
 
-
-
-16 
 Dirección de Catastro y Edificación – Digesto Normativo – CÓDIGO DE PLANEAMIENTO URBANO - ORDENANZA Nº 2648/98 (ordenado a mayo de 2014) 
 Cada espacio equivaldrá a una superficie de 30,00 m² o 60,00 m² según se trate de vehículos sin acoplados o con acoplados, o  semirremolques respectivamente. Estas superficies no incluyen el espacio para maniobras y circulaciones. 
 Cuando la superficie ocupada por la actividad supere los 5.000,00 m² se requerirán espacios adicionales para carga y descarga  en relación a 1 (uno) por cada 1.000,00 m² o fracción. 
@@ -574,21 +510,8 @@ El ancho (d´) mínimo requerido de los patios auxiliares para los paramentos la
 NOTA: Artículo 26º modificado por Ordenanza Nº 3112/01
 22 
 Dirección de Catastro y Edificación – Digesto Normativo – CÓDIGO DE PLANEAMIENTO URBANO - ORDENANZA Nº 2648/98 (ordenado a mayo de 2014) 
-Conexión de Locales Habitables Clase A al Espacio Urbano 
-(gráficos) 
-Situación I 
- Espacio Urbano 
- Conexión directa 
- Local Habitable 
-  
-Situación II 
- Espacio Urbano 
- a  
-a > ¼ > 1.00 m 
-b < a 
- b 
- Local habitable 
- L
+[Conexión de Locales Habitables Clase A al Espacio Urbano (gráficos): croquis de las situaciones de conexión directa e indirecta con sus cotas. Ver la lámina de la página 23 del texto original.] 
+
 23 
 Dirección de Catastro y Edificación – Digesto Normativo – CÓDIGO DE PLANEAMIENTO URBANO - ORDENANZA Nº 2648/98 (ordenado a mayo de 2014) Trazado del Espacio Centro de Manzana 
 1°) Para manzanas con lados mayores o iguales a 120 m y menores o iguales a 160 m
@@ -914,26 +837,7 @@ PT= Superficie del edificio
 NOTA: Artículo 30º modificado por Ordenanza Nº 2918/00
 31 
 Dirección de Catastro y Edificación – Digesto Normativo – CÓDIGO DE PLANEAMIENTO URBANO - ORDENANZA Nº 2648/98 (ordenado a mayo de 2014) 
-TABLA Nº 1 
-USO 
-	COEFICIENTE DE OCUPACIÓN (C.O.)
-	Sitios p/asambleas, auditorios, salas de concierto, Salas de baile, o similares 
-	1
-	Edificios educacionales, templos o similares 
-	2
-	Locales comerciales, mercados, ferias, restaurantes, Mercados o similares 
-	3
-	Salones p/billar, canchas de bolo, bochas, gimnasios, Pistas de patinaje, o similares 
-	5
-	Edificios p/oficinas, bancos, bibliotecas, clínicas, Sanatorios, asilos, internados o  similares 
-	8
-	Edificios para viviendas 
-	12
-	Edificios industriales 
-	16
-	
-
-
+[Tabla Nº 1: coeficiente de ocupación (C.O.) por uso del edificio, de 1 (sitios de asambleas y auditorios) a 16 (edificios industriales). La transcripción a texto separa cada uso de su coeficiente, por eso no se incluye acá: ver la lámina de la página 32 del texto original.] 
 
 Obs.: En caso de surgir actividades o usos no definidos, la autoridad de aplicación decidirá el coeficiente y porcentaje a aplicar  según la similitud con los usos aquí consignados. 
 II- Cantidad de personas CP es el porcentaje de la población total del edificio PT que deberá evacuarse en un tiempo  determinado. 
@@ -962,198 +866,7 @@ Ta = Vn x K (K= 1.1 p/velocidad única - Tensión constante
 Te= 0.1 (Tr + (Tp+Ta) x Pn + Ts (ver arriba)***
 32 
 Dirección de Catastro y Edificación – Digesto Normativo – CÓDIGO DE PLANEAMIENTO URBANO - ORDENANZA Nº 2648/98 (ordenado a mayo de 2014) 
-TABLA Nº 2 - Pn 
-NÚMERO DE  PARADAS
-	PERSONAS EN CABINA
-	3 
-	4 
-	5 
-	6 
-	7 
-	8 
-	9 
-	10 
-	11 
-	12
-	5 
-	2.31 
-	2.73 
-	3.05 
-	3.28 
-	3.46 
-	3.59 
-	3.69 
-	3.77 
-	3.83 
-	3.87
-	6 
-	2.44 
-	2.95 
-	3.36 
-	3.68 
-	3.95 
-	4.16 
-	4.32 
-	4.46 
-	4.75 
-	4.65
-	7 
-	2.52 
-	3.10 
-	3.58 
-	3.99 
-	4.32 
-	4.60 
-	4.83 
-	5.03 
-	5.19 
-	5.32
-	8 
-	2.59 
-	3.22 
-	3.76 
-	4.22 
-	4.62 
-	4.96 
-	5.25 
-	5.50 
-	5.71 
-	5.89
-	9 
-	2.64 
-	3.31 
-	3.89 
-	4.40 
-	4.85 
-	5.25 
-	5.59 
-	5.89 
-	6.15 
-	6.38
-	10 
-	2.67 
-	3.38 
-	4.00 
-	4.56 
-	5.05 
-	5.49 
-	5.88 
-	6.22 
-	6.53 
-	6.81
-	11 
-	2.71 
-	3.43 
-	4.09 
-	4.68 
-	5.21 
-	5.69 
-	6.12 
-	6.51 
-	6.86 
-	7.17
-	12 
-	2.73 
-	3.48 
-	4.16 
-	4.79 
-	5.35 
-	5.86 
-	6.33 
-	6.75 
-	7.14 
-	7.49
-	13 
-	2.75 
-	3.52 
-	4.23 
-	4.88 
-	5.47 
-	6.01 
-	6.51 
-	6.97 
-	7.39 
-	7.77
-	14 
-	2.77 
-	3.56 
-	4.28 
-	4.95 
-	5.57 
-	6.14 
-	6.67 
-	7.16 
-	7.61 
-	8.02
-	15 
-	2.79 
-	3.59 
-	4.33 
-	5.02 
-	5.66 
-	6.26 
-	6.81 
-	7.32 
-	7.8 
-	8.24
-	16 
-	2.80 
-	3.61 
-	4.37 
-	5.08 
-	5.74 
-	6.36 
-	6.93 
-	7.47 
-	7.97 
-	8.44
-	17 
-	2.81 
-	3.64 
-	4.41 
-	5.13 
-	5.81 
-	6.45 
-	7.04 
-	7.60 
-	8.13 
-	8.62
-	18 
-	2.82 
-	3.66 
-	4.44 
-	5.18 
-	5.87 
-	6.53 
-	7.14 
-	7.72 
-	8.27 
-	8.78
-	19 
-	2.83 
-	3.67 
-	4.47 
-	5.22 
-	5.93 
-	6.60 
-	7.23 
-	7.83 
-	8.4 
-	8.93
-	20 
-	2.84 
-	3.69 
-	4.50 
-	5.26 
-	5.98 
-	6.67 
-	7.32 
-	7.93 
-	8.51 
-	9.06
-	
-
-
+[Tabla Nº 2 – Pn (número probable de paradas): tabla de doble entrada, filas = número de paradas (5 a 20), columnas = personas en cabina (3 a 12). La transcripción a texto pierde la correspondencia fila-columna, por eso no se incluye acá: ver la lámina de la página 33 del texto original.] 
 
 IV - Cantidad de ascensores 
 C.A= CP 
@@ -1202,104 +915,7 @@ DISPOSICIONES PARTICULARES RELATIVAS A LA EDIFICACION PARA CADA DISTRITO
 ARTÍCULO 36º.- PLANILLAS DE DISPOSICIONES PARTICULARES PARA CADA DISTRITO 
 Los distritos enunciados se regirán por las Disposiciones Generales del Capítulo V y las Disposiciones Particulares contenidas  en las Planillas del presente capítulo referentes a cada distrito.  
 En ellas se regula el factor de ocupación del suelo (FOS), el parcelamiento mínimo, el frente mínimo, la altura de edificación,  los retiros obligatorios de la línea de edificación, los cuerpos salientes y los perfiles edilicios. El orden de las planillas y sus  correspondientes perfiles es el siguiente: 
-DISTRITOS 
-	Hojas
-	Distritos Comerciales
-	Distrito Comercial 1 
-	(C1) 
-	1 y 2/34
-	Distrito Comercial 2 
-	(C2) 
-	4/34
-	Distrito Comercial 3 
-	(C3) 
-	6/34
-	Distrito Comercial 4a 
-	(C4a) 
-	7 y 8/34
-	Distrito Comercial 4b 
-	(C4b) 
-	7 y 8/34
-	Distrito Areas especiales
-	Distrito Area Especial 1 
-	(AE1) 
-	9 á 14/34
-	Distrito Area Especial 2 
-	(AE2) 
-	15 y 17/34
-	Distrito Area Especial 3 
-	(AE3) 
-	18/34
-	Distrito Area Especial 4 
-	(AE4) 
-	19/34
-	Distrito Area Especial 5 
-	(AE5) 
-	19/34
-	Distritos Residenciales Exclusivos
-	Distrito Residencial Exclusivo 1 
-	(R1) 
-	21/34
-	Distrito Residencial Exclusivo 3a 
-	(R3a) 
-	23/34
-	Distrito Residencial Exclusivo 3b 
-	(R3b) 
-	24/34
-	Distrito Residencial Exclusivo 4a 
-	(R4a) 
-	26/34
-	Distrito Residencial Exclusivo 4b 
-	(R4b) 
-	26/34
-	Distritos Residenciales Mixtos
-	Distrito Residencial Mixto 2a 
-	(R2a) 
-	27/34
-	Distrito Residencial Mixto 2b 
-	(R2b) 
-	28/34
-	Distrito de Servicios
-	Distrito de Servicios 1 
-	(S1) 
-	29/34
-	Distrito de Servicios 2 
-	(S2) 
-	29/34
-	Distrito de Servicios 3a 
-	(S3a) 
-	30/34
-	Distrito de Servicios 3b 
-	S3b) 
-	30/34
-	Distrito Industrial
-	Distrito Industrial 1 
-	(I1) 
-	31/34
-	Distrito Industrial 2 
-	(I2) 
-	31/34
-	Distrito Corredor Costanero
-	Corredor Costanero 
-	(CC) 
-	32/34
-	Distrito Grandes Equipamientos
-	Grandes Equipamientos 
-	(GE) 
-	33/34
-	Distritos Localizaciones Especiales
-	Localizaciones Especiales 1 
-	(LE1) 
-	34/34
-	Localizaciones Especiales 2a 
-	(LE2a) 
-	34/34
-	Localizaciones Especiales 2b 
-	(LE2b) 
-	34/34
-	
-
-
+[Índice de las Planillas de Disposiciones Particulares para cada distrito: distritos, siglas y hojas (1/34 a 34/34). La transcripción a texto pierde la correspondencia entre distrito y hoja, por eso no se incluye acá: ver la lámina de la página 35 del texto original.] 
 
 Los distritos de "Grandes Equipamientos", "Localizaciones Especiales", "Parque Urbano" y "Corredor Costanero", se regirán  por lo dispuesto en el Capítulo III (artículos 15, 16, 17 y 18) y las disposiciones que se enuncian a continuación 
 NOTA: Artículo 36º modificado por Ordenanza Nº 3112/01 – Elimina Hojas 3/34, 5/34, 20/34, 22/34 y 25/34

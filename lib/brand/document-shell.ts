@@ -158,7 +158,7 @@ export function renderFooter({ docCode }: { docCode?: string }): string {
   return [
     `<footer class="doc-footer">`,
     logoTag,
-    `<span>Generado desde UrbanIA — Municipalidad de San Miguel de Tucumán, el ${formatDate(new Date())}. Documento de trabajo; no es texto vigente. La IA orienta; el equipo municipal redacta y valida.</span>`,
+    `<span>Generado por la Dirección de Inteligencia Artificial — Municipalidad de San Miguel de Tucumán, el ${formatDate(new Date())}. Documento de trabajo; no es texto vigente. La IA orienta; el equipo municipal redacta y valida.</span>`,
     docCode ? `<span class="doc-footer-code">${escapeHtml(docCode)}</span>` : "",
     `</footer>`
   ].join("");

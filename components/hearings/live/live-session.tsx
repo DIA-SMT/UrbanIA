@@ -4,131 +4,128 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, Loader2, LogOut, Square, TriangleAlert } from "lucide-react";
-import { TranscriptCanvas } from "@/components/hearings/live/transcript-canvas";
-import { MatchesPanel } from "@/components/hearings/live/matches-panel";
 import { HearingFields } from "@/components/hearings/live/hearing-fields";
-import { ClosingReview } from "@/components/hearings/live/closing-review";
-import { useDictation } from "@/components/hearings/live/use-dictation";
-import {
-  emptyHearingConclusions,
-  emptyHearingFicha,
-  type HearingConclusions,
-  type HearingFicha,
-  type HearingMatchView
-} from "@/lib/hearings/shared";
+import { NotesCanvas } from "@/components/hearings/live/notes-canvas";
+import { clearPendingParts } from "@/components/hearings/live/pending-audio-store";
+import { RecorderPanel } from "@/components/hearings/live/recorder-panel";
+import { useAudioUpload } from "@/components/hearings/live/use-audio-upload";
+import { useRecorder } from "@/components/hearings/live/use-recorder";
+import { emptyHearingFicha, type HearingFicha } from "@/lib/hearings/shared";
 
-const MATCH_DEBOUNCE_MS = 10_000;
-const MATCH_MIN_NEW_CHARS = 300;
-const MATCH_WINDOW_CHARS = 1500;
 const AUTOSAVE_INTERVAL_MS = 60_000;
 
 /**
- * Sesion en vivo sobre una audiencia ya creada (ruta /audiencias/[id]/en-vivo).
- * Dictado con la Web Speech API sobre un lienzo editable, macheo periodico del
- * ultimo tramo contra las mininormas, autoguardado del borrador cada minuto
- * (y al salir/ocultar la pestana) para poder retomar despues, y cierre que
- * finaliza y lleva al detalle. Los cruces son sugerencias de Migue.
+ * Sesion en vivo de una audiencia (ruta /audiencias/[id]/en-vivo).
+ *
+ * La audiencia se GRABA; la transcripcion se genera despues, desde el detalle,
+ * con "Analizar audio". Mientras tanto el operador anota a mano y completa la
+ * Ficha 1. Antes esta pantalla dictaba con la Web Speech API y macheaba el
+ * texto contra las mininormas en vivo; los dos se fueron con el dictado, porque
+ * dependian de tener texto en el momento.
+ *
+ * Lo unico irrecuperable de una audiencia es el audio: por eso el cierre no
+ * avanza mientras queden tramos sin subir, y salir de la pantalla corta la
+ * grabacion a proposito en vez de dejarla en un limbo.
  */
 export function LiveSession({
   meetingId,
   title,
-  reformId,
-  aiAvailable,
-  initialTranscript = "",
-  initialMatches = [],
-  initialFicha
+  initialNotes = "",
+  initialFicha,
+  recordedParts = 0,
+  firstPartIndex = 0,
+  baseOffsetMs = 0
 }: {
   meetingId: string;
   title: string;
-  reformId: string | null;
-  aiAvailable: boolean;
-  initialTranscript?: string;
-  initialMatches?: HearingMatchView[];
+  aiAvailable?: boolean;
+  initialNotes?: string;
   initialFicha?: HearingFicha;
+  /** Tramos ya subidos en sesiones anteriores de esta misma audiencia. */
+  recordedParts?: number;
+  /** Numero del proximo tramo: si volviera a arrancar en 0 pisaria lo ya subido. */
+  firstPartIndex?: number;
+  /** Donde termina lo ya grabado, para que los tiempos no se solapen al retomar. */
+  baseOffsetMs?: number;
 }) {
   const router = useRouter();
-  const resuming = initialTranscript.trim().length > 0;
-  // Sin codigo nuevo (tema libre) no hay contra que cruzar: se desactiva el macheo.
-  const matchingEnabled = aiAvailable && Boolean(reformId);
 
-  const [transcript, setTranscript] = useState(initialTranscript);
-  const [matches, setMatches] = useState<HearingMatchView[]>(initialMatches);
+  const [notes, setNotes] = useState(initialNotes);
   const [ficha, setFicha] = useState<HearingFicha>(initialFicha ?? emptyHearingFicha());
   const [elapsedLabel, setElapsedLabel] = useState("00:00");
-  const [finalizing, setFinalizing] = useState(false);
-  const [finalizeError, setFinalizeError] = useState("");
-  const [savedLabel, setSavedLabel] = useState(resuming ? "Borrador recuperado" : "");
+  const [savedLabel, setSavedLabel] = useState(initialNotes.trim() ? "Notas recuperadas" : "");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [finalizing, setFinalizing] = useState(false);
+  const [finalizeError, setFinalizeError] = useState("");
+  /** Segunda pulsada: cerrar aunque falte audio. La primera protege, la segunda respeta la decision. */
+  const [confirmFinalize, setConfirmFinalize] = useState(false);
   const [exiting, setExiting] = useState(false);
-  const [completing, setCompleting] = useState(false);
-  const [fichaError, setFichaError] = useState("");
 
-  // Fase de cierre: "live" (dictado) -> "review" (revisar conclusiones de Migue).
-  const [phase, setPhase] = useState<"live" | "review">("live");
-  const [conclusions, setConclusions] = useState<HearingConclusions>(emptyHearingConclusions());
-  const [closingError, setClosingError] = useState("");
-
-  const startedAtRef = useRef<number>(Date.now());
-  const lastSentLengthRef = useRef(initialTranscript.length);
-  const matchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sendingRef = useRef(false);
-  const transcriptRef = useRef(initialTranscript);
-  transcriptRef.current = transcript;
+  const notesRef = useRef(notes);
+  notesRef.current = notes;
   const fichaRef = useRef(ficha);
   fichaRef.current = ficha;
   const lastSavedRef = useRef("");
   const savingRef = useRef(false);
 
-  const appendFinalText = useCallback((text: string) => {
-    setTranscript((current) => current + text);
-  }, []);
+  const upload = useAudioUpload({ meetingId, alreadyUploaded: recordedParts });
+  // enqueue es estable (useCallback sin dependencias), asi que la grabadora no
+  // se reconstruye en cada render.
+  const recorder = useRecorder({ onPart: upload.enqueue, firstPartIndex, baseOffsetMs });
 
-  const dictation = useDictation({ onFinalText: appendFinalText });
-
-  // Arranca el dictado al montar solo si es una audiencia nueva (sin borrador).
-  // Al reanudar no se arranca solo: el operador revisa y toca "Reanudar dictado".
-  const dictationStartRef = useRef(dictation.start);
-  dictationStartRef.current = dictation.start;
+  /* --------------------------- Cronometro grabado -------------------------- */
+  // Cuenta el tiempo GRABADO, no el tiempo en pantalla: si el operador detiene y
+  // reanuda, el reloj retoma donde iba en vez de mentir.
+  // Arranca en lo ya grabado: el reloj de una audiencia retomada tiene que
+  // seguir donde iba, no volver a 00:00.
+  const recordedMsRef = useRef(baseOffsetMs);
+  const recordingSinceRef = useRef<number | null>(null);
   useEffect(() => {
-    startedAtRef.current = Date.now();
-    if (!resuming) dictationStartRef.current();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (recorder.recording && recordingSinceRef.current === null) {
+      recordingSinceRef.current = Date.now();
+    } else if (!recorder.recording && recordingSinceRef.current !== null) {
+      recordedMsRef.current += Date.now() - recordingSinceRef.current;
+      recordingSinceRef.current = null;
+    }
+  }, [recorder.recording]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const totalSeconds = Math.floor((Date.now() - startedAtRef.current) / 1000);
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = totalSeconds % 60;
-      setElapsedLabel(`${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`);
+      const live = recordingSinceRef.current ? Date.now() - recordingSinceRef.current : 0;
+      const total = Math.floor((recordedMsRef.current + live) / 1000);
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.floor((total % 3600) / 60);
+      const seconds = total % 60;
+      const pad = (n: number) => String(n).padStart(2, "0");
+      setElapsedLabel(hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`);
     }, 1000);
     return () => clearInterval(interval);
   }, []);
 
+  /* ------------------------------ Autoguardado ----------------------------- */
+
   /**
-   * Guarda el borrador (transcripcion + ficha). keepalive para que salga al
-   * cerrar. Devuelve si el servidor CONFIRMO el guardado: la firma se marca
-   * solo en ese caso, para que un rechazo (sesion vencida, payload invalido,
-   * error de base) no quede mostrando "Guardado" mientras se pierde el dictado.
+   * Guarda notas + ficha. Devuelve si el servidor CONFIRMO: la firma se marca
+   * solo en ese caso, para que un rechazo (sesion vencida, error de base) no
+   * quede mostrando "Guardado" mientras se pierde lo escrito.
    */
   const saveDraft = useCallback(
     async (options: { force?: boolean; keepalive?: boolean } = {}): Promise<boolean> => {
-      const text = transcriptRef.current;
+      const currentNotes = notesRef.current;
       const currentFicha = fichaRef.current;
-      const signature = `${text} ${JSON.stringify(currentFicha)}`;
+      const signature = `${currentNotes} ${JSON.stringify(currentFicha)}`;
       if (!options.force && signature === lastSavedRef.current) return true;
-      // Nada que guardar todavia: ni transcripcion ni ficha con contenido.
-      if (text.trim().length === 0 && !Object.values(currentFicha).some((v) => v.trim().length > 0)) return true;
-      // Un solo POST a la vez: antes lo cubria marcar la firma por adelantado.
+      if (currentNotes.trim().length === 0 && !Object.values(currentFicha).some((value) => value.trim().length > 0)) return true;
       if (savingRef.current) return false;
+
       savingRef.current = true;
       setSaving(true);
       try {
         const response = await fetch(`/api/hearings/${meetingId}?action=draft`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript: text, ficha: currentFicha }),
+          body: JSON.stringify({ notes: currentNotes, ficha: currentFicha }),
           keepalive: options.keepalive ?? false
         });
         if (!response.ok) {
@@ -141,8 +138,7 @@ export function LiveSession({
         setSaveError("");
         return true;
       } catch (error) {
-        // Sin marcar la firma: el proximo ciclo reintenta con el mismo contenido.
-        setSaveError(error instanceof Error ? error.message : "No se pudo guardar el borrador.");
+        setSaveError(error instanceof Error ? error.message : "No se pudieron guardar las notas.");
         return false;
       } finally {
         savingRef.current = false;
@@ -152,7 +148,6 @@ export function LiveSession({
     [meetingId]
   );
 
-  // Autoguardado periodico + al ocultar/cerrar la pestana.
   useEffect(() => {
     const interval = setInterval(() => void saveDraft(), AUTOSAVE_INTERVAL_MS);
     const onHide = () => {
@@ -167,191 +162,83 @@ export function LiveSession({
     };
   }, [saveDraft]);
 
-  /** Manda el ultimo tramo (no todo el historial) al macheo en vivo. */
-  const sendMatchWindow = useCallback(async () => {
-    if (sendingRef.current) return;
-    const fullText = transcriptRef.current;
-    // Nombrada asi y no "window": ese identificador sombrea el global del
-    // navegador dentro de esta funcion.
-    const windowText = fullText.slice(-MATCH_WINDOW_CHARS).trim();
-    if (windowText.length < 20) return;
-
-    sendingRef.current = true;
-    lastSentLengthRef.current = fullText.length;
-    try {
-      const response = await fetch(`/api/hearings/${meetingId}?action=live-match`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ window: windowText, atMs: Date.now() - startedAtRef.current })
-      });
-      if (response.ok) {
-        const payload = (await response.json()) as { matches: HearingMatchView[] };
-        if (payload.matches.length) {
-          setMatches((current) => {
-            const known = new Set(current.map((match) => match.id));
-            return [...payload.matches.filter((match) => !known.has(match.id)), ...current];
-          });
-        }
-      }
-    } catch {
-      // El macheo es best-effort: un tramo perdido se recupera en el proximo.
-    } finally {
-      sendingRef.current = false;
-    }
-  }, [meetingId]);
-
-  // Disparo del macheo: cada ~10 s o ~300 caracteres nuevos, lo que ocurra antes.
+  // Cerrar la pestana grabando (o con tramos en la cola) pierde audio que no se
+  // recupera. El navegador muestra su propio cartel de confirmacion.
+  const recordingOrPending = recorder.recording || upload.pending > 0;
   useEffect(() => {
-    if (!matchingEnabled) return;
-    const newChars = transcript.length - lastSentLengthRef.current;
-    if (newChars <= 0) return;
+    if (!recordingOrPending) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [recordingOrPending]);
 
-    if (newChars >= MATCH_MIN_NEW_CHARS) {
-      if (matchTimerRef.current) {
-        clearTimeout(matchTimerRef.current);
-        matchTimerRef.current = null;
-      }
-      void sendMatchWindow();
-      return;
-    }
+  /* -------------------------------- Acciones ------------------------------- */
 
-    if (!matchTimerRef.current) {
-      matchTimerRef.current = setTimeout(() => {
-        matchTimerRef.current = null;
-        void sendMatchWindow();
-      }, MATCH_DEBOUNCE_MS);
-    }
-  }, [matchingEnabled, transcript, sendMatchWindow]);
-
-  useEffect(
-    () => () => {
-      if (matchTimerRef.current) clearTimeout(matchTimerRef.current);
-    },
-    []
-  );
-
-  /** Completa con IA los campos VACIOS de la ficha, sin pisar lo cargado a mano. */
-  // useCallback con dependencias estables (el texto sale del ref, no del
-  // estado): si se recreara en cada render, el React.memo de HearingFields no
-  // serviria de nada, porque esta funcion es una de sus props.
-  const completeFichaWithAi = useCallback(async () => {
-    setFichaError("");
-    const text = transcriptRef.current.trim();
-    if (text.length < 40) {
-      setFichaError("Dictá o escribí un poco más para que Migue pueda completar.");
-      return;
-    }
-    setCompleting(true);
-    try {
-      const response = await fetch(`/api/hearings/${meetingId}?action=complete-ficha`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript: text })
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.detail || payload?.error || "No se pudo completar la ficha.");
-      const extracted = payload.ficha as Partial<HearingFicha>;
-      setFicha((current) => {
-        const next = { ...current };
-        (Object.keys(extracted) as (keyof HearingFicha)[]).forEach((key) => {
-          const value = extracted[key];
-          // Solo campos vacios: no se pisa lo que el operador ya escribio.
-          if (value && next[key].trim().length === 0) next[key] = value;
-        });
-        return next;
-      });
-    } catch (completeError) {
-      setFichaError(completeError instanceof Error ? completeError.message : "No se pudo completar la ficha.");
-    } finally {
-      setCompleting(false);
-    }
-  }, [meetingId]);
+  /** Corta la grabacion y espera a que todo el audio este arriba. */
+  const stopAndFlush = useCallback(async (): Promise<boolean> => {
+    await recorder.stop();
+    return upload.flush();
+  }, [recorder, upload]);
 
   async function saveAndExit() {
-    if (exiting) return;
+    if (exiting || finalizing) return;
     setExiting(true);
-    dictation.stop();
-    // Si el servidor rechazo el guardado NO se navega: salir de la pantalla
-    // perderia el dictado. El error queda visible y se puede reintentar.
+    // Salir de la pantalla mata la grabacion igual: mejor cortarla ordenada y
+    // subir lo que falte antes de irse.
+    const allUp = await stopAndFlush();
     const saved = await saveDraft({ force: true });
-    if (!saved) {
+    if (!saved || !allUp) {
       setExiting(false);
+      if (!allUp) setFinalizeError("Quedaron tramos de audio sin subir. No cierres esta pestaña: se sigue reintentando.");
       return;
     }
     router.push(`/audiencias/${meetingId}`);
   }
 
-  /** Guarda la audiencia con la transcripcion (y conclusiones revisadas, si hay). */
-  const saveFinal = useCallback(
-    async (reviewed: HearingConclusions | null) => {
-      const fullText = transcriptRef.current.trim();
+  async function finalize() {
+    if (finalizing) return;
+    setFinalizing(true);
+    setFinalizeError("");
+    try {
+      const allUp = await stopAndFlush();
+      await saveDraft({ force: true });
+
+      // Dos motivos para frenar antes de cerrar, ambos salvables por el
+      // operador con una segunda pulsada: falta subir audio, o no hay audio.
+      if (!confirmFinalize) {
+        if (!allUp) {
+          setFinalizeError(
+            `Quedaron ${upload.pending} ${upload.pending === 1 ? "tramo" : "tramos"} de audio sin subir y se siguen reintentando. Si cerrás ahora, ese audio se pierde. Volvé a apretar para cerrar igual.`
+          );
+          setConfirmFinalize(true);
+          setFinalizing(false);
+          return;
+        }
+        if (upload.uploaded === 0) {
+          setFinalizeError("No se grabó audio en esta audiencia, así que no va a haber nada para transcribir. Volvé a apretar para cerrar igual.");
+          setConfirmFinalize(true);
+          setFinalizing(false);
+          return;
+        }
+      }
+
       const response = await fetch(`/api/hearings/${meetingId}?action=finalize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript: fullText, ...(reviewed ? { conclusions: reviewed } : {}) })
+        body: JSON.stringify({ notes: notesRef.current })
       });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.detail || payload?.error || "No se pudo finalizar la audiencia.");
       }
-    },
-    [meetingId]
-  );
-
-  /** "Finalizar": Migue redacta las conclusiones y se pasa a revisarlas. Sin IA, cierra directo. */
-  async function startClosing() {
-    const fullText = transcript.trim();
-    if (fullText.length < 20) {
-      setFinalizeError("La transcripción es demasiado corta para cerrar (mínimo 20 caracteres).");
-      return;
-    }
-    setFinalizeError("");
-    setFinalizing(true);
-    dictation.stop();
-    if (matchTimerRef.current) {
-      clearTimeout(matchTimerRef.current);
-      matchTimerRef.current = null;
-    }
-    try {
-      await saveDraft({ force: true });
-      if (!aiAvailable) {
-        // Sin IA no hay conclusiones para revisar: se cierra directo.
-        await saveFinal(null);
-        router.push(`/audiencias/${meetingId}`);
-        return;
-      }
-      const response = await fetch(`/api/hearings/${meetingId}?action=analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript: fullText })
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.detail || payload?.error || "No se pudo analizar la audiencia.");
-      setConclusions(payload.conclusions as HearingConclusions);
-      setClosingError("");
-      setPhase("review");
-    } catch (closeFailure) {
-      setFinalizeError(closeFailure instanceof Error ? closeFailure.message : "No se pudo cerrar la audiencia.");
-    } finally {
+      // Audiencia cerrada: el audio ya esta en el servidor y las copias locales
+      // no tienen mas razon de existir (ocupan disco del navegador).
+      await clearPendingParts(meetingId);
+      router.push(`/audiencias/${meetingId}`);
+    } catch (error) {
+      setFinalizeError(error instanceof Error ? error.message : "No se pudo finalizar la audiencia.");
       setFinalizing(false);
     }
-  }
-
-  /** "Guardar y cerrar" desde la revision: persiste las conclusiones editadas. */
-  async function saveClose() {
-    setClosingError("");
-    setSaving(true);
-    try {
-      await saveFinal(conclusions);
-      router.push(`/audiencias/${meetingId}`);
-    } catch (saveFailure) {
-      setClosingError(saveFailure instanceof Error ? saveFailure.message : "No se pudo guardar la audiencia.");
-      setSaving(false);
-    }
-  }
-
-  if (phase === "review") {
-    return <ClosingReview value={conclusions} saving={saving} error={closingError} onChange={setConclusions} onBack={() => setPhase("live")} onSave={saveClose} />;
   }
 
   return (
@@ -379,7 +266,6 @@ export function LiveSession({
           <h1 className="mt-1 truncate text-2xl font-black leading-tight text-white">{title}</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {finalizeError ? <span className="text-xs font-bold text-amber-200">{finalizeError}</span> : null}
           <button
             type="button"
             onClick={saveAndExit}
@@ -391,54 +277,71 @@ export function LiveSession({
           </button>
           <button
             type="button"
-            onClick={startClosing}
-            disabled={finalizing}
-            className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
+            onClick={finalize}
+            disabled={finalizing || exiting}
+            className={`urban-button inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-black text-white disabled:opacity-60 ${
+              confirmFinalize ? "bg-amber-500" : "bg-civic-blue"
+            }`}
           >
             {finalizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Square className="h-4 w-4" />}
-            {finalizing ? (aiAvailable ? "Analizando el debate..." : "Guardando...") : "Finalizar audiencia"}
+            {finalizing ? "Cerrando…" : confirmFinalize ? "Finalizar igual" : "Finalizar audiencia"}
           </button>
         </div>
       </div>
+
+      {finalizeError ? (
+        <div className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-3">
+          <p className="text-sm font-black text-amber-100">Antes de cerrar</p>
+          <p className="mt-1 text-xs leading-5 text-amber-100/80">{finalizeError}</p>
+        </div>
+      ) : null}
 
       {saveError ? (
         <div className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-3">
           <p className="inline-flex items-center gap-2 text-sm font-black text-amber-100">
             <TriangleAlert className="h-4 w-4 shrink-0" />
-            El dictado no se está guardando
+            Las notas no se están guardando
           </p>
           <p className="mt-1 text-xs leading-5 text-amber-100/80">
-            {saveError} No cierres esta pantalla: se sigue reintentando cada minuto y el texto está intacto acá. Si la sesión venció, entrá con tu cuenta en otra pestaña y volvé.
+            {saveError} El audio se sigue subiendo por su cuenta. Si la sesión venció, entrá con tu cuenta en otra pestaña y volvé.
           </p>
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <TranscriptCanvas
-          value={transcript}
-          interim={dictation.interim}
-          recording={dictation.recording}
-          supported={dictation.supported}
-          dictationError={dictation.error}
-          elapsedLabel={elapsedLabel}
-          onChange={setTranscript}
-          onToggleDictation={() => (dictation.recording ? dictation.stop() : dictation.start())}
-        />
-        <MatchesPanel matches={matches} reformId={reformId} aiAvailable={aiAvailable} />
-      </div>
+      <RecorderPanel
+        supported={recorder.supported}
+        recording={recorder.recording}
+        starting={recorder.starting}
+        error={recorder.error}
+        level={recorder.level}
+        elapsedLabel={elapsedLabel}
+        uploaded={upload.uploaded}
+        pending={upload.pending}
+        stuck={upload.stuck}
+        uploadError={upload.error}
+        recovered={upload.recovered}
+        onStart={() => void recorder.start()}
+        onStop={() => void recorder.stop()}
+      />
 
+      <NotesCanvas value={notes} onChange={setNotes} />
+
+      {/* La ficha se completa a mano: sin transcripcion en el momento, Migue no
+          tiene de donde sacarla. Vuelve a poder completarse desde el detalle,
+          una vez analizado el audio. */}
       <HearingFields
         value={ficha}
         disabled={finalizing}
-        aiAvailable={aiAvailable}
-        completing={completing}
-        error={fichaError}
+        aiAvailable={false}
+        completing={false}
+        error=""
         onChange={setFicha}
-        onCompleteWithAi={completeFichaWithAi}
+        onCompleteWithAi={() => {}}
       />
 
       <p className="text-xs leading-5 text-slate-500">
-        El borrador se guarda solo cada minuto y cuando salís: podés cerrar y retomar la audiencia desde su detalle. El dictado usa el reconocimiento de voz del navegador. Los cruces con las normas son sugerencias de Migue; no deciden nada.
+        El audio se graba en tramos y se sube solo mientras la audiencia transcurre; las notas y la ficha se guardan cada minuto y al salir.
+        La transcripción, los cruces con las normas y las conclusiones se generan después, desde el detalle, con “Analizar audio”.
       </p>
     </div>
   );

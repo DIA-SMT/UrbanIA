@@ -30,6 +30,7 @@ import {
 import { HearingFields } from "@/components/hearings/live/hearing-fields";
 import { ConclusionsFields } from "@/components/hearings/conclusions-fields";
 import { HearingDocuments } from "@/components/hearings/hearing-documents";
+import { AudioAnalysisPanel } from "@/components/hearings/audio-analysis-panel";
 import {
   emptyHearingConclusions,
   emptyHearingFicha,
@@ -375,7 +376,21 @@ export function HearingDetail({
     setDeleteError("");
     setDeleting(true);
     try {
-      const response = await fetch(`/api/hearings/${hearing.id}`, { method: "DELETE" });
+      let response = await fetch(`/api/hearings/${hearing.id}`, { method: "DELETE" });
+
+      // El servidor frena el borrado si hay grabación y dice cuánto audio se
+      // pierde. Se vuelve a preguntar con ese dato antes de confirmar: de la
+      // grabación no hay copia en ningún otro lado.
+      if (response.status === 409) {
+        const payload = await response.json().catch(() => null);
+        const detail = payload?.detail ?? "Esta audiencia tiene una grabación que se va a borrar.";
+        if (!window.confirm(`${detail}\n\n¿Borrar la audiencia igual?`)) {
+          setDeleting(false);
+          return;
+        }
+        response = await fetch(`/api/hearings/${hearing.id}?confirmAudio=1`, { method: "DELETE" });
+      }
+
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.detail || payload?.error || "No se pudo eliminar la audiencia.");
@@ -562,6 +577,10 @@ export function HearingDetail({
           ) : null}
         </div>
       ) : null}
+
+      {/* Audiencia grabada en vivo: de aca sale la transcripcion. Va arriba de
+          los avisos porque es la accion que destraba todo lo demas. */}
+      {canEdit ? <AudioAnalysisPanel hearingId={hearing.id} media={hearing.mediaFiles} /> : null}
 
       {hearing.ingestWarning || canGenerateAnalysis ? (
         <div className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-4">

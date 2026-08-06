@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, BookOpenCheck, Landmark, MessageSquare, Search, UserRound } from "lucide-react";
 import { MigueFloatingChat } from "@/components/assistant/migue-floating-chat";
+import { GuidedTour, useGuidedTour, type TourStep } from "@/components/help/guided-tour";
 import {
   PortalFooter,
   PortalHeader,
@@ -11,6 +12,42 @@ import {
   secondaryButtonClass,
   usePortalTheme
 } from "@/components/public/portal-chrome";
+
+/**
+ * Recorrido guiado de la portada. Arranca solo la primera visita y se relanza
+ * desde "¿Como funciona?" en el encabezado. Los anchors apuntan a los
+ * data-tour de las secciones reales de esta pantalla.
+ */
+const PORTAL_TOUR: TourStep[] = [
+  {
+    title: "Bienvenido al portal",
+    body: "Este es el visualizador del Código de Planeamiento Urbano de San Miguel de Tucumán. Desde acá consultás la normativa de la ciudad y participás con tus propuestas. Te mostramos lo esencial en un minuto."
+  },
+  {
+    anchor: "codigo",
+    title: "El Código, completo",
+    body: "Acá está el texto oficial, capítulo por capítulo: zonificación, usos del suelo, alturas y retiros. Entrá, elegí un capítulo y abrí el artículo que te interese."
+  },
+  {
+    anchor: "presentar",
+    title: "Tu voz entra al sistema",
+    body: "Propuestas, reclamos o aportes: lo que cargás acá queda registrado con tu nombre y tu zona, y el equipo municipal lo revisa. Solo necesitás una cuenta de vecino, gratuita, con tu DNI."
+  },
+  {
+    anchor: "migue",
+    title: "Preguntale a Migue",
+    body: "Migue es la inteligencia artificial de la ciudad. Escribile como hablás y te responde sobre el Código citando el artículo en que se apoya. Lo abrís con la burbuja de abajo a la derecha."
+  },
+  {
+    anchor: "ayuda",
+    title: "¿Necesitás más ayuda?",
+    body: "En la sección Ayuda tenés la guía completa de todas las herramientas, paso a paso, tanto para vecinos como para el equipo municipal."
+  },
+  {
+    title: "¡Listo!",
+    body: "Ya conocés el portal. Podés repetir este recorrido cuando quieras con el botón «¿Cómo funciona?» del encabezado."
+  }
+];
 
 type LandingProps = {
   /** Del CPU real, no hardcodeado: se muestran en la card de consulta. */
@@ -26,6 +63,7 @@ type LandingProps = {
  */
 export function CitizenPortalLanding({ chapterCount, articleCount }: LandingProps) {
   const { isLight, toggleTheme } = usePortalTheme();
+  const tour = useGuidedTour("portal");
 
   return (
     // Sin fondo propio (a diferencia de pageClass): el video fijo de abajo es el
@@ -56,7 +94,7 @@ export function CitizenPortalLanding({ chapterCount, articleCount }: LandingProp
         />
       </div>
 
-      <PortalHeader isLight={isLight} onToggleTheme={toggleTheme} active="inicio" />
+      <PortalHeader isLight={isLight} onToggleTheme={toggleTheme} active="inicio" onStartTour={tour.start} />
 
       <section className={`relative isolate overflow-hidden border-b ${isLight ? "border-slate-200/70" : "border-white/10"}`}>
         <div
@@ -108,6 +146,7 @@ export function CitizenPortalLanding({ chapterCount, articleCount }: LandingProp
         <section className="relative z-10 -mt-12 grid gap-4 md:grid-cols-2">
           <EntryCard
             href="/codigo"
+            dataTour="codigo"
             icon={BookOpenCheck}
             eyebrow="Consultar"
             title="El Codigo de Planeamiento"
@@ -117,6 +156,7 @@ export function CitizenPortalLanding({ chapterCount, articleCount }: LandingProp
           />
           <EntryCard
             href="/presentar"
+            dataTour="presentar"
             icon={UserRound}
             eyebrow="Participar"
             title="Presentar propuesta o reclamo"
@@ -126,7 +166,10 @@ export function CitizenPortalLanding({ chapterCount, articleCount }: LandingProp
           />
         </section>
 
-        <section className={`mt-16 rounded-2xl border p-6 md:p-8 ${isLight ? "border-slate-200/80 bg-white shadow-card" : "border-white/10 bg-[#0d1b2a]"}`}>
+        <section
+          data-tour="migue"
+          className={`mt-16 rounded-2xl border p-6 md:p-8 ${isLight ? "border-slate-200/80 bg-white shadow-card" : "border-white/10 bg-[#0d1b2a]"}`}
+        >
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="max-w-xl">
               <div className={eyebrowClass(isLight)}>
@@ -152,12 +195,14 @@ export function CitizenPortalLanding({ chapterCount, articleCount }: LandingProp
       </div>
 
       <MigueFloatingChat appearance={isLight ? "light" : "dark"} />
+      <GuidedTour steps={PORTAL_TOUR} open={tour.open} onClose={tour.close} isLight={isLight} />
     </main>
   );
 }
 
 function EntryCard({
   href,
+  dataTour,
   icon: Icon,
   eyebrow,
   title,
@@ -166,6 +211,8 @@ function EntryCard({
   isLight
 }: {
   href: string;
+  /** Ancla del recorrido guiado ([data-tour]). */
+  dataTour?: string;
   icon: typeof Search;
   eyebrow: string;
   title: string;
@@ -176,6 +223,7 @@ function EntryCard({
   return (
     <Link
       href={href}
+      data-tour={dataTour}
       className={`group rounded-2xl border p-6 transition duration-200 ${
         isLight
           ? "border-slate-200/80 bg-white shadow-card hover:border-slate-300 hover:shadow-card-hover"

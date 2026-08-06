@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "pdfjs-dist", "@napi-rs/canvas"],
+  // ffmpeg-static en la lista: el paquete resuelve la ruta del binario relativa
+  // a su propio archivo, y empaquetado por Next esa ruta apunta adentro de
+  // .next/ donde el ejecutable no existe (spawn ...vendor-chunks/ffmpeg ENOENT).
+  // Externalizado, se resuelve en runtime desde node_modules, donde si esta.
+  serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "pdfjs-dist", "@napi-rs/canvas", "ffmpeg-static"],
   // Dos dependencias de pdfjs se cargan dinamicamente y el tracer no las ve:
   // el binario nativo de @napi-rs/canvas (require computado canvas-<plataforma>,
   // sin el "DOMMatrix is not defined") y su propio worker pdf.worker.mjs
@@ -11,8 +15,18 @@ const nextConfig: NextConfig = {
   // en "/**" sumaba 34 MB a cada funcion y el deploy revento el limite de
   // tamano (fallo del 2026-08-03). canvas+pdfjs si van globales: son livianos
   // y los usan varias rutas de PDF.
+  // Los logos institucionales (lib/brand/document-shell.ts) se leen con
+  // readFileSync(cwd + ruta armada en runtime): el tracer tampoco los ve, asi
+  // que en Vercel las funciones salian SIN public/brand. Los exports de normas
+  // degradan en silencio (documento sin escudo), pero el resumen ejecutivo de
+  // audiencias los exige y devolvia "Identidad institucional no disponible".
+  // Son ~155 KB entre los cinco PNG: van globales.
   outputFileTracingIncludes: {
-    "/**": ["node_modules/@napi-rs/canvas-linux-x64-gnu/**", "node_modules/pdfjs-dist/legacy/build/**"],
+    "/**": [
+      "node_modules/@napi-rs/canvas-linux-x64-gnu/**",
+      "node_modules/pdfjs-dist/legacy/build/**",
+      "public/brand/**"
+    ],
     "/api/assistant": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
     "/api/cpu": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
     "/api/hearings": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
@@ -23,11 +37,17 @@ const nextConfig: NextConfig = {
       "node_modules/@sparticuz/chromium/bin/**",
       // Los logos se leen desde el filesystem para convertirlos en data URI.
       // Vercel sirve public por separado y no los agrega a la funcion salvo que
-      // el tracer los incluya de manera explicita.
+      // el tracer los incluya de manera explicita. (Ademas van globales via
+      // public/brand/** en "/**": el mismo fix llego por dos caminos y ambos
+      // son inofensivos, asi que se conservan los dos.)
       "public/brand/logo-ciudad-smt-blanco.png",
       "public/brand/logo-municipalidad-smt-iso.png",
       "public/brand/logo-direccion-ia.png"
-    ]
+    ],
+    // La descarga del audio completo une los tramos con ffmpeg. El binario
+    // (~80 MB) va SOLO a esta ruta: sumado a Chromium+onnx en la ruta general
+    // arriesgaria el limite de tamano del bundle.
+    "/api/hearings/audio": ["node_modules/ffmpeg-static/**"]
   },
   outputFileTracingExcludes: {
     // Vercel ejecuta Linux x64. El paquete onnxruntime también instala binarios

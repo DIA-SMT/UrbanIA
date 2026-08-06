@@ -678,6 +678,10 @@ enum HearingSource {
   MANUAL
 }
 
+/// Archivos de audio/video de una reunion. Hoy lo usa la grabacion de las
+/// audiencias en vivo, que NO guarda un archivo unico sino un tramo por fila:
+/// las filas son ademas la cola de trabajo de la transcripcion (status PENDING
+/// -> READY, o ERROR con el motivo en errorMessage).
 model MeetingMedia {
   id           String           @id @default(cuid())
   meetingId    String
@@ -687,6 +691,13 @@ model MeetingMedia {
   mimeType     String
   sizeBytes    BigInt?
   durationSec  Int?
+  /// Orden del tramo dentro de la grabacion, desde 0. Null en un archivo unico.
+  partIndex    Int?
+  /// Milisegundos desde el inicio de la grabacion hasta el inicio de ESTE tramo.
+  /// Es lo que se le pasa a Whisper como offset para que los timestamps de cada
+  /// tramo caigan en el minuto real de la audiencia. No se puede derivar del
+  /// orden: los tramos se solapan a proposito y sumar duraciones acumula error.
+  offsetMs     Int?
   status       ProcessingStatus @default(PENDING)
   errorMessage String?
   createdAt    DateTime         @default(now())

@@ -3,6 +3,7 @@ import {
   Fingerprint,
   Inbox,
   KeyRound,
+  LifeBuoy,
   Lock,
   Map,
   MessagesSquare,
@@ -80,5 +81,11 @@ export const sidebarSections: SidebarSection[] = [
       { label: "Seguridad", href: "/admin/configuracion/seguridad", icon: Lock },
       { label: "Auditoría", href: "/admin/configuracion/auditoria", icon: ScrollText }
     ]
+  },
+  {
+    title: "Ayuda",
+    icon: LifeBuoy,
+    href: "/ayuda",
+    items: []
   }
 ];

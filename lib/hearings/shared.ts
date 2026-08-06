@@ -211,10 +211,24 @@ export type HearingInsightView = {
   importance: number;
 };
 
+/**
+ * Archivo de audio/video de la audiencia. En la grabacion en vivo cada fila es
+ * un TRAMO, y su `status` es el estado de su transcripcion: la lista de tramos
+ * es la cola de trabajo que maneja el boton "Analizar audio".
+ */
 export type HearingMediaView = {
   id: string;
   fileName: string;
   kind: string;
+  /** PENDING (falta transcribir), PROCESSING, READY (ya transcripto) o ERROR. */
+  status: string;
+  /** Orden del tramo dentro de la grabacion. Null si es un archivo unico. */
+  partIndex: number | null;
+  /** En que ms de la audiencia arranca este tramo. Null si es un archivo unico. */
+  offsetMs: number | null;
+  durationSec: number | null;
+  /** Motivo del fallo si status es ERROR. */
+  errorMessage: string | null;
 };
 
 /**
@@ -312,8 +326,11 @@ export type HearingDetail = HearingListItem & {
   modality: string | null;
   hearingSource: HearingSource | null;
   createdAt: string;
-  /** Borrador de transcripcion en curso (autoguardado del vivo), si lo hay. */
-  draftTranscript: string | null;
+  /**
+   * Notas que el operador escribio durante la audiencia en vivo (autoguardadas).
+   * NO son la transcripcion: esa la produce Whisper sobre el audio grabado.
+   */
+  liveNotes: string | null;
   /** Ficha estructurada cargada a mano (foto 1). Vive en el HearingRecord. */
   ficha: HearingFicha;
   /**

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { LogIn, Moon, Sun } from "lucide-react";
+import { CircleHelp, LogIn, Moon, Sun } from "lucide-react";
 
 /**
  * Chrome y sistema visual del portal ciudadano, compartido por la landing, el
@@ -56,11 +56,14 @@ export function usePortalTheme() {
 export function PortalHeader({
   isLight,
   onToggleTheme,
-  active
+  active,
+  onStartTour
 }: {
   isLight: boolean;
   onToggleTheme: () => void;
   active?: "inicio" | "codigo" | "presentar";
+  /** Si la pantalla tiene recorrido guiado, esto muestra "¿Como funciona?". */
+  onStartTour?: () => void;
 }) {
   return (
     <header
@@ -92,9 +95,24 @@ export function PortalHeader({
           <NavLink href="/" label="Inicio" isLight={isLight} active={active === "inicio"} />
           <NavLink href="/codigo" label="Codigo" isLight={isLight} active={active === "codigo"} />
           <NavLink href="/presentar" label="Participacion" isLight={isLight} active={active === "presentar"} />
+          <NavLink href="/ayuda" label="Ayuda" isLight={isLight} dataTour="ayuda" />
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
+          {onStartTour ? (
+            <button
+              onClick={onStartTour}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-sm font-semibold transition ${
+                isLight
+                  ? "border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-700"
+                  : "border-white/10 text-slate-300 hover:border-sky-300/40 hover:text-sky-200"
+              }`}
+              title="Recorrido guiado por esta pantalla"
+            >
+              <CircleHelp className="h-4 w-4" />
+              <span className="hidden md:inline">¿Cómo funciona?</span>
+            </button>
+          ) : null}
           <button
             onClick={onToggleTheme}
             className={iconControlClass(isLight)}
@@ -113,17 +131,34 @@ export function PortalHeader({
   );
 }
 
-function NavLink({ href, label, isLight, active }: { href: string; label: string; isLight: boolean; active?: boolean }) {
+function NavLink({
+  href,
+  label,
+  isLight,
+  active,
+  dataTour
+}: {
+  href: string;
+  label: string;
+  isLight: boolean;
+  active?: boolean;
+  /** Ancla del recorrido guiado ([data-tour]). */
+  dataTour?: string;
+}) {
   const base = "rounded-lg px-3 py-2 text-sm font-medium transition";
   if (active) {
     return (
-      <Link href={href} className={`${base} ${isLight ? "bg-slate-100 text-slate-900" : "bg-white/[0.08] text-white"}`}>
+      <Link href={href} data-tour={dataTour} className={`${base} ${isLight ? "bg-slate-100 text-slate-900" : "bg-white/[0.08] text-white"}`}>
         {label}
       </Link>
     );
   }
   return (
-    <Link href={href} className={`${base} ${isLight ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900" : "text-slate-400 hover:bg-white/[0.06] hover:text-white"}`}>
+    <Link
+      href={href}
+      data-tour={dataTour}
+      className={`${base} ${isLight ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900" : "text-slate-400 hover:bg-white/[0.06] hover:text-white"}`}
+    >
       {label}
     </Link>
   );
