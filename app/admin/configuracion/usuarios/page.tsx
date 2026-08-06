@@ -1,4 +1,5 @@
 import { UsersDirectory } from "@/components/settings/users-directory";
+import { siditucProvider } from "@/lib/auth/identity/sidituc";
 import { requireSettingsAccess } from "@/lib/settings/guard";
 import { listCatalog, listUsers } from "@/lib/settings/users";
 
@@ -22,7 +23,12 @@ export default async function UsuariosPage() {
           </p>
         </div>
       </div>
-      <UsersDirectory initialData={initialData} catalog={catalog} sessionUserId={session.userId} />
+      <UsersDirectory
+        initialData={initialData}
+        catalog={catalog}
+        sessionUserId={session.userId}
+        canCreateManually={!siditucProvider.isEnabled()}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@
  */
 
 export const AUDIT_ACTIONS = {
+  USER_CREATED: "Alta manual",
   ROLE_CHANGED: "Cambio de rol",
   USER_SUSPENDED: "Suspensión",
   USER_REACTIVATED: "Reactivación",

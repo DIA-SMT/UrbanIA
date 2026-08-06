@@ -16,6 +16,7 @@ import {
   Search,
   ShieldAlert,
   UserRoundCog,
+  UserRoundPlus,
   UserRoundX,
   Eye
 } from "lucide-react";
@@ -40,16 +41,20 @@ type ModalState =
   | { kind: "change-role"; user: UserListItem }
   | { kind: "status"; user: UserListItem; action: "suspend" | "reactivate" | "revoke" }
   | { kind: "edit"; user: UserListItem }
+  | { kind: "create" }
   | null;
 
 export function UsersDirectory({
   initialData,
   catalog,
-  sessionUserId
+  sessionUserId,
+  canCreateManually
 }: {
   initialData: UserListResult;
   catalog: CatalogArea[];
   sessionUserId: string;
+  /** Alta manual provisoria: se apaga cuando la integración SIDITUC está activa. */
+  canCreateManually: boolean;
 }) {
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [data, setData] = useState<UserListResult>(initialData);
@@ -115,6 +120,21 @@ export function UsersDirectory({
     await fetchUsers(filters);
   }
 
+  async function createUser(body: Record<string, unknown>, successMessage: string) {
+    const response = await fetch("/api/settings?action=create-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.error ?? "No se pudo crear el usuario.");
+    }
+    setModal(null);
+    setToast(successMessage);
+    await fetchUsers(filters);
+  }
+
   const totalPages = Math.max(1, Math.ceil(data.total / data.pageSize));
   const hasActiveFilters = Boolean(filters.search || filters.role || filters.status || filters.areaId);
 
@@ -151,6 +171,15 @@ export function UsersDirectory({
             onChange={(value) => updateFilters({ areaId: value })}
             options={catalog.map((area) => ({ value: area.id, label: area.name }))}
           />
+          {canCreateManually ? (
+            <button
+              onClick={() => setModal({ kind: "create" })}
+              className="urban-button flex items-center gap-2 rounded-xl bg-[#1f89f6] px-4 py-2.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(31,137,246,0.22)] hover:bg-[#087bec]"
+            >
+              <UserRoundPlus className="h-4 w-4" />
+              Crear usuario
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -245,6 +274,9 @@ export function UsersDirectory({
       ) : null}
       {modal?.kind === "edit" ? (
         <EditProfileModal user={modal.user} catalog={catalog} onClose={() => setModal(null)} onConfirm={runAction} />
+      ) : null}
+      {modal?.kind === "create" ? (
+        <CreateUserModal catalog={catalog} onClose={() => setModal(null)} onCreate={createUser} />
       ) : null}
 
       <AnimatePresence>
@@ -684,6 +716,141 @@ function StatusModal({
         <AuditNotice />
         <FieldError message={error} />
         <ModalFooter busy={busy} confirmLabel={copy.confirm} danger={action !== "reactivate"} onClose={onClose} />
+      </form>
+    </SettingsModal>
+  );
+}
+
+const fieldInputClass =
+  "mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 placeholder:font-normal placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-white/[0.04] dark:text-white";
+
+function CreateUserModal({
+  catalog,
+  onClose,
+  onCreate
+}: {
+  catalog: CatalogArea[];
+  onClose: () => void;
+  onCreate: (body: Record<string, unknown>, successMessage: string) => Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [occupation, setOccupation] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<UserRole>("CPU_USER");
+  const [areaId, setAreaId] = useState("");
+  const [dependencyId, setDependencyId] = useState("");
+  const dependencies = useMemo(
+    () => catalog.find((area) => area.id === areaId)?.dependencies ?? [],
+    [catalog, areaId]
+  );
+  const { busy, error, submit } = useModalSubmit(() =>
+    onCreate(
+      {
+        name,
+        lastName,
+        email,
+        occupation: occupation || undefined,
+        password,
+        role,
+        areaId: areaId || null,
+        dependencyId: dependencyId || null
+      },
+      `Usuario ${name} ${lastName} creado con rol ${roleLabels[role]}.`
+    )
+  );
+
+  return (
+    <SettingsModal
+      title="Crear usuario"
+      description="Alta provisoria hasta la integración SIDITUC: cuando esté activa, las cuentas se vincularán desde Solicitudes de acceso."
+      onClose={onClose}
+    >
+      <form onSubmit={submit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">Nombre</span>
+            <input value={name} onChange={(event) => setName(event.target.value)} required maxLength={80} placeholder="Nombre" className={fieldInputClass} />
+          </label>
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">Apellido</span>
+            <input value={lastName} onChange={(event) => setLastName(event.target.value)} required maxLength={80} placeholder="Apellido" className={fieldInputClass} />
+          </label>
+        </div>
+
+        <label className="block">
+          <span className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">Correo</span>
+          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="persona@smt.gob.ar" className={fieldInputClass} />
+        </label>
+
+        <label className="block">
+          <span className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">Cargo / profesión</span>
+          <input value={occupation} onChange={(event) => setOccupation(event.target.value)} maxLength={120} placeholder="Ej.: Arquitecta, Dirección de Planeamiento" className={fieldInputClass} />
+        </label>
+
+        <label className="block">
+          <span className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">Contraseña</span>
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+            minLength={6}
+            maxLength={100}
+            autoComplete="new-password"
+            placeholder="Mínimo 6 caracteres"
+            className={fieldInputClass}
+          />
+          <span className="mt-1 block text-xs text-slate-400 dark:text-slate-500">La persona puede cambiarla después desde su cuenta; comunicásela por un canal seguro.</span>
+        </label>
+
+        <label className="block">
+          <span className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">Rol</span>
+          <select value={role} onChange={(event) => setRole(event.target.value as UserRole)} className={fieldInputClass}>
+            {ROLE_ORDER.map((candidate) => (
+              <option key={candidate} value={candidate}>{roleLabels[candidate]}</option>
+            ))}
+          </select>
+          <span className="mt-1.5 block text-xs leading-5 text-slate-500 dark:text-slate-400">{roleDescriptions[role]}</span>
+        </label>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">Área (opcional)</span>
+            <select
+              value={areaId}
+              onChange={(event) => {
+                setAreaId(event.target.value);
+                setDependencyId("");
+              }}
+              className={fieldInputClass}
+            >
+              <option value="">Sin área</option>
+              {catalog.map((area) => (
+                <option key={area.id} value={area.id}>{area.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">Dependencia</span>
+            <select
+              value={dependencyId}
+              onChange={(event) => setDependencyId(event.target.value)}
+              disabled={!areaId || dependencies.length === 0}
+              className={`${fieldInputClass} disabled:opacity-50`}
+            >
+              <option value="">Sin dependencia</option>
+              {dependencies.map((dependency) => (
+                <option key={dependency.id} value={dependency.id}>{dependency.name}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <AuditNotice />
+        <FieldError message={error} />
+        <ModalFooter busy={busy} confirmLabel="Crear usuario" onClose={onClose} />
       </form>
     </SettingsModal>
   );
