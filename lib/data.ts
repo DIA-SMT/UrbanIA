@@ -9,6 +9,7 @@ import {
   Scale,
   ScrollText,
   Settings,
+  Speech,
   ShieldCheck,
   UserCog,
   Users
@@ -23,6 +24,8 @@ type SidebarSection = {
   href?: string;
   /** Solo se muestra a administradores (el server igual re-valida el permiso). */
   adminOnly?: boolean;
+  /** Solo se muestra a usuarios internos logueados (no ciudadanos ni anónimos). */
+  internalOnly?: boolean;
   items: SidebarItem[];
 };
 
@@ -55,6 +58,13 @@ export const sidebarSections: SidebarSection[] = [
     title: "Aportes ciudadanos",
     icon: Users,
     href: "/participacion",
+    items: []
+  },
+  {
+    title: "Foro de debates",
+    icon: Speech,
+    href: "/foro",
+    internalOnly: true,
     items: []
   },
   {

@@ -53,8 +53,72 @@ model User {
   normSupports NormSupport[]
   auditActions UserAuditLog[] @relation("AuditActor")
   auditEntries UserAuditLog[] @relation("AuditTarget")
+  debatesCreated  Debate[]                @relation("DebatesCreated")
+  debateArguments DebateArgument[]        @relation("DebateArguments")
+  argumentsHidden DebateArgument[]        @relation("ArgumentsHidden")
+  debateSupports  DebateArgumentSupport[] @relation("DebateSupports")
 
   @@index([role, status])
+}
+
+/// Foro interno de debates. Un debate es una pregunta urbana concreta,
+/// opcionalmente anclada a una propuesta o proyecto de la cartera. Lo crean
+/// administradores; el equipo interno participa con argumentos y adhesiones.
+model Debate {
+  id          String       @id @default(cuid())
+  title       String
+  /// Planteo/contexto: qué se discute y por qué ahora.
+  context     String
+  status      DebateStatus @default(OPEN)
+  closesAt    DateTime?
+  proposalId  String?
+  proposal    Proposal?    @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  projectId   String?
+  project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   User?        @relation("DebatesCreated", fields: [createdById], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  arguments   DebateArgument[]
+
+  @@index([status, createdAt])
+}
+
+model DebateArgument {
+  id       String       @id @default(cuid())
+  debateId String
+  debate   Debate       @relation(fields: [debateId], references: [id], onDelete: Cascade)
+  authorId String?
+  author   User?        @relation("DebateArguments", fields: [authorId], references: [id])
+  stance   DebateStance
+  content  String
+  /// Respuesta de un solo nivel a otro argumento. El esquema lo soporta desde
+  /// ya; la UI de respuestas llega en una fase posterior.
+  parentId String?
+  parent   DebateArgument?  @relation("ArgumentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  DebateArgument[] @relation("ArgumentReplies")
+  /// Moderación: se oculta con motivo, nunca se borra.
+  status       DebateArgumentStatus @default(VISIBLE)
+  hiddenById   String?
+  hiddenBy     User?                @relation("ArgumentsHidden", fields: [hiddenById], references: [id])
+  hiddenReason String?
+  createdAt    DateTime             @default(now())
+  supports     DebateArgumentSupport[]
+
+  @@index([debateId, status, createdAt])
+}
+
+/// Adhesión ("+1") a un argumento: una por usuario por argumento. Es lo que
+/// ordena los argumentos por peso en vez de por hora.
+model DebateArgumentSupport {
+  id         String         @id @default(cuid())
+  argumentId String
+  argument   DebateArgument @relation(fields: [argumentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User           @relation("DebateSupports", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+
+  @@unique([argumentId, userId])
 }
 
 /// Catálogo de áreas municipales (Planeamiento, Obras Públicas, etc.).
@@ -379,6 +443,7 @@ model Proposal {
   citizenContributions CitizenContribution[]
   votes                Vote[]
   projects             Project[]
+  debates              Debate[]
 }
 
 model CitizenContribution {
@@ -899,6 +964,7 @@ model Project {
   hearingRecords HearingRecord[]
   opinions      NormOpinion[]
   supports      NormSupport[]
+  debates       Debate[]
 
   @@index([status])
   @@index([stage])
@@ -1173,6 +1239,23 @@ enum AccessRequestStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum DebateStatus {
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+enum DebateStance {
+  FOR
+  AGAINST
+  NEUTRAL
+}
+
+enum DebateArgumentStatus {
+  VISIBLE
+  HIDDEN
 }
 
 enum RegulationType {

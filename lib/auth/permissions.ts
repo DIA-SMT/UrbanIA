@@ -20,6 +20,9 @@ export const PERMISSION_CATALOG = [
   { key: "documents.upload", module: "Documentos", label: "Subir documentos", description: "Cargar actas, informes y anexos." },
   { key: "documents.delete", module: "Documentos", label: "Eliminar documentos", description: "Quitar documentos cargados." },
   { key: "proposals.manage", module: "Participación", label: "Administrar propuestas", description: "Gestionar aportes y propuestas ciudadanas." },
+  { key: "debates.create", module: "Foro", label: "Crear debates", description: "Abrir, cerrar y archivar debates del foro interno." },
+  { key: "debates.participate", module: "Foro", label: "Participar en debates", description: "Publicar argumentos con postura y adherir a los de otros." },
+  { key: "debates.moderate", module: "Foro", label: "Moderar debates", description: "Ocultar argumentos con motivo; nada se borra." },
   { key: "maps.manage", module: "Mapas", label: "Administrar mapas", description: "Gestionar capas y datos del mapa territorial." },
   { key: "ai.execute", module: "Asistente IA", label: "Ejecutar IA interna", description: "Usar la consulta interna al CPU con acceso a material no público." },
   { key: "content.publish", module: "Publicación", label: "Publicar contenido", description: "Publicar contenido visible para la ciudadanía." },
@@ -46,6 +49,7 @@ const CPU_USER_PERMISSIONS: Permission[] = [
   "documents.upload",
   "documents.delete",
   "proposals.manage",
+  "debates.participate",
   "ai.execute",
   "content.publish"
 ];

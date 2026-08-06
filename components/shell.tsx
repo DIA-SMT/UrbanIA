@@ -39,7 +39,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // El filtro es cosmético (que un observador no vea un menú que le va a
   // rebotar); el permiso real se valida siempre en el server.
-  const visibleSections = sidebarSections.filter((section) => !section.adminOnly || user?.role === "ADMIN");
+  const visibleSections = sidebarSections.filter((section) => {
+    if (section.adminOnly && user?.role !== "ADMIN") return false;
+    if (section.internalOnly && (!user || user.role === "CITIZEN")) return false;
+    return true;
+  });
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("urbania-theme") === "dark" ? "dark" : "light";
