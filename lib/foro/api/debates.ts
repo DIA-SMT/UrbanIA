@@ -19,6 +19,7 @@ async function requirePermission(permission: Permission) {
 const createSchema = z.object({
   title: z.string().trim().min(10, "El título debe tener al menos 10 caracteres").max(200),
   context: z.string().trim().min(20, "El contexto debe tener al menos 20 caracteres").max(4000),
+  meetingId: z.string().trim().min(1, "Elegí la audiencia de origen del debate"),
   closesAt: z.string().trim().optional(),
   proposalId: z.string().trim().nullable().optional(),
   projectId: z.string().trim().nullable().optional()
@@ -40,6 +41,15 @@ export async function handleDebateCreate(request: Request) {
     return NextResponse.json({ error: "Elegí un solo vínculo: propuesta o proyecto." }, { status: 400 });
   }
 
+  // Todo debate nace de una audiencia: es su contexto y su trazabilidad.
+  const meeting = await prisma.meeting.findFirst({
+    where: { id: body.meetingId, kind: "PUBLIC_HEARING" },
+    select: { id: true }
+  });
+  if (!meeting) {
+    return NextResponse.json({ error: "La audiencia elegida no existe." }, { status: 400 });
+  }
+
   let closesAt: Date | null = null;
   if (body.closesAt) {
     closesAt = new Date(`${body.closesAt}T23:59:59`);
@@ -52,6 +62,7 @@ export async function handleDebateCreate(request: Request) {
     data: {
       title: body.title,
       context: body.context,
+      meetingId: meeting.id,
       closesAt,
       proposalId: body.proposalId || null,
       projectId: body.projectId || null,

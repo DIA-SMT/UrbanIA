@@ -11,11 +11,14 @@ export function NewDebateForm({ linkable }: { linkable: LinkableItems }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [context, setContext] = useState("");
+  const [meetingId, setMeetingId] = useState("");
   const [closesAt, setClosesAt] = useState("");
   const [linkKind, setLinkKind] = useState<"none" | "proposal" | "project">("none");
   const [linkId, setLinkId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedHearing = linkable.hearings.find((hearing) => hearing.id === meetingId) ?? null;
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -28,6 +31,7 @@ export function NewDebateForm({ linkable }: { linkable: LinkableItems }) {
         body: JSON.stringify({
           title,
           context,
+          meetingId,
           closesAt: closesAt || undefined,
           proposalId: linkKind === "proposal" ? linkId || null : null,
           projectId: linkKind === "project" ? linkId || null : null
@@ -59,6 +63,33 @@ export function NewDebateForm({ linkable }: { linkable: LinkableItems }) {
           className={inputClass}
         />
       </label>
+
+      <label className="block">
+        <span className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">Audiencia de origen</span>
+        <select value={meetingId} onChange={(event) => setMeetingId(event.target.value)} required className={inputClass}>
+          <option value="">Elegí la audiencia que da origen al debate...</option>
+          {linkable.hearings.map((hearing) => (
+            <option key={hearing.id} value={hearing.id}>
+              {hearing.title}
+              {hearing.occurredAt ? ` (${new Date(hearing.occurredAt).toLocaleDateString("es-AR")})` : ""}
+            </option>
+          ))}
+        </select>
+        {linkable.hearings.length === 0 ? (
+          <span className="mt-1 block text-xs text-amber-700 dark:text-amber-300">
+            No hay audiencias cargadas todavía: primero registrá la audiencia en el módulo Audiencias.
+          </span>
+        ) : null}
+      </label>
+
+      {selectedHearing ? (
+        <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-3.5 dark:border-sky-400/30 dark:bg-sky-400/10">
+          <p className="text-[11px] font-black uppercase tracking-wide text-sky-700 dark:text-sky-200">Qué se habló en esa audiencia</p>
+          <p className="mt-1.5 text-sm leading-6 text-slate-700 dark:text-slate-200">
+            {selectedHearing.summary ?? "Esta audiencia todavía no tiene resumen ni conclusiones cargadas; el debate igualmente quedará vinculado a ella."}
+          </p>
+        </div>
+      ) : null}
 
       <label className="block">
         <span className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">Contexto</span>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { handleDebateAnalyze } from "@/lib/foro/api/analyze";
 import {
   handleArgumentCreate,
   handleArgumentModerate,
@@ -8,6 +9,8 @@ import {
 } from "@/lib/foro/api/debates";
 
 export const dynamic = "force-dynamic";
+/** El análisis de Migue llama al modelo: no entra en el default de 10 s. */
+export const maxDuration = 60;
 
 /*
  * Mutaciones del foro de debates, con la operación en `action` (una sola
@@ -18,6 +21,7 @@ export const dynamic = "force-dynamic";
  * POST ?action=argument  → publicar argumento con postura
  * POST ?action=support   → adherir / quitar adhesión (toggle)
  * POST ?action=moderate  → ocultar/restaurar argumento (con motivo)
+ * POST ?action=analyze   → informe de Migue (admin, debate cerrado)
  */
 export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -35,6 +39,8 @@ export async function POST(request: Request) {
         return await handleSupportToggle(request);
       case "moderate":
         return await handleArgumentModerate(request);
+      case "analyze":
+        return await handleDebateAnalyze(request);
       default:
         return NextResponse.json({ error: `Acción desconocida: ${action}` }, { status: 400 });
     }

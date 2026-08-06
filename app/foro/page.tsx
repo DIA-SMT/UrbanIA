@@ -106,7 +106,8 @@ export default async function ForoPage({ searchParams }: PageProps) {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-base font-black text-slate-950 dark:text-white">{debate.title}</p>
                 <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
-                  {debate.linkedLabel ?? "Debate libre"}
+                  {debate.hearingTitle ? `Audiencia: ${debate.hearingTitle}` : debate.linkedLabel ?? "Sin audiencia registrada"}
+                  {debate.hearingTitle && debate.linkedLabel ? ` · ${debate.linkedLabel}` : ""}
                   {debate.closesAt ? ` · cierra ${formatDate(debate.closesAt)}` : ""}
                   {debate.createdByName ? ` · abierto por ${debate.createdByName}` : ""}
                 </p>

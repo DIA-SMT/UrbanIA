@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowLeft, Archive, EyeOff, LockOpen, Lock, RotateCcw, ThumbsUp } from "lucide-react";
+import { ArrowLeft, Archive, CalendarDays, EyeOff, LockOpen, Lock, RotateCcw, Sparkles, ThumbsUp } from "lucide-react";
 import type { DebateStance } from "@prisma/client";
 import { SettingsModal } from "@/components/settings/modal";
 import { formatDate, formatDateTime } from "@/components/settings/format";
@@ -65,9 +65,9 @@ export function DebateDetailView({
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-black tracking-tight text-slate-950 dark:text-white">{debate.title}</h1>
             <p className="mt-1 text-xs font-semibold text-slate-400 dark:text-slate-500">
-              {debate.linkedLabel ?? "Debate libre"}
-              {debate.closesAt ? ` · cierra ${formatDate(debate.closesAt)}` : ""}
-              {debate.createdByName ? ` · abierto por ${debate.createdByName} el ${formatDate(debate.createdAt)}` : ""}
+              {debate.linkedLabel ? `${debate.linkedLabel} · ` : ""}
+              {debate.closesAt ? `cierra ${formatDate(debate.closesAt)} · ` : ""}
+              {debate.createdByName ? `abierto por ${debate.createdByName} el ${formatDate(debate.createdAt)}` : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -79,7 +79,29 @@ export function DebateDetailView({
           </div>
         </div>
         <p className="mt-4 whitespace-pre-line text-sm leading-7 text-slate-600 dark:text-slate-300">{debate.context}</p>
+
+        {debate.hearing ? (
+          <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50/70 p-3.5 dark:border-sky-400/30 dark:bg-sky-400/10">
+            <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide text-sky-700 dark:text-sky-200">
+              <CalendarDays className="h-3.5 w-3.5" aria-hidden />
+              Audiencia de origen
+            </p>
+            <p className="mt-1 text-sm font-bold text-slate-900 dark:text-white">
+              <Link href={`/audiencias/${debate.hearing.id}`} className="underline decoration-sky-300 underline-offset-2 hover:text-sky-700 dark:hover:text-sky-200">
+                {debate.hearing.title}
+              </Link>
+              {debate.hearing.occurredAt ? <span className="font-semibold text-slate-500 dark:text-slate-400"> · {formatDate(debate.hearing.occurredAt)}</span> : null}
+            </p>
+            {debate.hearing.summary ? (
+              <p className="mt-1.5 text-sm leading-6 text-slate-600 dark:text-slate-300">{debate.hearing.summary}</p>
+            ) : (
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">La audiencia todavía no tiene resumen ni conclusiones cargadas.</p>
+            )}
+          </div>
+        ) : null}
       </section>
+
+      <AnalysisSection debate={debate} canManage={canManage} onAnalyze={() => post("analyze", { debateId: debate.id })} />
 
       {error ? (
         <p role="alert" className="mt-4 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2.5 text-sm font-bold text-rose-700 dark:border-rose-400/40 dark:bg-rose-400/10 dark:text-rose-200">
@@ -143,6 +165,110 @@ export function DebateDetailView({
           }}
         />
       ) : null}
+    </div>
+  );
+}
+
+function AnalysisSection({
+  debate,
+  canManage,
+  onAnalyze
+}: {
+  debate: DebateDetail;
+  canManage: boolean;
+  onAnalyze: () => Promise<boolean>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const isClosed = debate.status === "CLOSED";
+  const analysis = debate.analysis;
+
+  // Sin informe y sin posibilidad de generarlo: no ocupar lugar.
+  if (!analysis && !(canManage && isClosed)) return null;
+
+  async function generate() {
+    setBusy(true);
+    await onAnalyze();
+    setBusy(false);
+  }
+
+  return (
+    <section className="surface-panel mt-4 p-5" aria-label="Análisis de Migue">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-sky-50 text-[#1f89f6] dark:bg-sky-400/10">
+            <Sparkles className="h-4 w-4" aria-hidden />
+          </span>
+          Análisis de Migue
+          {analysis ? (
+            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
+              {formatDateTime(analysis.generatedAt)} · sobre {analysis.argumentCount} argumento{analysis.argumentCount === 1 ? "" : "s"}
+            </span>
+          ) : null}
+        </p>
+        {canManage && isClosed ? (
+          <button
+            onClick={generate}
+            disabled={busy}
+            className="rounded-xl border border-sky-300 bg-sky-50 px-3.5 py-2 text-xs font-bold text-sky-700 transition hover:bg-sky-100 active:scale-[0.97] disabled:opacity-60 dark:border-sky-400/40 dark:bg-sky-400/10 dark:text-sky-200"
+          >
+            {busy ? "Migue está leyendo el debate..." : analysis ? "Regenerar análisis" : "Generar análisis"}
+          </button>
+        ) : null}
+      </div>
+
+      {analysis ? (
+        <div className="mt-4 space-y-4">
+          {analysis.newArgumentsSince > 0 ? (
+            <p className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-200">
+              Entraron {analysis.newArgumentsSince} argumento{analysis.newArgumentsSince === 1 ? "" : "s"} después de este análisis: puede estar desactualizado.
+            </p>
+          ) : null}
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 dark:text-slate-500">Lectura general</p>
+            <p className="mt-1 text-sm leading-7 text-slate-600 dark:text-slate-300">{analysis.report.lecturaGeneral}</p>
+          </div>
+          <ReportList title="Puntos de acuerdo" items={analysis.report.coherencias} emptyText="No se detectaron puntos compartidos entre las posturas." />
+          <ReportList title="Incongruencias" items={analysis.report.incongruencias} emptyText="No se detectaron contradicciones entre los argumentos." />
+          <ReportList title="Información faltante" items={analysis.report.vacios} emptyText="No se señalaron vacíos de información." />
+          {analysis.report.caminoConsenso ? (
+            <div className="rounded-xl border border-emerald-300 bg-emerald-50/70 p-3.5 dark:border-emerald-400/40 dark:bg-emerald-400/10">
+              <p className="text-[11px] font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-200">Posible camino de consenso</p>
+              <p className="mt-1 text-sm leading-6 text-slate-700 dark:text-slate-200">{analysis.report.caminoConsenso}</p>
+            </div>
+          ) : null}
+          <p className="text-[11px] leading-4 text-slate-400 dark:text-slate-500">
+            Análisis asistido generado por Migue sobre los argumentos visibles al cierre. Es un insumo de lectura, no una conclusión oficial: la decisión sigue siendo del equipo.
+          </p>
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+          El debate está cerrado: podés pedirle a Migue una devolución sobre toda la deliberación — lectura general, acuerdos, incongruencias e información faltante.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function ReportList({ title, items, emptyText }: { title: string; items: string[]; emptyText: string }) {
+  if (items.length === 0) {
+    return (
+      <div>
+        <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 dark:text-slate-500">{title}</p>
+        <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{emptyText}</p>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 dark:text-slate-500">{title}</p>
+      <ul className="mt-1.5 space-y-1.5">
+        {items.map((item, index) => (
+          <li key={index} className="flex gap-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+            <span aria-hidden className="mt-2.5 h-1 w-1 shrink-0 rounded-full bg-[#1f89f6]" />
+            {item}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

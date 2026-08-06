@@ -71,12 +71,23 @@ model Debate {
   context     String
   status      DebateStatus @default(OPEN)
   closesAt    DateTime?
+  /// Audiencia de origen. Obligatoria al crear (lo exige la API); nullable en
+  /// base solo por los debates previos a esta regla.
+  meetingId   String?
+  meeting     Meeting?     @relation(fields: [meetingId], references: [id], onDelete: SetNull)
   proposalId  String?
   proposal    Proposal?    @relation(fields: [proposalId], references: [id], onDelete: SetNull)
   projectId   String?
   project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
   createdById String?
   createdBy   User?        @relation("DebatesCreated", fields: [createdById], references: [id])
+  /// Análisis de Migue sobre la deliberación completa. Solo se genera con el
+  /// debate CERRADO y a pedido de un administrador; se guarda para no
+  /// recalcularlo en cada visita.
+  analysis              Json?
+  analysisAt            DateTime?
+  analysisArgumentCount Int?
+  analysisModel         String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   arguments   DebateArgument[]
@@ -615,6 +626,7 @@ model Meeting {
   actionItems        MeetingActionItem[]
   projectAttachments ProjectAttachment[]
   normMatches        HearingNormMatch[]
+  debates            Debate[]
   /// Presente solo si kind=PUBLIC_HEARING.
   hearingRecord      HearingRecord?
 
