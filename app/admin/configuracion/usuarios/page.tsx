@@ -1,4 +1,6 @@
 import { UsersDirectory } from "@/components/settings/users-directory";
+import { PageTour } from "@/components/help/page-tour";
+import { USUARIOS_TOUR } from "@/components/help/internal-tour-content";
 import { siditucProvider } from "@/lib/auth/identity/sidituc";
 import { requireSettingsAccess } from "@/lib/settings/guard";
 import { listCatalog, listUsers } from "@/lib/settings/users";
@@ -22,6 +24,7 @@ export default async function UsuariosPage() {
             Cuentas del sistema y su nivel de acceso. UrbanIA no crea identidades: las valida y les asigna rol.
           </p>
         </div>
+        <PageTour tourId="config-usuarios" steps={USUARIOS_TOUR} />
       </div>
       <UsersDirectory
         initialData={initialData}

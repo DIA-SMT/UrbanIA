@@ -4,9 +4,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ChevronDown, ChevronLeft, Home, LogIn, LogOut, Map, Menu, MessagesSquare, MoreHorizontal, Moon, Scale, Sun, Users, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronLeft, CircleHelp, Home, LogIn, LogOut, Map, Menu, MessagesSquare, MoreHorizontal, Moon, Scale, Sun, Users, X } from "lucide-react";
 import { MigueFloatingChat } from "@/components/assistant/migue-floating-chat";
 import { Brand } from "@/components/brand";
+import { GuidedTour, useGuidedTour } from "@/components/help/guided-tour";
+import { shellTourSteps } from "@/components/help/internal-tour-content";
 import { sidebarSections } from "@/lib/data";
 
 type ThemeMode = "dark" | "light";
@@ -20,6 +22,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [openGroup, setOpenGroup] = useState(() => findActiveGroup(pathname));
   const [user, setUser] = useState<SessionUser | null>(null);
   const [userLoaded, setUserLoaded] = useState(false);
+  const tour = useGuidedTour("interno");
 
   useEffect(() => {
     let mounted = true;
@@ -103,7 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </button>
             )}
           </div>
-          <nav className="urban-scrollbar mt-3 flex-1 space-y-1 overflow-y-auto pb-4" aria-label="Navegacion principal">
+          <nav data-tour="nav" className="urban-scrollbar mt-3 flex-1 space-y-1 overflow-y-auto pb-4" aria-label="Navegacion principal">
             {visibleSections.map((section) => <SidebarGroup key={section.title} section={section} pathname={pathname} open={openGroup === section.title} collapsed={collapsed} onToggle={() => { if (collapsed) toggleSidebar(); setOpenGroup((current) => current === section.title && !collapsed ? "" : section.title); }} />)}
           </nav>
         </motion.aside>
@@ -129,7 +132,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <button onClick={goBack} className="icon-button" aria-label="Volver" title="Volver"><ArrowLeft className="h-4 w-4" /></button>
                 <Link href="/" className="icon-button" aria-label="Ir al inicio" title="Inicio"><Home className="h-4 w-4" /></Link>
               </div>
-              <div className="ml-auto flex items-center gap-2">
+              <div data-tour="header-actions" className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={tour.start}
+                  className="hidden items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-sky-300 hover:text-sky-700 md:inline-flex dark:border-white/10 dark:text-slate-300 dark:hover:border-sky-400/40 dark:hover:text-sky-200"
+                  title="Recorrido guiado por el sistema"
+                >
+                  <CircleHelp className="h-4 w-4" />
+                  ¿Cómo funciona?
+                </button>
                 <button onClick={toggleTheme} className="icon-button" aria-label={theme === "light" ? "Activar modo oscuro" : "Activar modo claro"}>{theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}</button>
                 <UserMenu user={user} loaded={userLoaded} />
               </div>
@@ -140,6 +151,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
       <MobileBottomNavigation pathname={pathname} onMore={() => setMobileOpen(true)} />
       <MigueFloatingChat appearance={theme} />
+      {/* El recorrido espera a saber el rol: los pasos de Configuración solo
+          existen para administradores. */}
+      {userLoaded ? (
+        <GuidedTour steps={shellTourSteps(user?.role ?? null)} open={tour.open} onClose={tour.close} isLight={theme === "light"} />
+      ) : null}
     </main>
   );
 }
@@ -225,10 +241,10 @@ function SidebarGroup({ section, pathname, open, collapsed = false, onToggle }: 
   // Sección con href = link directo, sin desplegable.
   if (section.href) {
     const active = isActive(pathname, section.href);
-    return <Link href={section.href} title={collapsed ? section.title : undefined} className={`nav-link group relative ${active ? "nav-link-active" : ""} ${collapsed ? "justify-center px-0" : ""}`}><Icon className="h-[18px] w-[18px] shrink-0" />{!collapsed && <span className="flex-1 truncate text-left">{section.title}</span>}{active && <motion.span layoutId="active-nav" className="absolute left-0 h-5 w-0.5 rounded-r bg-[#1f89f6]" />}</Link>;
+    return <Link href={section.href} data-tour={section.tourId} title={collapsed ? section.title : undefined} className={`nav-link group relative ${active ? "nav-link-active" : ""} ${collapsed ? "justify-center px-0" : ""}`}><Icon className="h-[18px] w-[18px] shrink-0" />{!collapsed && <span className="flex-1 truncate text-left">{section.title}</span>}{active && <motion.span layoutId="active-nav" className="absolute left-0 h-5 w-0.5 rounded-r bg-[#1f89f6]" />}</Link>;
   }
   const active = section.items.some((item) => isActive(pathname, item.href));
-  return <div><button onClick={onToggle} title={collapsed ? section.title : undefined} className={`nav-link group w-full ${active ? "text-sky-700 dark:text-sky-200" : ""} ${collapsed ? "justify-center px-0" : ""}`}><Icon className="h-[18px] w-[18px] shrink-0" />{!collapsed && <><span className="flex-1 text-left">{section.title}</span><ChevronDown className={`h-4 w-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`} /></>}</button><AnimatePresence initial={false}>{open && !collapsed ? <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }} className="overflow-hidden"><div className="ml-4 space-y-1 border-l border-slate-200 py-1 pl-2 dark:border-white/10">{section.items.map((item) => <SidebarLink key={item.label} {...item} active={isActive(pathname, item.href)} />)}</div></motion.div> : null}</AnimatePresence></div>;
+  return <div data-tour={section.tourId}><button onClick={onToggle} title={collapsed ? section.title : undefined} className={`nav-link group w-full ${active ? "text-sky-700 dark:text-sky-200" : ""} ${collapsed ? "justify-center px-0" : ""}`}><Icon className="h-[18px] w-[18px] shrink-0" />{!collapsed && <><span className="flex-1 text-left">{section.title}</span><ChevronDown className={`h-4 w-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`} /></>}</button><AnimatePresence initial={false}>{open && !collapsed ? <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }} className="overflow-hidden"><div className="ml-4 space-y-1 border-l border-slate-200 py-1 pl-2 dark:border-white/10">{section.items.map((item) => <SidebarLink key={item.label} {...item} active={isActive(pathname, item.href)} />)}</div></motion.div> : null}</AnimatePresence></div>;
 }
 
 function MobileBottomNavigation({ pathname, onMore }: { pathname: string; onMore: () => void }) {

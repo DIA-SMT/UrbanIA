@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MessageCircleQuestion, MessagesSquare, Plus } from "lucide-react";
 import { AppShell } from "@/components/shell";
+import { PageTour } from "@/components/help/page-tour";
+import { FORO_TOUR } from "@/components/help/internal-tour-content";
 import { canViewInternal, getSessionUser } from "@/lib/auth/api";
 import { hasPermission } from "@/lib/auth/permissions";
 import { listDebates } from "@/lib/foro/data";
@@ -48,15 +50,18 @@ export default async function ForoPage({ searchParams }: PageProps) {
             Preguntas urbanas concretas para debatir con postura entre equipos, antes de decidir.
           </p>
         </div>
-        {canCreate ? (
-          <Link href="/foro/nuevo" className="urban-button flex items-center gap-2 rounded-xl bg-[#1f89f6] px-4 py-2.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(31,137,246,0.22)] hover:bg-[#087bec]">
-            <Plus className="h-4 w-4" />
-            Nuevo debate
-          </Link>
-        ) : null}
+        <div className="flex items-center gap-2">
+          <PageTour tourId="foro" steps={FORO_TOUR} />
+          {canCreate ? (
+            <Link href="/foro/nuevo" data-tour="foro-nuevo" className="urban-button flex items-center gap-2 rounded-xl bg-[#1f89f6] px-4 py-2.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(31,137,246,0.22)] hover:bg-[#087bec]">
+              <Plus className="h-4 w-4" />
+              Nuevo debate
+            </Link>
+          ) : null}
+        </div>
       </div>
 
-      <nav aria-label="Filtrar por estado" className="mb-4 flex flex-wrap gap-1.5">
+      <nav data-tour="foro-filtros" aria-label="Filtrar por estado" className="mb-4 flex flex-wrap gap-1.5">
         {statusFilters.map((filter) => {
           const active = filter.key === activeFilter.key;
           return (
@@ -96,7 +101,7 @@ export default async function ForoPage({ searchParams }: PageProps) {
           ) : null}
         </section>
       ) : (
-        <div className="space-y-3">
+        <div data-tour="foro-lista" className="space-y-3">
           {debates.map((debate) => (
             <Link
               key={debate.id}

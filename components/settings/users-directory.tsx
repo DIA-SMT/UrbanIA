@@ -141,7 +141,7 @@ export function UsersDirectory({
   return (
     <section className="surface-panel overflow-hidden">
       <div className="flex flex-col gap-3 border-b border-slate-200/80 p-4 dark:border-white/10 lg:flex-row lg:items-center">
-        <label className="relative flex-1">
+        <label data-tour="usuarios-buscador" className="relative flex-1">
           <span className="sr-only">Buscar usuarios</span>
           <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
@@ -174,6 +174,7 @@ export function UsersDirectory({
           {canCreateManually ? (
             <button
               onClick={() => setModal({ kind: "create" })}
+              data-tour="usuarios-crear"
               className="urban-button flex items-center gap-2 rounded-xl bg-[#1f89f6] px-4 py-2.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(31,137,246,0.22)] hover:bg-[#087bec]"
             >
               <UserRoundPlus className="h-4 w-4" />
@@ -193,7 +194,7 @@ export function UsersDirectory({
         </div>
       ) : null}
 
-      <div className="urban-scrollbar overflow-x-auto">
+      <div data-tour="usuarios-tabla" className="urban-scrollbar overflow-x-auto">
         <table className="w-full min-w-[880px] text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200/80 text-[11px] font-black uppercase tracking-[0.08em] text-slate-400 dark:border-white/10 dark:text-slate-500">

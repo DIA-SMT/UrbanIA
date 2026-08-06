@@ -27,7 +27,7 @@ export function SettingsShell({ children }: { children: React.ReactNode }) {
           Usuarios, roles, permisos y auditoría de UrbanIA. Las identidades pertenecen a SIDITUC; acá se administra qué puede hacer cada cuenta.
         </p>
       </div>
-      <nav aria-label="Secciones de configuración" className="urban-scrollbar mb-6 flex gap-1 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white p-1.5 dark:border-white/10 dark:bg-[#0d1b2a]">
+      <nav data-tour="config-nav" aria-label="Secciones de configuración" className="urban-scrollbar mb-6 flex gap-1 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white p-1.5 dark:border-white/10 dark:bg-[#0d1b2a]">
         {sections.map((section) => {
           const Icon = section.icon;
           const active = pathname === section.href || pathname.startsWith(`${section.href}/`);

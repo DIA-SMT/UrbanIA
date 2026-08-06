@@ -736,6 +736,7 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
         onPointerCancel={onLauncherPointerCancel}
         onLostPointerCapture={onLauncherPointerCancel}
         style={{ touchAction: "none", cursor: dragging ? "grabbing" : "grab" }}
+        data-tour="migue"
         className={`urban-button migue-launcher group ${dragging ? "select-none" : ""}`}
         aria-label={isOpen ? "Cerrar chat de Migue" : "Abrir chat de Migue. Manten presionado para moverlo."}
         title="Migue · arrastralo para moverlo"

@@ -8,6 +8,7 @@ import {
   MessagesSquare,
   Scale,
   Send,
+  Speech,
   UserRound,
   Users
 } from "lucide-react";
@@ -229,6 +230,50 @@ export const staffTools: ToolGuide[] = [
     pasos: [
       "Entrá a Mapa territorial con tu sesión municipal.",
       "Navegá el mapa y activá las capas disponibles para ver la información sobre el territorio."
+    ]
+  },
+  {
+    icon: Speech,
+    name: "Foro de debates",
+    href: "/foro",
+    oneLiner: "Deliberar con postura antes de decidir, entre equipos.",
+    access: { tone: "warn", label: "Interno: los vecinos no participan" },
+    paraQue:
+      "El espacio donde el equipo discute una pregunta urbana concreta surgida de una audiencia. En vez de un hilo de comentarios, cada aporte toma postura y se puede adherir a los argumentos de otros, así el peso de la discusión queda a la vista.",
+    pasos: [
+      "Entrá a Foro de debates y elegí uno de la lista: cada fila dice de qué audiencia nace, su estado y cuántos argumentos tiene.",
+      "Leé el contexto y el resumen de la audiencia de origen, arriba de todo.",
+      "Sumá tu argumento: elegí postura (a favor, en contra o aporte neutral) y escribilo con fundamento.",
+      "Adherí a los argumentos que compartís. Los más adheridos suben al principio de su columna; a los propios no se puede adherir.",
+      "Un administrador abre los debates (desde «Nuevo debate», eligiendo la audiencia de origen) y los cierra cuando la discusión está madura."
+    ],
+    tips: [
+      "Con el debate cerrado, un administrador puede pedirle a Migue un análisis de toda la deliberación: lectura general, puntos de acuerdo, incongruencias, información faltante y posible camino de consenso. Es un insumo de lectura, no una conclusión oficial.",
+      "La moderación oculta un argumento con motivo, nunca lo borra: el registro de la deliberación queda completo.",
+      "Un debate cerrado no admite argumentos nuevos, pero se sigue leyendo: es el registro de lo que se discutió."
+    ]
+  },
+  {
+    icon: KeyRound,
+    name: "Usuarios y accesos",
+    href: "/admin/configuracion/usuarios",
+    ctaLabel: "Ir a Configuración",
+    oneLiner: "Quién entra al sistema y qué puede hacer cada cuenta.",
+    access: { tone: "warn", label: "Solo administradores" },
+    paraQue:
+      "El panel de administración de accesos. La regla del sistema es que las identidades pertenecen a SIDITUC: UrbanIA no crea personas, las valida y les asigna un rol. Cada rol es un conjunto de permisos, y el servidor controla cada operación contra esos permisos.",
+    pasos: [
+      "Entrá a Configuración > Usuarios: la tabla lista todas las cuentas con su rol, estado, área y último acceso.",
+      "Buscá por nombre, apellido, DNI, correo, área o dependencia, o filtrá por rol, estado y área.",
+      "En el menú de cada fila: ver perfil, editar, cambiar rol, suspender, reactivar, eliminar acceso o ver su historial.",
+      "Para cambiar un rol o un estado hace falta un motivo: queda asentado en la auditoría con tu usuario, la fecha, la IP y el dispositivo.",
+      "Mientras SIDITUC no esté integrado, «Crear usuario» permite dar de alta una cuenta a mano con su contraseña y rol."
+    ],
+    tips: [
+      "Los roles son cuatro: Administrador (acceso total), Usuario normal (crea y edita contenido), Consulta (solo lectura del sistema interno) y Ciudadano (solo el portal público).",
+      "Eliminar el acceso revoca la cuenta pero no borra nada: sus propuestas, aportes e historial se conservan para la auditoría.",
+      "Nadie puede modificar su propio rol o estado, y el sistema no deja quedarse sin administradores activos.",
+      "Un cambio de rol o una suspensión se aplican en el próximo inicio de sesión de esa persona."
     ]
   }
 ];
