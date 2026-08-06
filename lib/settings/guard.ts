@@ -6,8 +6,8 @@ import { hasPermission, type Permission } from "@/lib/auth/permissions";
 
 /**
  * Guards del módulo Configuración. El middleware ya exige sesión interna para
- * /admin/*, pero Configuración pide además el permiso concreto: un Observador
- * o Usuario CPU navega el sistema y aun así no debe ver este módulo.
+ * /admin/*, pero Configuración pide además el permiso concreto: un rol de
+ * Consulta o un Usuario normal navega el sistema y aun así no debe ver este módulo.
  */
 
 /** Para páginas: redirige si falta sesión o permiso. */

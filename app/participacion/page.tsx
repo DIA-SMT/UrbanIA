@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function ParticipacionPage() {
   const session = await getSessionUser();
   if (!session) redirect("/ingresar");
-  // Es una bandeja de lectura/triage: el rol Observador también puede verla.
+  // Es una bandeja de lectura/triage: el rol Consulta también puede verla.
   if (!canViewInternal(session.role)) redirect("/");
 
   return <CitizenParticipation />;

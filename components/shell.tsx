@@ -146,8 +146,8 @@ type SessionUser = { name: string; role: string };
 
 const roleLabels: Record<string, string> = {
   ADMIN: "Administración",
-  OBSERVER: "Observador/a",
-  CPU_USER: "Usuario CPU",
+  OBSERVER: "Consulta",
+  CPU_USER: "Usuario normal",
   CITIZEN: "Ciudadano/a"
 };
 

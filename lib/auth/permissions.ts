@@ -33,7 +33,7 @@ export type Permission = (typeof PERMISSION_CATALOG)[number]["key"];
 
 const ALL_PERMISSIONS = PERMISSION_CATALOG.map((permission) => permission.key);
 
-/** Permisos que el rol Usuario CPU ejerce como equipo interno: crea y edita
+/** Permisos que el rol Usuario normal (CPU_USER) ejerce como equipo interno: crea y edita
  *  contenido, pero no borra ni administra personas ni configuración. */
 const CPU_USER_PERMISSIONS: Permission[] = [
   "internal.view",

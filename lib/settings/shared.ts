@@ -4,14 +4,14 @@ import type { UserRole, UserStatus } from "@prisma/client";
 
 export const roleLabels: Record<UserRole, string> = {
   ADMIN: "Administrador",
-  OBSERVER: "Observador",
-  CPU_USER: "Usuario CPU",
+  OBSERVER: "Consulta",
+  CPU_USER: "Usuario normal",
   CITIZEN: "Ciudadano"
 };
 
 export const roleDescriptions: Record<UserRole, string> = {
   ADMIN: "Acceso total: gestiona usuarios, roles, permisos, configuraciones y auditoría.",
-  OBSERVER: "Solo lectura del sistema interno: proyectos, reuniones, documentos y mapas.",
+  OBSERVER: "Solo consulta del sistema interno: proyectos, reuniones, documentos y mapas, sin editar.",
   CPU_USER: "Usuario interno municipal: crea y edita contenido, carga documentación y colabora entre áreas.",
   CITIZEN: "Accede al portal público: se registra, presenta propuestas y consulta su estado."
 };
