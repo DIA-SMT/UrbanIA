@@ -1,22 +1,18 @@
 import { NextResponse } from "next/server";
-import { handleLogin } from "@/lib/auth/api/login";
 import { handleLogout } from "@/lib/auth/api/logout";
 import { handleMe } from "@/lib/auth/api/me";
-import { handleRegister } from "@/lib/auth/api/register";
+import { handleCiditucCallback, handleCiditucStart } from "@/lib/auth/api/cidituc";
 
 export const dynamic = "force-dynamic";
 
 /*
- * Login, registro, cierre de sesion y "quien soy" entran por esta unica ruta,
+ * El acceso Cidituc, cierre de sesión y "quién soy" entran por esta única ruta,
  * con la operacion en el query param `action`. Mismo motivo que en el resto de
  * la app: el plan Hobby de Vercel admite 12 funciones serverless por deploy y
  * cada route.ts cuenta una.
  *
- * Cada handler vive en lib/auth/api/ con su codigo intacto.
- *
- * Login y registro se envian desde formularios HTML sin JavaScript, asi que la
- * accion tiene que viajar en la URL del `action=` del <form>: es lo unico que
- * el navegador manda aparte de los campos.
+ * La autenticación local por correo y contraseña fue retirada: Cidituc es el
+ * único proveedor de identidad y el callback aprovisiona la cuenta de UrbanIA.
  */
 function accion(request: Request): string {
   return new URL(request.url).searchParams.get("action") ?? "";
@@ -24,10 +20,6 @@ function accion(request: Request): string {
 
 export async function POST(request: Request) {
   switch (accion(request)) {
-    case "login":
-      return handleLogin(request);
-    case "register":
-      return handleRegister(request);
     case "logout":
       return handleLogout();
     default:
@@ -36,9 +28,15 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  if (accion(request) === "me") return handleMe();
-  // Entrar a mano a /api/auth?action=login desde la barra del navegador manda
-  // un GET; se devuelve a la pantalla de ingreso en vez de dar un 400 seco.
-  const modo = accion(request) === "register" ? "?mode=register" : "";
-  return NextResponse.redirect(new URL(`/ingresar${modo}`, request.url), 303);
+  switch (accion(request)) {
+    case "me":
+      return handleMe();
+    case "cidituc-start":
+      return handleCiditucStart(request);
+    case "cidituc-callback":
+      return handleCiditucCallback(request);
+    default: {
+      return NextResponse.redirect(new URL("/ingresar", request.url), 303);
+    }
+  }
 }

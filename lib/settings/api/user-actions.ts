@@ -5,7 +5,7 @@ import { z } from "zod";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { hashPassword } from "@/lib/auth/password";
-import { siditucProvider } from "@/lib/auth/identity/sidituc";
+import { ciditucProvider } from "@/lib/auth/identity/cidituc";
 import { getSettingsSession, requestMetadata } from "@/lib/settings/guard";
 import { roleLabels, statusLabels } from "@/lib/settings/shared";
 import type { AuditAction } from "@/lib/settings/audit";
@@ -154,7 +154,7 @@ const createUserSchema = z.object({
 
 /**
  * POST /api/settings?action=create-user. Alta manual PROVISORIA: existe solo
- * hasta que la integración SIDITUC esté activa; con el flag prendido se
+ * hasta que la integración Cidituc esté activa; con el flag prendido se
  * bloquea, porque ahí las cuentas deben nacer de la vinculación de identidad.
  */
 export async function handleUserCreate(request: Request) {
@@ -163,9 +163,9 @@ export async function handleUserCreate(request: Request) {
     return NextResponse.json({ error: "Necesitás permisos de administración de usuarios." }, { status: 403 });
   }
 
-  if (siditucProvider.isEnabled()) {
+  if (ciditucProvider.isEnabled()) {
     return NextResponse.json(
-      { error: "El alta manual está deshabilitada: con SIDITUC activo, las cuentas se vinculan desde Solicitudes de acceso." },
+      { error: "El alta manual está deshabilitada: con Cidituc activo, las cuentas se vinculan desde Solicitudes de acceso." },
       { status: 409 }
     );
   }
@@ -214,7 +214,7 @@ export async function handleUserCreate(request: Request) {
         action: "USER_CREATED" satisfies AuditAction,
         previousValue: null,
         newValue: roleLabels[body.role],
-        reason: "Alta manual provisoria (SIDITUC pendiente)",
+        reason: "Alta manual provisoria (Cidituc pendiente)",
         ip,
         userAgent
       }

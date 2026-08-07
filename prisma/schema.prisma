@@ -20,7 +20,7 @@ model User {
   name         String
   /// Apellido separado del nombre. Nullable a propósito: las cuentas previas
   /// tienen todo en `name` y partirlo automáticamente es lotería; lo completa
-  /// un admin o llegará como dato canónico desde SIDITUC.
+  /// un admin o llegará como dato canónico desde Cidituc.
   lastName     String?
   email        String     @unique
   passwordHash String?
@@ -34,10 +34,10 @@ model User {
   occupation   String?
   avatarUrl    String?
   lastLoginAt  DateTime?
-  /// Identidad municipal. Queda vacío hasta que se active la integración SIDITUC;
+  /// Identidad municipal. Queda vacío hasta que se active la integración Cidituc;
   /// cuando exista, es la prueba de que la cuenta fue validada contra el padrón.
-  siditucId         String?   @unique
-  siditucVerifiedAt DateTime?
+  ciditucId         String?   @unique
+  ciditucVerifiedAt DateTime?
   areaId       String?
   area         Area?       @relation(fields: [areaId], references: [id])
   dependencyId String?
@@ -181,7 +181,7 @@ model UserAuditLog {
 }
 
 /// Solicitudes de acceso al sistema interno. La estructura queda lista desde
-/// ahora; empieza a poblarse cuando se active la integración SIDITUC.
+/// ahora; empieza a poblarse cuando se active la integración Cidituc.
 model AccessRequest {
   id            String              @id @default(cuid())
   firstName     String
@@ -190,8 +190,8 @@ model AccessRequest {
   email         String
   areaId        String?
   dependencyId  String?
-  /// Estado de la cuenta en SIDITUC al momento de solicitar (verificada, etc.).
-  siditucStatus String?
+  /// Estado de la cuenta en Cidituc al momento de solicitar (verificada, etc.).
+  ciditucStatus String?
   requestedRole UserRole?
   status        AccessRequestStatus @default(PENDING)
   reviewedById  String?
@@ -1246,7 +1246,7 @@ enum UserRole {
 }
 
 enum UserStatus {
-  /// Vinculado a SIDITUC pero sin rol asignado todavía.
+  /// Vinculado a Cidituc pero sin rol asignado todavía.
   PENDING
   ACTIVE
   /// Suspensión temporal decidida por un admin; reversible.

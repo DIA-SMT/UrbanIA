@@ -115,14 +115,14 @@ export const citizenTools: ToolGuide[] = [
     icon: UserRound,
     name: "Tu cuenta ciudadana",
     href: "/ingresar",
-    ctaLabel: "Crear cuenta o ingresar",
-    oneLiner: "Una cuenta gratuita con tu DNI para participar con nombre y apellido.",
+    ctaLabel: "Ingresar con Cidituc",
+    oneLiner: "Tu identidad municipal para participar con nombre y apellido.",
     paraQue:
       "La cuenta ciudadana sirve para presentar propuestas y reclamos. Que cada aporte tenga un vecino real detrás es lo que le da peso frente al equipo municipal.",
     pasos: [
-      "Entrá a Ingresar y elegí «Registrarte».",
-      "Completá tus datos (nombre, DNI, correo) y elegí una contraseña.",
-      "Listo: ya podés presentar propuestas y reclamos con tu cuenta."
+      "Entrá a Ingresar y seleccioná «Ingresar con Cidituc».",
+      "Identificate con tu cuenta de Ciudad Digital; UrbanIA no recibe tu contraseña.",
+      "En el primer acceso tu cuenta ciudadana se crea automáticamente y ya podés participar."
     ]
   }
 ];
@@ -138,7 +138,7 @@ export const staffTools: ToolGuide[] = [
     paraQue:
       "Las herramientas internas exigen sesión con rol municipal. Los roles son tres: Administración (gestiona todo, incluidas las cuentas), Usuario CPU (crea y edita contenido) y Observador/a (ve el sistema interno en solo lectura). Sin sesión, la plataforma muestra solo la cara pública.",
     pasos: [
-      "Entrá a Ingresar con el correo y la contraseña de tu cuenta municipal.",
+      "Entrá a Ingresar y autenticate con tu cuenta de Cidituc.",
       "Verificá tu rol en el menú de usuario (arriba a la derecha): define qué podés hacer.",
       "Cerrá sesión desde ese mismo menú cuando termines, sobre todo en computadoras compartidas."
     ],
@@ -261,13 +261,13 @@ export const staffTools: ToolGuide[] = [
     oneLiner: "Quién entra al sistema y qué puede hacer cada cuenta.",
     access: { tone: "warn", label: "Solo administradores" },
     paraQue:
-      "El panel de administración de accesos. La regla del sistema es que las identidades pertenecen a SIDITUC: UrbanIA no crea personas, las valida y les asigna un rol. Cada rol es un conjunto de permisos, y el servidor controla cada operación contra esos permisos.",
+      "El panel de administración de accesos. La regla del sistema es que las identidades pertenecen a Cidituc: UrbanIA no crea personas, las valida y les asigna un rol. Cada rol es un conjunto de permisos, y el servidor controla cada operación contra esos permisos.",
     pasos: [
       "Entrá a Configuración > Usuarios: la tabla lista todas las cuentas con su rol, estado, área y último acceso.",
       "Buscá por nombre, apellido, DNI, correo, área o dependencia, o filtrá por rol, estado y área.",
       "En el menú de cada fila: ver perfil, editar, cambiar rol, suspender, reactivar, eliminar acceso o ver su historial.",
       "Para cambiar un rol o un estado hace falta un motivo: queda asentado en la auditoría con tu usuario, la fecha, la IP y el dispositivo.",
-      "Mientras SIDITUC no esté integrado, «Crear usuario» permite dar de alta una cuenta a mano con su contraseña y rol."
+      "Las cuentas aparecen automáticamente después del primer ingreso con Cidituc; desde esta pantalla se asignan roles, áreas y estados."
     ],
     tips: [
       "Los roles son cuatro: Administrador (acceso total), Usuario normal (crea y edita contenido), Consulta (solo lectura del sistema interno) y Ciudadano (solo el portal público).",

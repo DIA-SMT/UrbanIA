@@ -1,31 +1,31 @@
 import { CheckCircle2, CircleDashed, Fingerprint, Link2, ShieldCheck, UserCheck } from "lucide-react";
 import { requireSettingsAccess } from "@/lib/settings/guard";
-import { siditucIntegrationStatus } from "@/lib/auth/identity/sidituc";
+import { ciditucIntegrationStatus } from "@/lib/auth/identity/cidituc";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Integración SIDITUC | Configuración | UrbanIA"
+  title: "Integración Cidituc | Configuración | UrbanIA"
 };
 
 const flowSteps = [
-  { icon: Fingerprint, title: "La identidad nace en SIDITUC", detail: "Toda persona que ingresa a UrbanIA existe primero en el sistema de identidad municipal. UrbanIA no crea usuarios." },
-  { icon: ShieldCheck, title: "UrbanIA valida la identidad", detail: "Al solicitar acceso, la cuenta se verifica contra SIDITUC por DNI. Sin identidad válida, no hay ingreso." },
-  { icon: Link2, title: "Se vincula la cuenta", detail: "La identidad verificada queda asociada a la cuenta de UrbanIA junto con sus datos canónicos." },
-  { icon: UserCheck, title: "Un administrador asigna el rol", detail: "La cuenta vinculada entra como Pendiente hasta que un administrador le asigna rol desde Solicitudes de acceso." }
+  { icon: Fingerprint, title: "La identidad nace en Cidituc", detail: "Toda persona se autentica primero en el sistema de identidad municipal. UrbanIA nunca recibe su contraseña." },
+  { icon: ShieldCheck, title: "UrbanIA valida el token", detail: "El servidor consulta Cidituc y exige que la identidad esté validada y habilitada antes de crear una sesión." },
+  { icon: Link2, title: "La cuenta se crea o vincula", detail: "En el primer ingreso se crea automáticamente una cuenta ciudadana; si ya existe por DNI o correo, se vincula sin duplicarla." },
+  { icon: UserCheck, title: "UrbanIA conserva los permisos", detail: "Las cuentas nuevas reciben rol Ciudadano. Las cuentas existentes mantienen el rol y el estado administrados en UrbanIA." }
 ];
 
-export default async function SiditucPage() {
+export default async function CiditucPage() {
   await requireSettingsAccess("settings.manage");
-  const status = siditucIntegrationStatus();
+  const status = ciditucIntegrationStatus();
 
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">Integración SIDITUC</h2>
+          <h2 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">Integración Cidituc</h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Fuente única de identidad de la Municipalidad. UrbanIA delega en SIDITUC quién es cada persona y se queda con qué puede hacer.
+            Fuente única de identidad de la Municipalidad. UrbanIA delega en Cidituc quién es cada persona y se queda con qué puede hacer.
           </p>
         </div>
         <span
@@ -67,12 +67,13 @@ export default async function SiditucPage() {
         <section className="surface-panel p-5">
           <h3 className="text-sm font-black text-slate-950 dark:text-white">Estado de la configuración</h3>
           <ul className="mt-4 space-y-3">
-            <ConfigItem ok={status.enabled} label="Integración habilitada" detail="Variable SIDITUC_ENABLED del entorno." />
-            <ConfigItem ok={status.apiUrlConfigured} label="URL del servicio" detail="Variable SIDITUC_API_URL del entorno." />
-            <ConfigItem ok={status.apiKeyConfigured} label="Credencial de acceso" detail="Variable SIDITUC_API_KEY del entorno." />
+            <ConfigItem ok={status.enabled} label="Integración habilitada" detail="Variable CIDITUC_ENABLED del entorno." />
+            <ConfigItem ok={status.derivadorUrlConfigured} label="Derivador de identidad" detail="Variable CIDITUC_DERIVADOR_URL del entorno." />
+            <ConfigItem ok={status.apiUrlConfigured} label="API de validación" detail="Variable CIDITUC_API_URL del entorno." />
+            <ConfigItem ok={status.callbackUrlConfigured} label="Callback de UrbanIA" detail="Variable CIDITUC_CALLBACK_URL del entorno." />
           </ul>
           <p className="mt-5 rounded-xl border border-dashed border-slate-300 p-3.5 text-xs leading-5 text-slate-500 dark:border-white/15 dark:text-slate-400">
-            La arquitectura ya contempla esta integración (capa de identidad en <code className="font-mono text-[11px]">lib/auth/identity</code>). Cuando el servicio esté disponible, se implementa la consulta por DNI y se habilita el flag, sin cambios en el resto del sistema. Mientras tanto, el acceso local con email y contraseña sigue operativo.
+            Cidituc es el único acceso al sistema. UrbanIA valida el token recibido, aprovisiona la cuenta local y emite una sesión propia; los roles, permisos, suspensiones y auditoría permanecen bajo control de UrbanIA.
           </p>
         </section>
       </div>

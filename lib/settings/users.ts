@@ -27,7 +27,7 @@ export type UserListItem = {
   status: UserStatus;
   lastLoginAt: string | null;
   createdAt: string;
-  siditucId: string | null;
+  ciditucId: string | null;
   area: { id: string; name: string } | null;
   dependency: { id: string; name: string } | null;
 };
@@ -79,7 +79,7 @@ export async function listUsers(filters: UserListFilters): Promise<UserListResul
         status: true,
         lastLoginAt: true,
         createdAt: true,
-        siditucId: true,
+        ciditucId: true,
         area: { select: { id: true, name: true } },
         dependency: { select: { id: true, name: true } }
       }

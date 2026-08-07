@@ -15,7 +15,6 @@ import {
   pageClass,
   panelClass,
   primaryButtonClass,
-  secondaryButtonClass,
   usePortalTheme
 } from "@/components/public/portal-chrome";
 
@@ -126,16 +125,12 @@ export function ContributionForm() {
                   Ingresa para presentar tu aporte
                 </h2>
                 <p className={`mx-auto mt-2 max-w-md text-sm leading-6 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                  Para presentar una propuesta o un reclamo necesitas una cuenta de vecino. Se crea en un minuto y te permite seguir despues en que quedo lo que presentaste.
+                  Para presentar una propuesta o un reclamo ingresá con tu cuenta de Cidituc. UrbanIA crea tu cuenta ciudadana automáticamente en el primer acceso.
                 </p>
                 <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-                  <Link href="/ingresar?mode=register" className={primaryButtonClass()}>
+                  <Link href="/ingresar" className={primaryButtonClass()}>
                     <UserRound className="h-4 w-4" />
-                    Crear cuenta de vecino
-                  </Link>
-                  <Link href="/ingresar" className={secondaryButtonClass(isLight)}>
-                    <LogIn className="h-4 w-4" />
-                    Ya tengo cuenta
+                    Ingresar con Cidituc
                   </Link>
                 </div>
               </div>

@@ -53,7 +53,7 @@ export function UsersDirectory({
   initialData: UserListResult;
   catalog: CatalogArea[];
   sessionUserId: string;
-  /** Alta manual provisoria: se apaga cuando la integración SIDITUC está activa. */
+  /** Compatibilidad administrativa. El acceso normal se aprovisiona desde Cidituc. */
   canCreateManually: boolean;
 }) {
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
@@ -218,7 +218,7 @@ export function UsersDirectory({
                   <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                     {hasActiveFilters
                       ? "Probá con otros términos o limpiá los filtros."
-                      : "Las cuentas se crean desde el registro ciudadano o, próximamente, vinculando identidades de SIDITUC."}
+                      : "Las cuentas se crean automáticamente en el primer ingreso validado con Cidituc."}
                   </p>
                   {hasActiveFilters ? (
                     <button onClick={() => setFilters(INITIAL_FILTERS)} className="mt-4 rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-600 transition hover:border-sky-300 hover:text-sky-700 dark:border-white/10 dark:text-slate-300">
@@ -765,7 +765,7 @@ function CreateUserModal({
   return (
     <SettingsModal
       title="Crear usuario"
-      description="Alta provisoria hasta la integración SIDITUC: cuando esté activa, las cuentas se vincularán desde Solicitudes de acceso."
+      description="Alta administrativa excepcional. El flujo normal crea y vincula las cuentas automáticamente desde Cidituc."
       onClose={onClose}
     >
       <form onSubmit={submit} className="space-y-4">
@@ -884,7 +884,7 @@ function EditProfileModal({
   );
 
   return (
-    <SettingsModal title="Editar usuario" description="Datos administrativos de la cuenta. Los datos de identidad llegarán desde SIDITUC." onClose={onClose}>
+    <SettingsModal title="Editar usuario" description="Datos administrativos de la cuenta. Los datos de identidad llegarán desde Cidituc." onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <label className="block">
           <span className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">Apellido</span>

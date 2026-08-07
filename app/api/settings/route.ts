@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * GET  ?action=users&search=&role=&status=&areaId=&page=  → listado paginado
  * GET  ?action=catalog                                    → áreas y dependencias
  * PATCH ?action=user&id=<userId>                          → mutaciones (rol/estado/perfil)
- * POST ?action=create-user                                → alta manual provisoria (hasta SIDITUC)
+ * POST ?action=create-user                                → alta manual provisoria (hasta Cidituc)
  */
 
 function parseEnum<T extends Record<string, string>>(value: string | null, options: T): T[keyof T] | undefined {
