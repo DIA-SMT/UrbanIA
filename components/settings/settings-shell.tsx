@@ -9,7 +9,7 @@ const sections = [
   { label: "Roles", href: "/admin/configuracion/roles", icon: ShieldCheck },
   { label: "Permisos", href: "/admin/configuracion/permisos", icon: KeyRound },
   { label: "Solicitudes", href: "/admin/configuracion/solicitudes", icon: Inbox },
-  { label: "SIDITUC", href: "/admin/configuracion/sidituc", icon: Fingerprint },
+  { label: "Cidituc", href: "/admin/configuracion/cidituc", icon: Fingerprint },
   { label: "Seguridad", href: "/admin/configuracion/seguridad", icon: Lock },
   { label: "Auditoría", href: "/admin/configuracion/auditoria", icon: ScrollText }
 ];
@@ -24,7 +24,7 @@ export function SettingsShell({ children }: { children: React.ReactNode }) {
         <p className="eyebrow">Administración del sistema</p>
         <h1 className="mt-2 text-3xl font-black tracking-[-0.035em] text-slate-950 dark:text-white">Configuración</h1>
         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-          Usuarios, roles, permisos y auditoría de UrbanIA. Las identidades pertenecen a SIDITUC; acá se administra qué puede hacer cada cuenta.
+          Usuarios, roles, permisos y auditoría de UrbanIA. Las identidades pertenecen a Cidituc; acá se administra qué puede hacer cada cuenta.
         </p>
       </div>
       <nav data-tour="config-nav" aria-label="Secciones de configuración" className="urban-scrollbar mb-6 flex gap-1 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white p-1.5 dark:border-white/10 dark:bg-[#0d1b2a]">

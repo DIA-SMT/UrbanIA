@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { CircleHelp, LogIn, Moon, Sun } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, CircleHelp, LogIn, LogOut, Moon, Sun, UserRound } from "lucide-react";
 
 /**
  * Chrome y sistema visual del portal ciudadano, compartido por la landing, el
@@ -121,13 +121,151 @@ export function PortalHeader({
           >
             {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           </button>
-          <Link href="/ingresar" className={ghostButtonClass(isLight)}>
-            <LogIn className="h-4 w-4" />
-            Ingresar
-          </Link>
+          <PortalAccountMenu isLight={isLight} />
         </div>
       </div>
     </header>
+  );
+}
+
+type PortalSessionUser = { name: string; role: string };
+
+const portalRoleLabels: Record<string, string> = {
+  ADMIN: "Administración",
+  OBSERVER: "Consulta",
+  CPU_USER: "Usuario municipal",
+  CITIZEN: "Ciudadano/a"
+};
+
+function PortalAccountMenu({ isLight }: { isLight: boolean }) {
+  const [user, setUser] = useState<PortalSessionUser | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/auth?action=me", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((payload) => {
+        if (mounted) setUser(payload.user ?? null);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (mounted) setLoaded(true);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setOpen(false);
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  async function logout() {
+    try {
+      await fetch("/api/auth?action=logout", { method: "POST" });
+    } finally {
+      window.location.href = "/";
+    }
+  }
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className={`group inline-flex h-10 items-center gap-1 rounded-full border p-1 pr-2 transition focus:outline-none focus:ring-2 focus:ring-[#1f89f6]/30 ${
+          isLight
+            ? "border-slate-200 bg-white text-slate-600 shadow-sm hover:border-sky-300 hover:text-sky-700"
+            : "border-white/10 bg-white/[0.05] text-slate-200 hover:border-sky-300/40 hover:bg-white/[0.09]"
+        }`}
+        aria-label={user ? `Cuenta de ${user.name}` : "Opciones de acceso"}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        title={user ? user.name : "Ingresar"}
+      >
+        <span className={`relative grid h-8 w-8 place-items-center rounded-full ${user ? "bg-[#1f89f6] text-white" : isLight ? "bg-slate-100 text-slate-600" : "bg-white/10 text-slate-200"}`}>
+          <UserRound className="h-[18px] w-[18px]" strokeWidth={2.2} />
+          {user ? <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500 dark:border-[#0d1b2a]" /> : null}
+        </span>
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open ? (
+        <div
+          role="menu"
+          className={`absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border shadow-[0_18px_45px_rgba(15,23,42,0.18)] ${
+            isLight ? "border-slate-200 bg-white" : "border-white/10 bg-[#0d1b2a]"
+          }`}
+        >
+          <div className={`border-b px-4 py-3.5 ${isLight ? "border-slate-100" : "border-white/10"}`}>
+            <p className={`truncate text-sm font-extrabold ${isLight ? "text-slate-900" : "text-white"}`}>
+              {!loaded ? "Comprobando sesión…" : user?.name ?? "Cuenta ciudadana"}
+            </p>
+            <p className={`mt-1 text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+              {user ? portalRoleLabels[user.role] ?? user.role : "Acceso mediante Cidituc"}
+            </p>
+          </div>
+
+          {user ? (
+            <div className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold ${isLight ? "text-slate-400" : "text-slate-500"}`}>
+              <LogIn className="h-4 w-4" />
+              <span>Ingresar</span>
+              <span className="ml-auto text-[10px] font-bold uppercase tracking-wide">Sesión activa</span>
+            </div>
+          ) : (
+            <Link
+              href="/ingresar"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className={`flex items-center gap-3 px-4 py-3 text-sm font-bold transition ${
+                isLight ? "text-slate-700 hover:bg-sky-50 hover:text-sky-700" : "text-slate-200 hover:bg-white/[0.06] hover:text-sky-200"
+              }`}
+            >
+              <LogIn className="h-4 w-4" />
+              Ingresar
+            </Link>
+          )}
+
+          <button
+            type="button"
+            role="menuitem"
+            onClick={logout}
+            disabled={!user}
+            className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-bold transition ${
+              user
+                ? isLight
+                  ? "text-slate-700 hover:bg-rose-50 hover:text-rose-600"
+                  : "text-slate-200 hover:bg-rose-400/10 hover:text-rose-300"
+                : isLight
+                  ? "cursor-not-allowed text-slate-300"
+                  : "cursor-not-allowed text-slate-600"
+            }`}
+          >
+            <LogOut className="h-4 w-4" />
+            Cerrar sesión
+          </button>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

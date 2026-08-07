@@ -11,7 +11,7 @@ const policies = [
   {
     icon: KeyRound,
     title: "Autenticación",
-    detail: "Acceso con correo y contraseña con hash seguro. Cuando SIDITUC esté activo, la identidad se valida contra el padrón municipal y el alta local se cierra."
+    detail: "Cidituc es el único proveedor de identidad. UrbanIA valida cada token contra el backend municipal, crea o vincula la cuenta local y conserva aquí sus roles y permisos."
   },
   {
     icon: Clock3,
