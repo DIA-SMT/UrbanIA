@@ -91,15 +91,15 @@ export const citizenTools: ToolGuide[] = [
   {
     icon: CalendarDays,
     name: "Audiencias públicas",
-    href: "/audiencias",
+    href: "/audiencias-publicas",
     ctaLabel: "Ver el registro",
     oneLiner: "El registro público de las audiencias sobre el nuevo Código.",
     paraQue:
-      "Cada audiencia pública queda registrada acá: cuándo fue, de qué se habló, el acta con la transcripción y las conclusiones. Es la memoria pública del debate sobre las normas de la ciudad.",
+      "Cada audiencia pública queda registrada acá: cuándo fue, dónde, de qué se habló y a qué se llegó. Es la memoria pública del debate sobre las normas de la ciudad.",
     pasos: [
-      "Entrá a Audiencias y recorré el registro: cada tarjeta es una audiencia con su fecha y su estado.",
-      "Abrí una audiencia para ver su detalle: el resumen, los temas tratados y los participantes.",
-      "En el acta vas a encontrar la transcripción del debate y los cruces con las normas del código nuevo que se estaba discutiendo."
+      "Entrá a Audiencias y recorré el registro: arriba las próximas, abajo las que ya se realizaron.",
+      "Abrí una audiencia para ver su detalle: el tema principal, los temas tratados y, cuando el acta está publicada, el resumen y las conclusiones.",
+      "Si una audiencia todavía no tiene acta, la pantalla te lo aclara: se publica cuando la Municipalidad la aprueba."
     ]
   },
   {
