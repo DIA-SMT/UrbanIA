@@ -5,6 +5,8 @@
  */
 
 export const AUDIT_ACTIONS = {
+  /// Ya no se genera: las cuentas nacen en el primer ingreso con Cidituc. Se
+  /// conserva la etiqueta para que los registros historicos se lean bien.
   USER_CREATED: "Alta manual",
   ROLE_CHANGED: "Cambio de rol",
   USER_SUSPENDED: "Suspensión",

@@ -64,7 +64,7 @@ export function shellTourSteps(role: string | null): TourStep[] {
           {
             anchor: "nav-config",
             title: "Configuración (solo administradores)",
-            body: "El panel de accesos: quién entra al sistema y qué puede hacer. Adentro están Usuarios, Roles, Permisos, Solicitudes de acceso, la integración con SIDITUC, Seguridad y la auditoría de todos los cambios."
+            body: "El panel de accesos: quién entra al sistema y qué puede hacer. Adentro están Usuarios, Roles, Permisos, Solicitudes de acceso, la integración con Cidituc, Seguridad y la auditoría de todos los cambios."
           }
         ]
       : []),
@@ -122,12 +122,12 @@ export const FORO_TOUR: TourStep[] = [
 export const USUARIOS_TOUR: TourStep[] = [
   {
     title: "Usuarios y accesos",
-    body: "Acá se administra quién entra a UrbanIA y qué puede hacer. La regla del sistema: las identidades pertenecen a SIDITUC; UrbanIA no crea personas, las autoriza."
+    body: "Acá se administra quién entra a UrbanIA y qué puede hacer. La regla del sistema: las identidades pertenecen a Cidituc; UrbanIA no crea personas, las autoriza."
   },
   {
     anchor: "config-nav",
     title: "Las siete secciones",
-    body: "Usuarios es la pantalla principal. Roles y Permisos muestran qué habilita cada rol; Solicitudes y SIDITUC se activan con la integración; Seguridad explica las políticas vigentes y Auditoría guarda cada cambio."
+    body: "Usuarios es la pantalla principal. Roles y Permisos muestran qué habilita cada rol; Cidituc aprovisiona las identidades; Seguridad explica las políticas vigentes y Auditoría guarda cada cambio."
   },
   {
     anchor: "usuarios-buscador",
@@ -135,9 +135,8 @@ export const USUARIOS_TOUR: TourStep[] = [
     body: "El buscador va por nombre, apellido, DNI, correo, área o dependencia mientras escribís. Los filtros acotan por rol, estado y área."
   },
   {
-    anchor: "usuarios-crear",
-    title: "Crear usuario (provisorio)",
-    body: "Alta manual mientras SIDITUC no esté integrado: nombre y apellido, correo, cargo, contraseña y rol. Cuando la integración se active, este botón desaparece y las cuentas se vinculan desde Solicitudes de acceso."
+    title: "Las cuentas llegan de Cidituc",
+    body: "Acá no se dan de alta usuarios: la cuenta se crea sola en el primer ingreso con Cidituc. El equipo administrador asigna roles, áreas y estados de acceso, sin gestionar contraseñas."
   },
   {
     anchor: "usuarios-tabla",

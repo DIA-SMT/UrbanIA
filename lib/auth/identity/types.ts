@@ -1,28 +1,24 @@
-/**
- * Capa de identidad de UrbanIA. La identidad (quién sos) es de SIDITUC;
- * UrbanIA solo autoriza (qué podés hacer). Mientras la integración no esté
- * activa, el proveedor local (email + contraseña) sigue operando.
- */
-
-export type IdentityProviderId = "local" | "sidituc";
-
-export type SiditucPerson = {
+/** Identidad municipal validada por Cidituc. */
+export type CiditucPerson = {
+  id: string;
+  cuil: string;
   dni: string;
   firstName: string;
   lastName: string;
   email: string | null;
-  /** Estado de la cuenta en el padrón municipal. */
-  accountStatus: "VERIFIED" | "UNVERIFIED" | "NOT_FOUND";
+  birthDate: string | null;
+  accountStatus: "VERIFIED";
 };
 
 export type IdentityLookupResult =
-  | { ok: true; person: SiditucPerson }
-  | { ok: false; error: "NOT_CONFIGURED" | "NOT_FOUND" | "UNAVAILABLE" };
+  | { ok: true; person: CiditucPerson }
+  | {
+      ok: false;
+      error: "NOT_CONFIGURED" | "INVALID_TOKEN" | "ACCOUNT_INACTIVE" | "UNAVAILABLE";
+    };
 
 export interface IdentityProvider {
-  readonly id: IdentityProviderId;
-  /** true cuando el proveedor está operativo en este entorno. */
+  readonly id: "cidituc";
   isEnabled(): boolean;
-  /** Busca una persona por DNI en la fuente de identidad. */
-  lookupByDni(dni: string): Promise<IdentityLookupResult>;
+  validateToken(token: string): Promise<IdentityLookupResult>;
 }

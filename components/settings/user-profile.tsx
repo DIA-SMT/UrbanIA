@@ -37,8 +37,8 @@ export type ProfileData = {
   birthDate: string | null;
   lastLoginAt: string | null;
   createdAt: string;
-  siditucId: string | null;
-  siditucVerifiedAt: string | null;
+  ciditucId: string | null;
+  ciditucVerifiedAt: string | null;
   areaName: string | null;
   dependencyName: string | null;
   counts: { proposals: number; projects: number; comments: number; contributions: number };
@@ -154,17 +154,17 @@ function InfoTab({ profile }: { profile: ProfileData }) {
         </dl>
       </section>
       <section className="surface-panel p-5">
-        <h3 className="text-sm font-black text-slate-950 dark:text-white">Información SIDITUC</h3>
-        {profile.siditucId ? (
+        <h3 className="text-sm font-black text-slate-950 dark:text-white">Información Cidituc</h3>
+        {profile.ciditucId ? (
           <dl className="mt-4 space-y-3 text-sm">
-            <InfoRow label="Identidad vinculada" value={profile.siditucId} />
-            <InfoRow label="Verificada el" value={formatDateTime(profile.siditucVerifiedAt)} />
+            <InfoRow label="Identidad vinculada" value={profile.ciditucId} />
+            <InfoRow label="Verificada el" value={formatDateTime(profile.ciditucVerifiedAt)} />
           </dl>
         ) : (
           <div className="mt-4 flex items-start gap-3 rounded-xl border border-dashed border-slate-300 p-4 dark:border-white/15">
             <CircleDashed className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
             <div>
-              <p className="text-sm font-bold text-slate-600 dark:text-slate-300">Cuenta sin vincular a SIDITUC</p>
+              <p className="text-sm font-bold text-slate-600 dark:text-slate-300">Cuenta sin vincular a Cidituc</p>
               <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
                 Cuando la integración esté activa, la identidad de esta cuenta se validará contra el padrón municipal y los datos personales llegarán como información canónica.
               </p>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { UserRole, UserStatus } from "@prisma/client";
 import { getSettingsSession } from "@/lib/settings/guard";
-import { handleUserAction, handleUserCreate } from "@/lib/settings/api/user-actions";
+import { handleUserAction } from "@/lib/settings/api/user-actions";
 import { listCatalog, listUsers } from "@/lib/settings/users";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic";
  * GET  ?action=users&search=&role=&status=&areaId=&page=  → listado paginado
  * GET  ?action=catalog                                    → áreas y dependencias
  * PATCH ?action=user&id=<userId>                          → mutaciones (rol/estado/perfil)
- * POST ?action=create-user                                → alta manual provisoria (hasta SIDITUC)
+ *
+ * No hay alta de usuarios: las cuentas nacen en el primer ingreso con Cidituc.
  */
 
 function parseEnum<T extends Record<string, string>>(value: string | null, options: T): T[keyof T] | undefined {
@@ -52,20 +53,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: `Acción desconocida: ${action}` }, { status: 400 });
   } catch (error) {
     console.error("Fallo la API de configuración", error);
-    return NextResponse.json({ error: "No se pudo completar la operación." }, { status: 500 });
-  }
-}
-
-export async function POST(request: Request) {
-  const { searchParams } = new URL(request.url);
-  if (searchParams.get("action") !== "create-user") {
-    return NextResponse.json({ error: "Acción desconocida." }, { status: 400 });
-  }
-
-  try {
-    return await handleUserCreate(request);
-  } catch (error) {
-    console.error("Fallo el alta manual de usuario", error);
     return NextResponse.json({ error: "No se pudo completar la operación." }, { status: 500 });
   }
 }

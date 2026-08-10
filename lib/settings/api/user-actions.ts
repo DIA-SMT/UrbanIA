@@ -4,8 +4,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { hashPassword } from "@/lib/auth/password";
-import { siditucProvider } from "@/lib/auth/identity/sidituc";
 import { getSettingsSession, requestMetadata } from "@/lib/settings/guard";
 import { roleLabels, statusLabels } from "@/lib/settings/shared";
 import type { AuditAction } from "@/lib/settings/audit";
@@ -139,90 +137,6 @@ export async function handleUserAction(request: Request, userId: string) {
     reason: null
   });
   return NextResponse.json({ ok: true });
-}
-
-const createUserSchema = z.object({
-  name: z.string().trim().min(1, "El nombre es obligatorio").max(80),
-  lastName: z.string().trim().min(1, "El apellido es obligatorio").max(80),
-  email: z.string().trim().toLowerCase().email("El correo no es válido"),
-  occupation: z.string().trim().max(120).optional(),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").max(100),
-  role: z.nativeEnum(UserRole),
-  areaId: z.string().trim().nullable().optional(),
-  dependencyId: z.string().trim().nullable().optional()
-});
-
-/**
- * POST /api/settings?action=create-user. Alta manual PROVISORIA: existe solo
- * hasta que la integración SIDITUC esté activa; con el flag prendido se
- * bloquea, porque ahí las cuentas deben nacer de la vinculación de identidad.
- */
-export async function handleUserCreate(request: Request) {
-  const session = await getSettingsSession("users.manage");
-  if (!session) {
-    return NextResponse.json({ error: "Necesitás permisos de administración de usuarios." }, { status: 403 });
-  }
-
-  if (siditucProvider.isEnabled()) {
-    return NextResponse.json(
-      { error: "El alta manual está deshabilitada: con SIDITUC activo, las cuentas se vinculan desde Solicitudes de acceso." },
-      { status: 409 }
-    );
-  }
-
-  const parsed = createUserSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.errors[0]?.message ?? "Datos inválidos." }, { status: 400 });
-  }
-  const body = parsed.data;
-
-  const existing = await prisma.user.findUnique({ where: { email: body.email }, select: { id: true } });
-  if (existing) {
-    return NextResponse.json({ error: "Ya existe una cuenta con ese correo." }, { status: 409 });
-  }
-
-  if (body.dependencyId) {
-    const dependency = await prisma.dependency.findUnique({ where: { id: body.dependencyId }, select: { areaId: true } });
-    if (!dependency || dependency.areaId !== body.areaId) {
-      return NextResponse.json({ error: "La dependencia no pertenece al área seleccionada." }, { status: 400 });
-    }
-  }
-
-  const passwordHash = await hashPassword(body.password);
-  const { ip, userAgent } = requestMetadata(request);
-
-  // Alta y bitácora en la misma transacción, como toda mutación del módulo:
-  // no existe cuenta creada sin su asiento de auditoría.
-  const user = await prisma.$transaction(async (tx) => {
-    const created = await tx.user.create({
-      data: {
-        name: body.name,
-        lastName: body.lastName,
-        email: body.email,
-        occupation: body.occupation || null,
-        passwordHash,
-        role: body.role,
-        status: "ACTIVE",
-        areaId: body.areaId || null,
-        dependencyId: body.dependencyId || null
-      }
-    });
-    await tx.userAuditLog.create({
-      data: {
-        actorId: session.userId,
-        targetUserId: created.id,
-        action: "USER_CREATED" satisfies AuditAction,
-        previousValue: null,
-        newValue: roleLabels[body.role],
-        reason: "Alta manual provisoria (SIDITUC pendiente)",
-        ip,
-        userAgent
-      }
-    });
-    return created;
-  });
-
-  return NextResponse.json({ ok: true, userId: user.id });
 }
 
 type AuditEntry = {
