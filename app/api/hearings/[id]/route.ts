@@ -16,7 +16,7 @@ import { handleFicha } from "@/lib/hearings/api/ficha";
 import { handleFinalize } from "@/lib/hearings/api/finalize";
 import { handleGenerateAnalysis } from "@/lib/hearings/api/generate-analysis";
 import { handleRetryIngest } from "@/lib/hearings/api/retry-ingest";
-import { handleSummaryPdf } from "@/lib/hearings/api/summary";
+import { handlePublishSummary, handleSummaryPdf, handleUnpublishSummary } from "@/lib/hearings/api/summary";
 import { getHearing, updateHearing } from "@/lib/hearings/data";
 import { removeHearingAudioFolder, removeHearingDocument } from "@/lib/storage/supabase";
 
@@ -56,7 +56,10 @@ const POST_ACTIONS = {
   draft: handleDraft,
   finalize: handleFinalize,
   "generate-analysis": handleGenerateAnalysis,
-  "retry-ingest": handleRetryIngest
+  "retry-ingest": handleRetryIngest,
+  // Resumen ejecutivo para la ciudadania: se genera, se revisa y se publica.
+  "publicar-resumen": handlePublishSummary,
+  "despublicar-resumen": handleUnpublishSummary
 } as const;
 
 type PostAction = keyof typeof POST_ACTIONS;

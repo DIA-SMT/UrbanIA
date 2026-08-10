@@ -627,6 +627,13 @@ model Meeting {
   projectAttachments ProjectAttachment[]
   normMatches        HearingNormMatch[]
   debates            Debate[]
+  /// Resumen ejecutivo PUBLICADO para la ciudadania. El PDF se genera con IA y
+  /// lo revisa una persona antes de publicarlo: el portal solo muestra este
+  /// archivo ya aprobado, nunca dispara una generacion.
+  publicSummaryUrl   String?
+  /// Ruta en Supabase Storage, para reemplazarlo o borrarlo al despublicar.
+  publicSummaryPath  String?
+  publicSummaryAt    DateTime?
   /// Presente solo si kind=PUBLIC_HEARING.
   hearingRecord      HearingRecord?
 

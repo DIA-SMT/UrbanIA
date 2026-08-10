@@ -94,7 +94,8 @@ export const sidebarSections: SidebarSection[] = [
   {
     title: "Ayuda",
     icon: LifeBuoy,
-    href: "/ayuda",
+    href: "/admin/ayuda",
+    internalOnly: true,
     items: []
   }
 ];
