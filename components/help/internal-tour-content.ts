@@ -135,9 +135,8 @@ export const USUARIOS_TOUR: TourStep[] = [
     body: "El buscador va por nombre, apellido, DNI, correo, área o dependencia mientras escribís. Los filtros acotan por rol, estado y área."
   },
   {
-    anchor: "usuarios-crear",
-    title: "Crear usuario (provisorio)",
-    body: "Las cuentas se crean en el primer ingreso con Cidituc. Desde aquí el equipo administrador asigna roles, áreas y estados de acceso sin gestionar contraseñas."
+    title: "Las cuentas llegan de Cidituc",
+    body: "Acá no se dan de alta usuarios: la cuenta se crea sola en el primer ingreso con Cidituc. El equipo administrador asigna roles, áreas y estados de acceso, sin gestionar contraseñas."
   },
   {
     anchor: "usuarios-tabla",

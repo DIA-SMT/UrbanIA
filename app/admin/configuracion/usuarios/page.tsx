@@ -29,7 +29,6 @@ export default async function UsuariosPage() {
         initialData={initialData}
         catalog={catalog}
         sessionUserId={session.userId}
-        canCreateManually={false}
       />
     </div>
   );
