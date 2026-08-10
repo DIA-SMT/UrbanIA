@@ -61,7 +61,7 @@ export function PortalHeader({
 }: {
   isLight: boolean;
   onToggleTheme: () => void;
-  active?: "inicio" | "codigo" | "presentar";
+  active?: "inicio" | "codigo" | "presentar" | "ayuda";
   /** Si la pantalla tiene recorrido guiado, esto muestra "¿Como funciona?". */
   onStartTour?: () => void;
 }) {
@@ -95,7 +95,7 @@ export function PortalHeader({
           <NavLink href="/" label="Inicio" isLight={isLight} active={active === "inicio"} />
           <NavLink href="/codigo" label="Codigo" isLight={isLight} active={active === "codigo"} />
           <NavLink href="/presentar" label="Participacion" isLight={isLight} active={active === "presentar"} />
-          <NavLink href="/ayuda" label="Ayuda" isLight={isLight} dataTour="ayuda" />
+          <NavLink href="/ayuda" label="Ayuda" isLight={isLight} active={active === "ayuda"} dataTour="ayuda" />
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">

@@ -41,7 +41,7 @@ const PORTAL_TOUR: TourStep[] = [
   {
     anchor: "ayuda",
     title: "¿Necesitás más ayuda?",
-    body: "En la sección Ayuda tenés la guía completa de todas las herramientas, paso a paso, tanto para vecinos como para el equipo municipal."
+    body: "En la sección Ayuda tenés la guía completa del portal, paso a paso: el Código, Migue, cómo presentar una propuesta y cómo seguir las audiencias públicas."
   },
   {
     title: "¡Listo!",
