@@ -52,6 +52,28 @@ export async function handleCiditucStart(request: Request) {
   return response;
 }
 
+/**
+ * Ingreso de emergencia: la firma del token es valida pero el backend de
+ * Cidituc no contesta, asi que no tenemos los datos de la persona. Solo sirve
+ * para cuentas YA vinculadas y activas; devuelve null si no aplica, y ahi el
+ * llamador sigue con el error normal.
+ */
+async function entrarSinBackend(request: Request, ciditucId: string) {
+  const user = await prisma.user.findUnique({ where: { ciditucId } }).catch(() => null);
+  if (!user || user.status !== UserStatus.ACTIVE) return null;
+
+  console.warn(
+    `Cidituc no respondio; se admite a ${user.id} con la firma del token verificada localmente.`
+  );
+  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } }).catch(() => undefined);
+
+  const session = await createSessionToken({ userId: user.id, role: user.role });
+  const response = NextResponse.redirect(new URL(canAccessAdmin(user.role) ? "/admin" : "/", request.url), 303);
+  response.cookies.set(sessionCookieName, session, { ...cookieOptions, maxAge: 60 * 60 * 8 });
+  clearFlowCookies(response);
+  return response;
+}
+
 export async function handleCiditucCallback(request: Request) {
   const requestUrl = new URL(request.url);
   const token = requestUrl.searchParams.get("auth") ?? "";
@@ -67,6 +89,14 @@ export async function handleCiditucCallback(request: Request) {
 
   const result = await ciditucProvider.validateToken(token);
   if (!result.ok) {
+    // El backend no respondio, pero la FIRMA del token se verifico localmente:
+    // el token es autentico. Si esa persona ya tiene cuenta, la dejamos entrar
+    // con los datos que ya guardamos. Para un primer ingreso no alcanza: sin
+    // los datos de la persona no se puede crear la cuenta.
+    if (result.error === "UNAVAILABLE" && result.verifiedCiditucId) {
+      const respuesta = await entrarSinBackend(request, result.verifiedCiditucId);
+      if (respuesta) return respuesta;
+    }
     const response = NextResponse.redirect(ingresarUrl(request, ciditucErrorCode(result.error)), 303);
     clearFlowCookies(response);
     return response;
