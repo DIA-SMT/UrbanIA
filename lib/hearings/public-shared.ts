@@ -20,20 +20,7 @@ export type PublicHearingListItem = {
   location: string | null;
   topic: string | null;
   status: PublicHearingStatus;
-  /** Hay acta publicada (resumen o conclusiones) para leer en el detalle. */
-  hasRecord: boolean;
-};
-
-export type PublicHearingDetail = {
-  id: string;
-  title: string;
-  occurredAt: string | null;
-  location: string | null;
-  topic: string | null;
-  status: PublicHearingStatus;
-  summary: string | null;
-  topics: string[];
-  conclusions: string | null;
-  agreements: string | null;
-  nextSteps: string | null;
+  /** PDF del resumen ejecutivo, ya revisado y publicado por la Municipalidad. */
+  summaryUrl: string | null;
+  summaryPublishedAt: string | null;
 };

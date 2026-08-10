@@ -324,6 +324,9 @@ export type HearingAnalysisView = {
 export type HearingDetail = HearingListItem & {
   description: string | null;
   modality: string | null;
+  /** Resumen ejecutivo publicado en el portal ciudadano (null si no se publicó). */
+  publicSummaryUrl: string | null;
+  publicSummaryAt: string | null;
   hearingSource: HearingSource | null;
   createdAt: string;
   /**

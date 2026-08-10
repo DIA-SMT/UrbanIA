@@ -12,6 +12,7 @@ import {
   ExternalLink,
   FileDown,
   FileText,
+  Globe,
   Loader2,
   MapPin,
   MessageSquareText,
@@ -178,6 +179,9 @@ export function HearingDetail({
   const [summaryDownloading, setSummaryDownloading] = useState(false);
   const [summaryError, setSummaryError] = useState("");
   const [summaryDownload, setSummaryDownload] = useState<SummaryDownload | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publishedAt, setPublishedAt] = useState<string | null>(hearing.publicSummaryAt ?? null);
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(hearing.publicSummaryUrl ?? null);
   const summaryDownloadUrl = useRef<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState("");
@@ -329,6 +333,43 @@ export function HearingDetail({
     }
   }
 
+  async function publishSummary() {
+    setSummaryError("");
+    setPublishing(true);
+    try {
+      const response = await fetch(`/api/hearings/${hearing.id}?action=publicar-resumen`, { method: "POST" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.detail || payload.error || "No se pudo publicar el resumen.");
+      }
+      setPublishedAt(new Date().toISOString());
+      setPublishedUrl(payload.url ?? null);
+    } catch (error) {
+      setSummaryError(error instanceof Error ? error.message : "No se pudo publicar el resumen.");
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  async function unpublishSummary() {
+    if (!window.confirm("¿Quitar el resumen del portal ciudadano? Los vecinos dejan de poder descargarlo.")) return;
+    setSummaryError("");
+    setPublishing(true);
+    try {
+      const response = await fetch(`/api/hearings/${hearing.id}?action=despublicar-resumen`, { method: "POST" });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || payload.error || "No se pudo quitar el resumen del portal.");
+      }
+      setPublishedAt(null);
+      setPublishedUrl(null);
+    } catch (error) {
+      setSummaryError(error instanceof Error ? error.message : "No se pudo quitar el resumen del portal.");
+    } finally {
+      setPublishing(false);
+    }
+  }
+
   async function downloadSummary() {
     setSummaryError("");
     setSummaryDownloading(true);
@@ -472,6 +513,31 @@ export function HearingDetail({
                 {summaryDownloading ? "Generando PDF…" : summaryDownload ? "Volver a generar PDF" : "Generar resumen PDF"}
               </button>
             ) : null}
+            {canEdit && (hearing.transcriptSegments.length > 0 || hearing.documents.length > 0) ? (
+              // Publicar sube el PDF al portal ciudadano. Se genera de nuevo al
+              // publicar para que lo que ve el vecino sea la version vigente.
+              <button
+                type="button"
+                onClick={publishSummary}
+                disabled={publishing}
+                aria-busy={publishing}
+                title="Genera el resumen y lo publica en el portal ciudadano para que cualquier vecino pueda descargarlo"
+                className="urban-button inline-flex items-center gap-1.5 rounded-md border border-sky-300/30 bg-sky-300/10 px-3 py-1.5 text-xs font-black text-sky-100 disabled:cursor-wait disabled:opacity-60"
+              >
+                {publishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Globe className="h-3.5 w-3.5" />}
+                {publishing ? "Publicando…" : publishedAt ? "Actualizar el publicado" : "Publicar para la ciudadanía"}
+              </button>
+            ) : null}
+            {canEdit && publishedAt ? (
+              <button
+                type="button"
+                onClick={unpublishSummary}
+                disabled={publishing}
+                className="urban-button inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-bold text-slate-300 disabled:opacity-60"
+              >
+                Quitar del portal
+              </button>
+            ) : null}
             {canDelete ? (
               <button
                 type="button"
@@ -495,6 +561,23 @@ export function HearingDetail({
         {summaryError ? (
           <p role="alert" aria-live="assertive" className="mt-2 text-xs font-bold text-amber-200">
             {summaryError}
+          </p>
+        ) : null}
+        {publishing ? (
+          <p role="status" aria-live="polite" className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-sky-200">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Generando y publicando el resumen para la ciudadanía. Puede tardar hasta un minuto.
+          </p>
+        ) : null}
+        {publishedAt && !publishing ? (
+          <p className="mt-2 inline-flex flex-wrap items-center gap-1.5 text-xs font-bold text-emerald-200">
+            <Globe className="h-3.5 w-3.5" />
+            Publicado en el portal ciudadano
+            {publishedUrl ? (
+              <a href={publishedUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                ver el PDF publicado
+              </a>
+            ) : null}
           </p>
         ) : null}
         {summaryDownload ? (

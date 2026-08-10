@@ -49,7 +49,7 @@ export function PublicHearings({ hearings }: { hearings: PublicHearingListItem[]
           </h1>
           <p className={`mt-2 max-w-3xl text-sm leading-6 ${isLight ? "text-slate-600" : "text-slate-300"}`}>
             La memoria pública del debate sobre las normas de la ciudad. Cada audiencia queda registrada con su fecha, los
-            temas que se trataron y las conclusiones a las que se llegó.
+            temas que se trataron y el resumen ejecutivo en PDF que publica la Municipalidad.
           </p>
         </header>
 
@@ -103,16 +103,13 @@ export function PublicHearings({ hearings }: { hearings: PublicHearingListItem[]
 
 function HearingRow({ hearing, isLight }: { hearing: PublicHearingListItem; isLight: boolean }) {
   return (
-    <Link
-      href={`/audiencias-publicas/${hearing.id}`}
-      className={`group flex flex-wrap items-center gap-4 rounded-2xl border p-4 transition ${
-        isLight
-          ? "border-slate-200/80 bg-white shadow-card hover:border-sky-300 hover:shadow-card-hover"
-          : "border-white/10 bg-[#0d1b2a] hover:border-sky-400/40"
+    <article
+      className={`flex flex-wrap items-center gap-4 rounded-2xl border p-4 ${
+        isLight ? "border-slate-200/80 bg-white shadow-card" : "border-white/10 bg-[#0d1b2a]"
       }`}
     >
       <div className="min-w-0 flex-1">
-        <p className={`truncate text-base font-black ${isLight ? "text-slate-900" : "text-white"}`}>{hearing.title}</p>
+        <h3 className={`text-base font-black ${isLight ? "text-slate-900" : "text-white"}`}>{hearing.title}</h3>
         <p className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
           <span className="inline-flex items-center gap-1.5">
             <CalendarDays className="h-3.5 w-3.5" aria-hidden />
@@ -124,19 +121,32 @@ function HearingRow({ hearing, isLight }: { hearing: PublicHearingListItem; isLi
               {hearing.location}
             </span>
           ) : null}
-          {hearing.hasRecord ? (
-            <span className="inline-flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5" aria-hidden />
-              Con acta publicada
-            </span>
-          ) : null}
         </p>
+        {hearing.topic ? (
+          <p className={`mt-1.5 text-sm leading-6 ${isLight ? "text-slate-600" : "text-slate-300"}`}>{hearing.topic}</p>
+        ) : null}
       </div>
-      <span
-        className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${statusClasses[hearing.status]}`}
-      >
-        {publicHearingStatusLabels[hearing.status]}
-      </span>
-    </Link>
+
+      <div className="flex shrink-0 items-center gap-3">
+        <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${statusClasses[hearing.status]}`}>
+          {publicHearingStatusLabels[hearing.status]}
+        </span>
+        {hearing.summaryUrl ? (
+          <a
+            href={hearing.summaryUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="urban-button inline-flex items-center gap-2 rounded-xl bg-[#1f89f6] px-3.5 py-2 text-xs font-bold text-white shadow-[0_8px_24px_rgba(31,137,246,0.22)] hover:bg-[#087bec]"
+          >
+            <FileText className="h-4 w-4" aria-hidden />
+            Resumen (PDF)
+          </a>
+        ) : (
+          <span className={`text-xs font-semibold ${isLight ? "text-slate-400" : "text-slate-500"}`}>
+            Resumen en elaboración
+          </span>
+        )}
+      </div>
+    </article>
   );
 }
