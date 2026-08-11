@@ -147,7 +147,9 @@ export async function handleCiditucCallback(request: Request) {
           data: {
             ciditucId: person.id,
             ciditucVerifiedAt: now,
-            name: person.firstName,
+            // Cidituc puede devolver el nombre vacio (la columna admite NULL):
+            // en ese caso se conserva el que ya teniamos en vez de borrarlo.
+            name: person.firstName || existingUser.name,
             lastName: person.lastName || existingUser.lastName,
             email: email ?? existingUser.email,
             dni: person.dni,

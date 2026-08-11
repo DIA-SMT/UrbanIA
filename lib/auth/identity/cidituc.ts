@@ -1,23 +1,50 @@
 import { z } from "zod";
 import type { IdentityLookupResult, IdentityProvider } from "@/lib/auth/identity/types";
 import { verifyCiditucJwt } from "@/lib/auth/identity/cidituc-jwt";
+import { getDeCidituc, motivoDeFallo } from "@/lib/auth/identity/cidituc-https";
 
 const flagSchema = z.union([z.boolean(), z.number(), z.string()]).nullish();
 
-const ciditucResponseSchema = z.object({
-  usuarioSinContraseña: z
-    .object({
-      id_persona: z.union([z.number(), z.string()]),
-      documento_persona: z.union([z.number(), z.string()]),
-      nombre_persona: z.string().trim().min(1),
-      apellido_persona: z.string().trim().nullable().optional(),
-      email_persona: z.string().trim().nullable().optional(),
-      fecha_nacimiento_persona: z.string().nullable().optional(),
-      validado: flagSchema,
-      habilita: flagSchema
-    })
-    .passthrough()
-});
+/**
+ * El backend hace `SELECT p.*` sobre MySQL, asi que un campo con columna
+ * numerica llega como numero y una columna vacia llega como null. Exigir string
+ * descartaba personas validas en silencio: todo el parseo fallaba y el usuario
+ * veia "Cidituc no esta disponible" con el backend andando perfecto.
+ */
+const textoDeCidituc = z
+  .union([z.string(), z.number()])
+  .nullish()
+  .transform((valor) => {
+    if (typeof valor === "number") return Number.isFinite(valor) ? String(valor) : null;
+    const limpio = valor?.trim() ?? "";
+    return limpio === "" ? null : limpio;
+  });
+
+/** Sin id ni documento no hay nada que hacer; el resto es tolerante. */
+const personaSchema = z
+  .object({
+    id_persona: z.union([z.number(), z.string()]),
+    documento_persona: z.union([z.number(), z.string()]),
+    nombre_persona: textoDeCidituc,
+    apellido_persona: textoDeCidituc,
+    email_persona: textoDeCidituc,
+    fecha_nacimiento_persona: textoDeCidituc,
+    validado: flagSchema,
+    habilita: flagSchema
+  })
+  .passthrough();
+
+/**
+ * Cada endpoint de Cidituc envuelve a la persona con una clave distinta:
+ * /usuarios/authStatus usa `usuarioSinContraseña` (ciudadanos, el que usamos) y
+ * /usuarios/authStatusIA usa `user` (empleados municipales). Se aceptan las dos
+ * y tambien la forma plana, por si el backend cambia.
+ */
+function desenvolverPersona(cuerpo: unknown): unknown {
+  if (!cuerpo || typeof cuerpo !== "object") return cuerpo;
+  const contenedor = cuerpo as Record<string, unknown>;
+  return contenedor["usuarioSinContraseña"] ?? contenedor["user"] ?? contenedor;
+}
 
 function enabledFlag(value: boolean | number | string) {
   if (typeof value === "boolean") return value;
@@ -76,28 +103,42 @@ export const ciditucProvider: IdentityProvider = {
 
     try {
       const apiUrl = process.env.CIDITUC_API_URL.replace(/\/$/, "");
-      const response = await fetch(`${apiUrl}/usuarios/authStatus`, {
-        method: "GET",
-        headers: { Accept: "application/json", Authorization: token },
-        cache: "no-store",
-        redirect: "error",
-        signal: AbortSignal.timeout(10_000)
-      });
+      const response = await getDeCidituc(`${apiUrl}/usuarios/authStatus`, token, 10_000);
 
       if (response.status === 401 || response.status === 403) {
         return { ok: false, error: "INVALID_TOKEN" };
       }
-      if (!response.ok) {
+      if (response.status < 200 || response.status >= 300) {
+        // Con el host y el status en el log se distingue de un vistazo si la
+        // URL apunta a otro lado (404) o si el backend esta caido (5xx). Sin
+        // esto, todo llega a la pantalla como un "no disponible" mudo.
+        console.error(
+          `Cidituc respondio ${response.status} en ${new URL(apiUrl).host}/usuarios/authStatus. ` +
+            "Si es 404, CIDITUC_API_URL apunta a un host que no sirve ese endpoint."
+        );
         return { ok: false, error: "UNAVAILABLE", verifiedCiditucId };
       }
 
-      const parsed = ciditucResponseSchema.safeParse(await response.json());
+      let cuerpo: unknown;
+      try {
+        cuerpo = JSON.parse(response.body);
+      } catch {
+        console.error("Cidituc respondio 2xx con algo que no es JSON.");
+        return { ok: false, error: "UNAVAILABLE", verifiedCiditucId };
+      }
+
+      const parsed = personaSchema.safeParse(desenvolverPersona(cuerpo));
       if (!parsed.success) {
-        console.error("Respuesta inesperada de Cidituc.", parsed.error.flatten());
+        // Solo los NOMBRES de los campos que fallaron: el cuerpo trae datos de
+        // la persona y no tiene por que quedar en los logs del hosting.
+        console.error(
+          "Respuesta inesperada de Cidituc. Campos con problema:",
+          Object.keys(parsed.error.flatten().fieldErrors).join(", ") || "(forma general)"
+        );
         return { ok: false, error: "UNAVAILABLE", verifiedCiditucId };
       }
 
-      const user = parsed.data.usuarioSinContraseña;
+      const user = parsed.data;
       // El login de Cidituc ya impide emitir el token para una cuenta con valor
       // 0. Algunas cuentas históricas usan otros valores positivos y algunas
       // respuestas no incluyen estos campos; solo rechazamos una baja explícita.
@@ -110,6 +151,12 @@ export const ciditucProvider: IdentityProvider = {
 
       const cuil = onlyDigits(user.documento_persona);
       if (cuil.length !== 11) {
+        // Era el unico camino de falla completamente mudo: cartel de "no
+        // disponible" con el backend respondiendo 200. Se loguea el largo, no el
+        // documento.
+        console.error(
+          `Cidituc devolvio un documento_persona de ${cuil.length} digitos; se esperaba un CUIL de 11.`
+        );
         return { ok: false, error: "UNAVAILABLE", verifiedCiditucId };
       }
 
@@ -119,19 +166,107 @@ export const ciditucProvider: IdentityProvider = {
           id: String(user.id_persona),
           cuil,
           dni: cuilToDni(cuil),
-          firstName: user.nombre_persona.trim(),
-          lastName: user.apellido_persona?.trim() ?? "",
-          email: user.email_persona?.trim().toLowerCase() || null,
+          firstName: user.nombre_persona ?? "",
+          lastName: user.apellido_persona ?? "",
+          email: user.email_persona?.toLowerCase() ?? null,
           birthDate: normalizedBirthDate(user.fecha_nacimiento_persona),
           accountStatus: "VERIFIED"
         }
       };
     } catch (error) {
-      console.error("No se pudo validar el token con Cidituc.", error instanceof Error ? error.message : error);
+      // Acá caen los fallos de red: DNS, timeout, TLS o un firewall que no deja
+      // salir a ese host desde donde corre la app. Se registra el host y el
+      // motivo para poder distinguirlo de una URL mal escrita.
+      const host = (() => {
+        try {
+          return new URL(process.env.CIDITUC_API_URL ?? "").host;
+        } catch {
+          return process.env.CIDITUC_API_URL ?? "(sin CIDITUC_API_URL)";
+        }
+      })();
+      console.error(`No se pudo conectar con Cidituc en ${host}: ${motivoDeFallo(error)}`);
       return { ok: false, error: "UNAVAILABLE", verifiedCiditucId };
     }
   }
 };
+
+export type CiditucDiagnostico = {
+  estado: "OK" | "RUTA_INCORRECTA" | "SIN_RESPUESTA" | "RESPUESTA_RARA" | "NO_CONFIGURADO";
+  titulo: string;
+  detalle: string;
+  /** Host consultado, para ver de un vistazo si la variable apunta a otro lado. */
+  host: string | null;
+};
+
+/**
+ * Prueba de conexion contra el backend de Cidituc, para la pantalla de
+ * integracion. Manda un token deliberadamente invalido: si el backend esta
+ * bien, responde 401. Cualquier otra cosa distingue "la URL apunta mal" de
+ * "no llegamos al servidor", que es la diferencia que hasta ahora solo se veia
+ * en los logs del hosting.
+ *
+ * Usa el MISMO transporte que el login (getDeCidituc). Con `fetch` mediria un
+ * camino distinto del que corre en el ingreso real, y podria dar verde con el
+ * login roto, o al reves.
+ */
+export async function diagnosticarCidituc(): Promise<CiditucDiagnostico> {
+  const configurada = process.env.CIDITUC_API_URL;
+  if (!configurada) {
+    return {
+      estado: "NO_CONFIGURADO",
+      titulo: "Falta CIDITUC_API_URL",
+      detalle: "Sin esa variable UrbanIA no tiene contra qué validar el token.",
+      host: null
+    };
+  }
+
+  let host: string;
+  try {
+    host = new URL(configurada).host;
+  } catch {
+    return {
+      estado: "NO_CONFIGURADO",
+      titulo: "CIDITUC_API_URL no es una URL válida",
+      detalle: `El valor cargado no se puede interpretar como URL: "${configurada}". Reviná que no tenga comillas ni espacios.`,
+      host: null
+    };
+  }
+
+  const endpoint = `${configurada.replace(/\/$/, "")}/usuarios/authStatus`;
+  try {
+    const response = await getDeCidituc(endpoint, "diagnostico-token-invalido", 8_000);
+
+    if (response.status === 401 || response.status === 403) {
+      return {
+        estado: "OK",
+        titulo: "El backend responde",
+        detalle: `Rechaza un token inválido con ${response.status}, que es lo esperado. La URL es correcta y hay conexión.`,
+        host
+      };
+    }
+    if (response.status === 404) {
+      return {
+        estado: "RUTA_INCORRECTA",
+        titulo: "El servidor responde, pero ahí no está el endpoint",
+        detalle: `${host} devolvió 404 en /usuarios/authStatus. CIDITUC_API_URL apunta a un host que no sirve la API de Cidituc.`,
+        host
+      };
+    }
+    return {
+      estado: "RESPUESTA_RARA",
+      titulo: `El backend respondió ${response.status}`,
+      detalle: `Se esperaba 401 para un token inválido. Puede estar caído o con un problema propio.`,
+      host
+    };
+  } catch (error) {
+    return {
+      estado: "SIN_RESPUESTA",
+      titulo: "No se pudo conectar con el backend",
+      detalle: `No hubo respuesta desde ${host}. Motivo: ${motivoDeFallo(error)}. Suele ser un firewall que no deja salir hacia ese host o puerto desde donde corre la app, o el servidor apagado.`,
+      host
+    };
+  }
+}
 
 export function ciditucIntegrationStatus() {
   return {

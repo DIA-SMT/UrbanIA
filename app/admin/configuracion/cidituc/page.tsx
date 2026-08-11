@@ -1,6 +1,15 @@
-import { CheckCircle2, CircleDashed, Fingerprint, Link2, ShieldCheck, UserCheck } from "lucide-react";
+import { CheckCircle2, CircleDashed, Fingerprint, Link2, ShieldCheck, TriangleAlert, UserCheck } from "lucide-react";
 import { requireSettingsAccess } from "@/lib/settings/guard";
-import { ciditucIntegrationStatus } from "@/lib/auth/identity/cidituc";
+import { ciditucIntegrationStatus, diagnosticarCidituc, type CiditucDiagnostico } from "@/lib/auth/identity/cidituc";
+
+/** Verde solo si el backend responde como corresponde; el resto pide acción. */
+const diagnosticoClases: Record<CiditucDiagnostico["estado"], string> = {
+  OK: "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:text-emerald-200",
+  RUTA_INCORRECTA: "border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-400/40 dark:bg-rose-400/10 dark:text-rose-200",
+  SIN_RESPUESTA: "border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-400/40 dark:bg-rose-400/10 dark:text-rose-200",
+  RESPUESTA_RARA: "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-200",
+  NO_CONFIGURADO: "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-200"
+};
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +27,7 @@ const flowSteps = [
 export default async function CiditucPage() {
   await requireSettingsAccess("settings.manage");
   const status = ciditucIntegrationStatus();
+  const diagnostico = await diagnosticarCidituc();
 
   return (
     <div>
@@ -72,6 +82,27 @@ export default async function CiditucPage() {
             <ConfigItem ok={status.apiUrlConfigured} label="API de validación" detail="Variable CIDITUC_API_URL del entorno." />
             <ConfigItem ok={status.callbackUrlConfigured} label="Callback de UrbanIA" detail="Variable CIDITUC_CALLBACK_URL del entorno." />
           </ul>
+          <div className="mt-5 border-t border-slate-200/80 pt-4 dark:border-white/10">
+            <h4 className="text-sm font-black text-slate-950 dark:text-white">Prueba de conexión</h4>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Se consulta la API con un token inválido a propósito: si todo está bien, tiene que rechazarlo.
+            </p>
+            <div className={`mt-3 rounded-xl border p-3.5 ${diagnosticoClases[diagnostico.estado]}`}>
+              <p className="flex items-center gap-1.5 text-sm font-bold">
+                {diagnostico.estado === "OK" ? (
+                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
+                ) : (
+                  <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden />
+                )}
+                {diagnostico.titulo}
+              </p>
+              <p className="mt-1 text-xs leading-5">{diagnostico.detalle}</p>
+              {diagnostico.host ? (
+                <p className="mt-1.5 text-[11px] font-semibold opacity-80">Host consultado: {diagnostico.host}</p>
+              ) : null}
+            </div>
+          </div>
+
           <p className="mt-5 rounded-xl border border-dashed border-slate-300 p-3.5 text-xs leading-5 text-slate-500 dark:border-white/15 dark:text-slate-400">
             Cidituc es el único acceso al sistema. UrbanIA valida el token recibido, aprovisiona la cuenta local y emite una sesión propia; los roles, permisos, suspensiones y auditoría permanecen bajo control de UrbanIA.
           </p>
