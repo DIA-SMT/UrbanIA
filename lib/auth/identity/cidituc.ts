@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { IdentityLookupResult, IdentityProvider } from "@/lib/auth/identity/types";
+import { verifyCiditucJwt } from "@/lib/auth/identity/cidituc-jwt";
 
 const flagSchema = z.union([z.boolean(), z.number(), z.string()]).nullish();
 
@@ -63,6 +64,16 @@ export const ciditucProvider: IdentityProvider = {
       return { ok: false, error: "INVALID_TOKEN" };
     }
 
+    // Primero la firma, que se verifica sin red: un token falso se descarta acá
+    // mismo y nunca llega al backend. Si no hay secreto configurado, la
+    // verificación queda como estaba (la hace el backend).
+    const verificacion = await verifyCiditucJwt(token);
+    if (verificacion.status === "INVALID") {
+      console.error("Token de Cidituc rechazado localmente:", verificacion.reason);
+      return { ok: false, error: "INVALID_TOKEN" };
+    }
+    const verifiedCiditucId = verificacion.status === "VALID" ? verificacion.claims.id : undefined;
+
     try {
       const apiUrl = process.env.CIDITUC_API_URL.replace(/\/$/, "");
       const response = await fetch(`${apiUrl}/usuarios/authStatus`, {
@@ -77,13 +88,13 @@ export const ciditucProvider: IdentityProvider = {
         return { ok: false, error: "INVALID_TOKEN" };
       }
       if (!response.ok) {
-        return { ok: false, error: "UNAVAILABLE" };
+        return { ok: false, error: "UNAVAILABLE", verifiedCiditucId };
       }
 
       const parsed = ciditucResponseSchema.safeParse(await response.json());
       if (!parsed.success) {
         console.error("Respuesta inesperada de Cidituc.", parsed.error.flatten());
-        return { ok: false, error: "UNAVAILABLE" };
+        return { ok: false, error: "UNAVAILABLE", verifiedCiditucId };
       }
 
       const user = parsed.data.usuarioSinContraseña;
@@ -99,7 +110,7 @@ export const ciditucProvider: IdentityProvider = {
 
       const cuil = onlyDigits(user.documento_persona);
       if (cuil.length !== 11) {
-        return { ok: false, error: "UNAVAILABLE" };
+        return { ok: false, error: "UNAVAILABLE", verifiedCiditucId };
       }
 
       return {
@@ -117,7 +128,7 @@ export const ciditucProvider: IdentityProvider = {
       };
     } catch (error) {
       console.error("No se pudo validar el token con Cidituc.", error instanceof Error ? error.message : error);
-      return { ok: false, error: "UNAVAILABLE" };
+      return { ok: false, error: "UNAVAILABLE", verifiedCiditucId };
     }
   }
 };

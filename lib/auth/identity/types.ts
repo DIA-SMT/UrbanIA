@@ -15,6 +15,13 @@ export type IdentityLookupResult =
   | {
       ok: false;
       error: "NOT_CONFIGURED" | "INVALID_TOKEN" | "ACCOUNT_INACTIVE" | "UNAVAILABLE";
+      /**
+       * id_persona de Cidituc cuando la FIRMA del token se pudo verificar
+       * localmente pero el backend no respondio. Prueba que el token es
+       * autentico aunque no tengamos los datos de la persona: alcanza para
+       * dejar entrar a alguien que ya tiene cuenta, no para crear una nueva.
+       */
+      verifiedCiditucId?: string;
     };
 
 export interface IdentityProvider {
