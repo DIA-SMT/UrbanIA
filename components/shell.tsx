@@ -50,6 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // razonando por rol.
   const permisos = new Set(user?.permissions ?? []);
   const visibleSections = sidebarSections.filter((section) => {
+    if (section.permission) return permisos.has(section.permission);
     if (section.adminOnly && !permisos.has("users.manage")) return false;
     if (section.internalOnly && !permisos.has("internal.view")) return false;
     return true;
