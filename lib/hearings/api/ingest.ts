@@ -5,7 +5,7 @@ import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { Prisma, type HearingSource } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { matchFullTranscript } from "@/lib/hearings/batch-match";
 import { runIngestJob } from "@/lib/hearings/ingest-job";
 import { parseTranscriptFile } from "@/lib/hearings/transcript";
@@ -81,7 +81,7 @@ export async function handleIngest(request: Request) {
 
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) {
+  if (!hasPermission(session, "hearings.create")) {
     return NextResponse.json({ error: "Sin permisos", detail: "Solo el equipo municipal puede cargar audiencias." }, { status: 403 });
   }
 

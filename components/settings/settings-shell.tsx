@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Fingerprint, Inbox, KeyRound, Lock, ScrollText, ShieldCheck, UserCog } from "lucide-react";
+import { Inbox, KeyRound, Lock, ScrollText, ShieldCheck, UserCog } from "lucide-react";
 
 const sections = [
   { label: "Usuarios", href: "/admin/configuracion/usuarios", icon: UserCog },
   { label: "Roles", href: "/admin/configuracion/roles", icon: ShieldCheck },
   { label: "Permisos", href: "/admin/configuracion/permisos", icon: KeyRound },
   { label: "Solicitudes", href: "/admin/configuracion/solicitudes", icon: Inbox },
-  { label: "Cidituc", href: "/admin/configuracion/cidituc", icon: Fingerprint },
   { label: "Seguridad", href: "/admin/configuracion/seguridad", icon: Lock },
   { label: "Auditoría", href: "/admin/configuracion/auditoria", icon: ScrollText }
 ];

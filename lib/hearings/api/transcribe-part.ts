@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { transcribeAudioFile } from "@/lib/ai/transcription";
 import { prisma } from "@/lib/db/prisma";
 import { transcribeChunkWithSpeakers } from "@/lib/hearings/asr-gemini";
@@ -28,7 +28,7 @@ export async function handleTranscribePart(request: Request, id: string) {
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "ai.execute")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {

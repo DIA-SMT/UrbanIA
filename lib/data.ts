@@ -1,6 +1,5 @@
 import {
   CalendarDays,
-  Fingerprint,
   Inbox,
   KeyRound,
   LifeBuoy,
@@ -86,7 +85,6 @@ export const sidebarSections: SidebarSection[] = [
       { label: "Roles", href: "/admin/configuracion/roles", icon: ShieldCheck },
       { label: "Permisos", href: "/admin/configuracion/permisos", icon: KeyRound },
       { label: "Solicitudes de acceso", href: "/admin/configuracion/solicitudes", icon: Inbox },
-      { label: "Integración Cidituc", href: "/admin/configuracion/cidituc", icon: Fingerprint },
       { label: "Seguridad", href: "/admin/configuracion/seguridad", icon: Lock },
       { label: "Auditoría", href: "/admin/configuracion/auditoria", icon: ScrollText }
     ]

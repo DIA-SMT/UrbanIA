@@ -42,9 +42,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // El filtro es cosmético (que un observador no vea un menú que le va a
   // rebotar); el permiso real se valida siempre en el server.
+  //
+  // Filtra por PERMISO y no por nombre de rol: las pantallas de Configuración ya
+  // piden users.manage / roles.manage / audit.view, así que mirar `role ===
+  // "ADMIN"` acá dejaba fuera del menú a un rol al que se le hubiera concedido
+  // esos permisos desde la matriz. Era el último lugar del módulo que seguía
+  // razonando por rol.
+  const permisos = new Set(user?.permissions ?? []);
   const visibleSections = sidebarSections.filter((section) => {
-    if (section.adminOnly && user?.role !== "ADMIN") return false;
-    if (section.internalOnly && (!user || user.role === "CITIZEN")) return false;
+    if (section.adminOnly && !permisos.has("users.manage")) return false;
+    if (section.internalOnly && !permisos.has("internal.view")) return false;
     return true;
   });
 
@@ -162,7 +169,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 type SidebarSection = (typeof sidebarSections)[number];
 
-type SessionUser = { name: string; role: string };
+type SessionUser = { name: string; role: string; permissions?: string[] };
 
 const roleLabels: Record<string, string> = {
   ADMIN: "Administración",

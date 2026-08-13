@@ -12,7 +12,7 @@ import { ARGUMENT_MAX_LENGTH, ARGUMENT_MIN_LENGTH } from "@/lib/foro/shared";
 
 async function requirePermission(permission: Permission) {
   const session = await getSessionUser();
-  if (!session || !hasPermission(session.role, permission)) return null;
+  if (!session || !hasPermission(session, permission)) return null;
   return session;
 }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { UserRole, UserStatus } from "@prisma/client";
 import { getSettingsSession } from "@/lib/settings/guard";
 import { handleUserAction } from "@/lib/settings/api/user-actions";
+import { handleRolePermissions } from "@/lib/settings/api/role-permissions";
 import { listCatalog, listUsers } from "@/lib/settings/users";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ export const dynamic = "force-dynamic";
  * GET  ?action=users&search=&role=&status=&areaId=&page=  → listado paginado
  * GET  ?action=catalog                                    → áreas y dependencias
  * PATCH ?action=user&id=<userId>                          → mutaciones (rol/estado/perfil)
+ * PATCH ?action=role-permissions                          → matriz rol/permiso
  *
  * No hay alta de usuarios: las cuentas nacen en el primer ingreso con Cidituc.
  */
@@ -59,7 +61,18 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   const { searchParams } = new URL(request.url);
-  if (searchParams.get("action") !== "user") {
+  const action = searchParams.get("action");
+
+  if (action === "role-permissions") {
+    try {
+      return await handleRolePermissions(request);
+    } catch (error) {
+      console.error("Fallo el guardado de permisos", error);
+      return NextResponse.json({ error: "No se pudo completar la operación." }, { status: 500 });
+    }
+  }
+
+  if (action !== "user") {
     return NextResponse.json({ error: "Acción desconocida." }, { status: 400 });
   }
   const id = searchParams.get("id");

@@ -4,6 +4,7 @@ import { askUrbanAssistant, hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { getNormativeExplorerData } from "@/lib/normative/data";
 import { retrieveRelevantArticles, type RetrievedArticle } from "@/lib/normative/search";
 import { retrieveKnowledge, citeChunk, type RagChunk } from "@/lib/ai/rag";
+import { canViewInternal, getSessionUser } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 import { applyOwnerCookie, resolveCpuOwner } from "@/lib/cpu/owner";
 import { attachmentSchema, buildAttachmentBlock, type QueryAttachment } from "@/lib/ai/attachment";
@@ -282,9 +283,20 @@ export async function handleCpuQuery(request: Request) {
     let knowledge: RagChunk[] = [];
     try {
       const articleNumbers = new Set(articles.map((article) => article.number));
+      // Defensa en profundidad: sin `publicOnly` el filtro de kinds queda vacio y
+      // el retrieval barre TODOS los KnowledgeSource, incluidos los que no son
+      // publicos (REPORT = informes de audiencia, MEETING = transcripciones). El
+      // guard de la ruta ya exige acceso interno, asi que en la practica esto no
+      // cambia lo que ve nadie hoy; esta para que un futuro relajamiento del
+      // guard no vuelva a abrir el RAG interno en silencio. Es lo mismo que hace
+      // Migue en lib/ai/rag.ts con options.mode.
+      const sesion = await getSessionUser();
+      const soloPublico = !sesion || !canViewInternal(sesion);
       const [primary, focused] = await Promise.all([
-        retrieveKnowledge(parsed.data.question, 8),
-        focusedQuery ? retrieveKnowledge(focusedQuery, 6) : Promise.resolve([] as RagChunk[])
+        retrieveKnowledge(parsed.data.question, 8, { publicOnly: soloPublico }),
+        focusedQuery
+          ? retrieveKnowledge(focusedQuery, 6, { publicOnly: soloPublico })
+          : Promise.resolve([] as RagChunk[])
       ]);
       const seen = new Set<string>();
       knowledge = [...focused, ...primary]

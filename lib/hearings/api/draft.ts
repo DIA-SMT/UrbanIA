@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { saveRecordFicha, syncRecordLifecycle } from "@/lib/hearings/record";
 
 
@@ -39,7 +39,7 @@ export async function handleDraft(request: Request, id: string) {
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "hearings.edit")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });

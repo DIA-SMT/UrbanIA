@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 
 
@@ -22,7 +22,7 @@ export async function handleOpinionDelete(request: Request, id: string, opinionI
 
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });  const parsed = removeSchema.safeParse(await request.json().catch(() => null));
+  if (!hasPermission(session, "projects.edit")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });  const parsed = removeSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Datos inválidos", detail: "Elegí tu nombre para borrar tu devolución." },

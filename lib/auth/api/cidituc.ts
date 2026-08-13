@@ -2,7 +2,8 @@ import { UserRole, UserStatus } from "@prisma/client";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { ciditucErrorCode, ciditucFlowMaxAge, ciditucStateCookieName, legacyCiditucCookieNames } from "@/lib/auth/cidituc-flow";
-import { canAccessAdmin, createSessionToken, sessionCookieName } from "@/lib/auth/session";
+import { createSessionToken, sessionCookieName } from "@/lib/auth/session";
+import { roleHasPermission } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 import { ciditucProvider } from "@/lib/auth/identity/cidituc";
 
@@ -68,7 +69,7 @@ async function entrarSinBackend(request: Request, ciditucId: string) {
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } }).catch(() => undefined);
 
   const session = await createSessionToken({ userId: user.id, role: user.role });
-  const response = NextResponse.redirect(new URL(canAccessAdmin(user.role) ? "/admin" : "/", request.url), 303);
+  const response = NextResponse.redirect(new URL((await roleHasPermission(user.role, "internal.view")) ? "/admin" : "/", request.url), 303);
   response.cookies.set(sessionCookieName, session, { ...cookieOptions, maxAge: 60 * 60 * 8 });
   clearFlowCookies(response);
   return response;
@@ -173,7 +174,7 @@ export async function handleCiditucCallback(request: Request) {
         });
 
     const session = await createSessionToken({ userId: user.id, role: user.role });
-    const response = NextResponse.redirect(new URL(canAccessAdmin(user.role) ? "/admin" : "/", request.url), 303);
+    const response = NextResponse.redirect(new URL((await roleHasPermission(user.role, "internal.view")) ? "/admin" : "/", request.url), 303);
     response.cookies.set(sessionCookieName, session, { ...cookieOptions, maxAge: 60 * 60 * 8 });
     clearFlowCookies(response);
     return response;

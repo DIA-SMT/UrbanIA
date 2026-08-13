@@ -15,7 +15,7 @@ export default async function ParticipacionPage() {
   const session = await getSessionUser();
   if (!session) redirect("/ingresar");
   // Es una bandeja de lectura/triage: el rol Consulta también puede verla.
-  if (!canViewInternal(session.role)) redirect("/");
+  if (!canViewInternal(session)) redirect("/");
 
   return <CitizenParticipation />;
 }

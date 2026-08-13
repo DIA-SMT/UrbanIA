@@ -180,6 +180,32 @@ model UserAuditLog {
   @@index([createdAt])
 }
 
+/// Matriz rol -> permiso. Una fila es un permiso CONCEDIDO; la ausencia de fila
+/// es denegación. La editan los administradores desde /admin/configuracion/permisos
+/// y se resuelve UNA vez por request dentro de `getSessionUser()`, para que los
+/// helpers de lib/auth/permissions sigan siendo síncronos.
+///
+/// `permission` es TEXT y no un enum, por la misma razón que `UserAuditLog.action`:
+/// el catálogo tiene que poder crecer con un deploy, sin migrar un tipo de
+/// Postgres. La fuente de verdad de las claves válidas es PERMISSION_CATALOG
+/// (lib/auth/permissions.ts); una fila con una clave que ya no esté en el catálogo
+/// se ignora al resolver, no rompe.
+///
+/// Sin columna de actor: quién cambió qué, con motivo, IP y dispositivo va a
+/// UserAuditLog en la misma transacción, igual que en lib/settings/api/user-actions.ts.
+model RolePermission {
+  id         String   @id @default(cuid())
+  role       UserRole
+  permission String
+  createdAt  DateTime @default(now())
+
+  /// Un permiso por rol. Hace idempotente al seed de la migración y evita que dos
+  /// administradores guardando a la vez dejen la misma concesión duplicada.
+  /// Alcanza también como índice de lectura: la resolución por request filtra por
+  /// `role`, que es el prefijo de esta clave compuesta.
+  @@unique([role, permission])
+}
+
 /// Solicitudes de acceso al sistema interno. La estructura queda lista desde
 /// ahora; empieza a poblarse cuando se active la integración Cidituc.
 model AccessRequest {

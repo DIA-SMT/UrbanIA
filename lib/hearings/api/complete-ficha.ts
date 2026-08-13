@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { extractFichaFromTranscript } from "@/lib/hearings/ficha-extract";
 
@@ -21,7 +21,7 @@ export async function handleCompleteFicha(request: Request, id: string) {
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "ai.execute")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
   if (!hasOpenRouterConfig()) {
     return NextResponse.json(

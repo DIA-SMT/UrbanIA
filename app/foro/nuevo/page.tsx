@@ -14,7 +14,7 @@ export const metadata = {
 export default async function NuevoDebatePage() {
   const session = await getSessionUser();
   if (!session) redirect("/ingresar");
-  if (!hasPermission(session.role, "debates.create")) redirect("/foro");
+  if (!hasPermission(session, "debates.create")) redirect("/foro");
 
   const linkable = await listLinkableItems();
 

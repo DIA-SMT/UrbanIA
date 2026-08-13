@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { MunicipalArea } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { analyzeReformDocument, UnreadablePdfError, UnusableAnalysisError } from "@/lib/normas/analyze-document";
 import { createNorm } from "@/lib/projects/data";
@@ -128,7 +128,7 @@ export async function handleDocumentsPost(request: Request, id: string) {
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "documents.upload")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   const body = await request.json().catch(() => null);
   const action = (body && typeof body === "object" && "action" in body ? body.action : "confirm") ?? "confirm";
 

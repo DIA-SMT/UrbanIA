@@ -14,7 +14,12 @@ export const AUDIT_ACTIONS = {
   ACCESS_REVOKED: "Acceso revocado",
   PROFILE_UPDATED: "Perfil actualizado",
   ACCESS_REQUEST_APPROVED: "Solicitud aprobada",
-  ACCESS_REQUEST_REJECTED: "Solicitud rechazada"
+  ACCESS_REQUEST_REJECTED: "Solicitud rechazada",
+  /// Cambios de la matriz rol -> permiso. No tienen usuario afectado: el cambio
+  /// es sobre un ROL, y le pega a todas las cuentas que lo tengan. La pantalla de
+  /// auditoría ya muestra "—" cuando targetUser es null.
+  ROLE_PERMISSION_GRANTED: "Permiso concedido",
+  ROLE_PERMISSION_REVOKED: "Permiso revocado"
 } as const;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;

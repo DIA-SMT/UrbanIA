@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { getHearing } from "@/lib/hearings/data";
 import { LiveSession } from "@/components/hearings/live/live-session";
@@ -17,7 +17,7 @@ export default async function AudienciaEnVivoPage({ params }: { params: Promise<
 
   const session = await getSessionUser();
   if (!session) redirect("/ingresar");
-  if (!isStaff(session.role)) redirect("/audiencias");
+  if (!hasPermission(session, "hearings.edit")) redirect("/audiencias");
 
   if (!process.env.DATABASE_URL) notFound();
 

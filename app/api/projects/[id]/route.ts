@@ -2,7 +2,7 @@ import { MunicipalArea, ProjectStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { handleDiagnose } from "@/lib/projects/api/diagnose";
 import { handleDiagnosisUpdate } from "@/lib/projects/api/diagnosis-update";
 import { handleExport } from "@/lib/projects/api/export";
@@ -84,7 +84,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "projects.edit")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
   const parsed = patchSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
@@ -114,7 +114,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (session.role !== "ADMIN") {
+  if (!hasPermission(session, "projects.delete")) {
     return NextResponse.json({ error: "Sin permisos", detail: "Solo un administrador puede eliminar normas." }, { status: 403 });
   }
 
