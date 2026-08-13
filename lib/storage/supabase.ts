@@ -197,9 +197,22 @@ function ensureAudioBucket(): Promise<void> {
   return audioBucketReady;
 }
 
-/** Ruta del tramo dentro del bucket. Indice con ceros: orden alfabetico = cronologico. */
-export function hearingAudioPartPath(meetingId: string, partIndex: number, extension: string): string {
-  return `${meetingId}/part-${String(partIndex).padStart(4, "0")}.${extension}`;
+/**
+ * Ruta del tramo dentro del bucket. Indice con ceros: orden alfabetico =
+ * cronologico.
+ *
+ * El nonce (identificador del tramo, lo genera la grabadora) va en el nombre
+ * para que la ruta identifique al TRAMO y no solo a su numero: dos tramos
+ * DISTINTOS que compartan indice -- dos maquinas retomando la misma audiencia,
+ * o una copia rescatada de IndexedDB despues de renumerar el bucket a mano --
+ * escriben en rutas distintas en vez de pisarse.
+ *
+ * Los tramos guardados antes de que existiera el nonce no lo tienen: caen al
+ * nombre viejo, que es exactamente el que ya ocupan en el bucket.
+ */
+export function hearingAudioPartPath(meetingId: string, partIndex: number, extension: string, nonce = ""): string {
+  const suffix = /^[a-z0-9]{1,16}$/.test(nonce) ? `-${nonce}` : "";
+  return `${meetingId}/part-${String(partIndex).padStart(4, "0")}${suffix}.${extension}`;
 }
 
 /**
@@ -210,12 +223,20 @@ export async function createHearingAudioUploadUrl(input: {
   meetingId: string;
   partIndex: number;
   extension: string;
+  nonce?: string;
 }): Promise<{ storagePath: string; signedUrl: string }> {
   await ensureAudioBucket();
   const supabase = client();
-  const storagePath = hearingAudioPartPath(input.meetingId, input.partIndex, input.extension);
+  const storagePath = hearingAudioPartPath(input.meetingId, input.partIndex, input.extension, input.nonce);
 
-  const { data, error } = await supabase.storage.from(AUDIO_BUCKET).createSignedUploadUrl(storagePath);
+  // upsert: con el nonce en la ruta, firmar dos veces la MISMA ruta solo pasa
+  // cuando es el MISMO tramo reintentando (su confirmacion se perdio en la red
+  // y el navegador vuelve a intentar). Ahi pisar el archivo con bytes
+  // identicos es lo correcto; sin upsert eso daba "The resource already
+  // exists" para siempre y trababa la cola (paso en la IX Audiencia,
+  // 2026-08-12). Dos tramos distintos ya no comparten ruta, asi que el upsert
+  // no puede destruir audio ajeno.
+  const { data, error } = await supabase.storage.from(AUDIO_BUCKET).createSignedUploadUrl(storagePath, { upsert: true });
   if (error || !data) throw new Error(error?.message ?? "No se pudo firmar la subida del audio");
 
   return { storagePath, signedUrl: data.signedUrl };

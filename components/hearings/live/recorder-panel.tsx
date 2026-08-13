@@ -63,6 +63,7 @@ export function RecorderPanel({
   stuck,
   uploadError,
   recovered,
+  recovering,
   onStart,
   onStop
 }: {
@@ -78,6 +79,8 @@ export function RecorderPanel({
   uploadError: string;
   /** Tramos rescatados del navegador tras una caida de la sesion anterior. */
   recovered: number;
+  /** Buscando tramos pendientes en el navegador: hasta que termine no se graba. */
+  recovering: boolean;
   onStart: () => void;
   onStop: () => void;
 }) {
@@ -98,11 +101,17 @@ export function RecorderPanel({
             <button
               type="button"
               onClick={onStart}
-              disabled={!supported || starting}
+              disabled={!supported || starting || recovering}
               className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
             >
-              {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
-              {starting ? "Pidiendo el micrófono…" : uploaded + pending > 0 ? "Reanudar grabación" : "Comenzar a grabar"}
+              {starting || recovering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
+              {recovering
+                ? "Revisando audio pendiente…"
+                : starting
+                  ? "Pidiendo el micrófono…"
+                  : uploaded + pending > 0
+                    ? "Reanudar grabación"
+                    : "Comenzar a grabar"}
             </button>
           )}
 
@@ -169,8 +178,9 @@ export function RecorderPanel({
         <div className="mt-3 rounded-md border border-amber-300/25 bg-amber-300/10 px-3 py-2">
           <p className="text-xs font-black text-amber-100">Hay tramos de audio que no se pudieron subir</p>
           <p className="mt-1 text-[11px] leading-5 text-amber-100/80">
-            {uploadError} Se reintenta solo cada minuto y el audio sigue guardado en esta pestaña: <strong>no la cierres</strong> hasta que
-            diga que están todos guardados.
+            {uploadError} Se reintenta solo cada minuto. Ese audio ya está <strong>guardado en esta computadora</strong>, así que sobrevive a
+            cerrar el navegador: si la pantalla queda rara, recargarla es seguro y vuelve a intentar la subida. Lo único que todavía no está
+            guardado es el tramo que se está grabando ahora (hasta 5 minutos).
           </p>
         </div>
       ) : null}

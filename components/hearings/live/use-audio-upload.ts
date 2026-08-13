@@ -26,13 +26,27 @@ export type UseAudioUpload = UploadQueueState & {
   enqueue: (part: RecordedPart) => void;
   /** Espera a que la cola quede vacia. False si quedaron tramos sin subir. */
   flush: () => Promise<boolean>;
+  /**
+   * Estado de la cola AHORA, sin pasar por el render. El cierre lo necesita
+   * porque decide despues de esperar al flush, y para entonces los valores que
+   * capturo su closure quedaron viejos (llegaron a mentir "quedaron 0 tramos
+   * sin subir" mientras el panel de al lado mostraba 1).
+   */
+  snapshot: () => UploadQueueState;
   /** Tramos rescatados del navegador de una sesion anterior, para avisarlo. */
   recovered: number;
+  /**
+   * Todavia se esta leyendo IndexedDB. Hasta que termine no se puede empezar a
+   * grabar: el numero del proximo tramo depende de lo que aparezca ahi, y
+   * arrancar antes numera la tanda nueva encima de los pendientes.
+   */
+  recovering: boolean;
 };
 
 export function useAudioUpload({
   meetingId,
-  alreadyUploaded = 0
+  alreadyUploaded = 0,
+  onRecovered
 }: {
   meetingId: string;
   /**
@@ -40,6 +54,14 @@ export function useAudioUpload({
    * subidos: si no, el cierre creeria que no se grabo nada y avisaria de mas.
    */
   alreadyUploaded?: number;
+  /**
+   * Aviso con los tramos rescatados de IndexedDB, ANTES de encolarlos: la
+   * pantalla los necesita para que la numeracion de una grabacion nueva
+   * arranque DESPUES de ellos. Sin esto se repite la carrera de la IX
+   * Audiencia: el server decia "el proximo es el 3" sin saber que habia un
+   * tramo 3 pendiente esperando subir.
+   */
+  onRecovered?: (parts: RecordedPart[]) => void;
 }): UseAudioUpload {
   const [state, setState] = useState<UploadQueueState>({ uploaded: alreadyUploaded, pending: 0, stuck: false, error: "" });
   const queueRef = useRef<UploadQueue<RecordedPart> | null>(null);
@@ -50,7 +72,9 @@ export function useAudioUpload({
       const signResponse = await fetch(`/api/hearings/${meetingId}?action=audio-part-url`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ partIndex: part.index, extension: part.extension })
+        // El nonce viaja para que la ruta del bucket identifique a ESTE tramo:
+        // dos tramos distintos con el mismo indice no pueden pisarse.
+        body: JSON.stringify({ partIndex: part.index, extension: part.extension, nonce: part.nonce || undefined })
       });
       if (!signResponse.ok) {
         const payload = await signResponse.json().catch(() => null);
@@ -80,8 +104,10 @@ export function useAudioUpload({
         throw new Error(payload?.detail || payload?.error || `No se pudo registrar el tramo (${confirmResponse.status}).`);
       }
 
-      // Confirmado por el servidor: recien ahora se suelta la copia local.
-      await forgetPendingPart(meetingId, part.index);
+      // Confirmado por el servidor: recien ahora se suelta la copia local. Se
+      // borra por indice+nonce: la entrada de ESTE tramo, jamas la de otro que
+      // comparta numero (tanda vieja vs. nueva).
+      await forgetPendingPart(meetingId, part);
     },
     [meetingId]
   );
@@ -122,18 +148,37 @@ export function useAudioUpload({
   // Recuperacion: tramos que quedaron guardados de una sesion anterior (se
   // cerro el navegador con la subida a medias). Se reencolan al entrar.
   const [recovered, setRecovered] = useState(0);
+  const [recovering, setRecovering] = useState(true);
+  const onRecoveredRef = useRef(onRecovered);
+  onRecoveredRef.current = onRecovered;
   useEffect(() => {
     let cancelled = false;
-    void listPendingParts(meetingId).then((parts) => {
-      if (cancelled || !parts.length) return;
-      setRecovered(parts.length);
-      parts.forEach((part) => queueRef.current?.enqueue(part));
-    });
+    setRecovering(true);
+    void listPendingParts(meetingId)
+      .then((parts) => {
+        if (cancelled || !parts.length) return;
+        // Primero se avisa (para correr la numeracion), despues se encola.
+        onRecoveredRef.current?.(parts);
+        setRecovered(parts.length);
+        parts.forEach((part) => queueRef.current?.enqueue(part));
+      })
+      // Pase lo que pase se habilita a grabar: sin IndexedDB (incognito, cuota
+      // llena) listPendingParts no tira, pero dejar el boton trabado por un
+      // error inesperado seria peor que grabar sin la red de contencion.
+      .finally(() => {
+        if (!cancelled) setRecovering(false);
+      });
     return () => {
       cancelled = true;
     };
   }, [meetingId]);
   const flush = useCallback(async () => (await queueRef.current?.flush()) ?? true, []);
+  const snapshot = useCallback((): UploadQueueState => {
+    const queueState = queueRef.current?.state();
+    if (!queueState) return { uploaded: alreadyUploaded, pending: 0, stuck: false, error: "" };
+    // Mismo criterio que el onChange: lo ya subido antes de entrar cuenta.
+    return { ...queueState, uploaded: queueState.uploaded + alreadyUploaded };
+  }, [alreadyUploaded]);
 
-  return { ...state, enqueue, flush, recovered };
+  return { ...state, enqueue, flush, recovered, recovering, snapshot };
 }

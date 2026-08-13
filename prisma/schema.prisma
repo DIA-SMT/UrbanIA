@@ -703,6 +703,12 @@ model MeetingMedia {
   createdAt    DateTime         @default(now())
   meeting      Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
+  /// Un archivo del bucket = UNA fila. El registro de un tramo se reintenta
+  /// (la confirmacion se pierde en la red mas seguido de lo que parece), y sin
+  /// esta restriccion dos reintentos concurrentes pasaban los dos por el
+  /// "existe?" y creaban dos filas para el mismo audio: como las filas SON la
+  /// cola de trabajo, el mismo tramo se transcribia dos veces.
+  @@unique([meetingId, storagePath])
   @@index([meetingId])
   @@index([status])
 }

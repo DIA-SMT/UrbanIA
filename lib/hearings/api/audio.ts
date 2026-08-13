@@ -33,7 +33,16 @@ const MAX_PART_INDEX = 2000;
 
 const signSchema = z.object({
   partIndex: z.number().int().min(0).max(MAX_PART_INDEX),
-  extension: z.enum(EXTENSIONS)
+  extension: z.enum(EXTENSIONS),
+  /**
+   * Identificador del tramo. Entra en el nombre del archivo, asi que se acota
+   * a minusculas y digitos: nada que pueda escaparse de la carpeta. Opcional
+   * porque los tramos rescatados de antes de este cambio no tienen.
+   */
+  nonce: z
+    .string()
+    .regex(/^[a-z0-9]{1,16}$/)
+    .optional()
 });
 
 const registerSchema = z.object({
@@ -80,12 +89,19 @@ export async function handleAudioPartUrl(request: Request, id: string) {
     const { storagePath, signedUrl } = await createHearingAudioUploadUrl({
       meetingId: id,
       partIndex: parsed.data.partIndex,
-      extension: parsed.data.extension
+      extension: parsed.data.extension,
+      nonce: parsed.data.nonce
     });
     return NextResponse.json({ storagePath, signedUrl });
   } catch (error) {
     console.error("No se pudo firmar la subida del tramo de audio", error);
-    return NextResponse.json({ error: "No se pudo preparar la subida del audio" }, { status: 500 });
+    // El detail viaja al panel del operador: en la IX Audiencia el mensaje del
+    // storage ("The resource already exists") era EL diagnostico, y quedaba
+    // solo en los logs del server mientras la pantalla decia un generico.
+    return NextResponse.json(
+      { error: "No se pudo preparar la subida del audio", detail: error instanceof Error ? error.message : undefined },
+      { status: 500 }
+    );
   }
 }
 
@@ -111,14 +127,9 @@ export async function handleAudioPart(request: Request, id: string) {
 
   try {
     const fileName = storagePath.split("/").pop() ?? `part-${partIndex}`;
-    // upsert por storagePath: un reintento que sube el mismo tramo dos veces no
-    // puede dejar dos filas (y dos veces el mismo texto en la transcripcion).
-    const existing = await prisma.meetingMedia.findFirst({ where: { meetingId: id, storagePath }, select: { id: true } });
     const data = {
-      meetingId: id,
       kind: MediaKind.AUDIO,
       fileName,
-      storagePath,
       mimeType,
       sizeBytes: BigInt(sizeBytes),
       durationSec: Math.round(durationMs / 1000),
@@ -127,9 +138,16 @@ export async function handleAudioPart(request: Request, id: string) {
       status: ProcessingStatus.PENDING,
       errorMessage: null
     };
-    const media = existing
-      ? await prisma.meetingMedia.update({ where: { id: existing.id }, data })
-      : await prisma.meetingMedia.create({ data });
+    // upsert ATOMICO por (audiencia, ruta): el navegador reintenta el registro
+    // cuando la confirmacion se pierde en la red, y con un "busco y despues
+    // creo" dos reintentos concurrentes creaban dos filas para el mismo
+    // archivo. Las filas de MeetingMedia SON la cola de la transcripcion, asi
+    // que duplicarlas es transcribir (y facturar) el mismo tramo dos veces.
+    const media = await prisma.meetingMedia.upsert({
+      where: { meetingId_storagePath: { meetingId: id, storagePath } },
+      create: { ...data, meetingId: id, storagePath },
+      update: data
+    });
 
     // Un tramo nuevo deja viejo al MP3 unido (si alguien ya lo descargo):
     // se borra el derivado y la proxima descarga lo regenera. Best-effort.
