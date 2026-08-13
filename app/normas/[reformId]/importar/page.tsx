@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 import { ImportDocument } from "@/components/normas/importar/import-document";
 
@@ -19,7 +19,7 @@ export default async function ImportarPage({ params }: { params: Promise<{ refor
 
   const session = await getSessionUser();
   if (!session) redirect("/ingresar");
-  if (!isStaff(session.role)) redirect(`/normas/${reformId}`);
+  if (!hasPermission(session, "documents.upload")) redirect(`/normas/${reformId}`);
 
   const reform = await prisma.normativeReform
     .findUnique({ where: { id: reformId }, select: { id: true, code: true, title: true } })

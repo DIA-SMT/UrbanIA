@@ -7,7 +7,7 @@ import type { UserRole, UserStatus } from "@prisma/client";
 import { RoleBadge, StatusBadge } from "@/components/settings/badges";
 import { formatDate, formatDateTime } from "@/components/settings/format";
 import { auditActionLabel } from "@/lib/settings/audit";
-import { PERMISSION_CATALOG, permissionsForRole } from "@/lib/auth/permissions";
+import { PERMISSION_CATALOG } from "@/lib/auth/permissions";
 import { fullName, initials, roleDescriptions, roleLabels } from "@/lib/settings/shared";
 
 export type ProfileAuditEntry = {
@@ -56,7 +56,7 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-export function UserProfile({ profile }: { profile: ProfileData }) {
+export function UserProfile({ profile, grantedPermissions }: { profile: ProfileData; grantedPermissions: readonly string[] }) {
   const [tab, setTab] = useState<TabId>("informacion");
 
   // "Ver historial" desde la tabla llega con #historial.
@@ -122,7 +122,7 @@ export function UserProfile({ profile }: { profile: ProfileData }) {
 
       <div className="mt-4">
         {tab === "informacion" ? <InfoTab profile={profile} /> : null}
-        {tab === "roles" ? <RolesTab profile={profile} /> : null}
+        {tab === "roles" ? <RolesTab profile={profile} grantedPermissions={grantedPermissions} /> : null}
         {tab === "historial" ? <HistoryTab profile={profile} /> : null}
         {tab === "actividad" ? <ActivityTab profile={profile} /> : null}
       </div>
@@ -185,8 +185,8 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RolesTab({ profile }: { profile: ProfileData }) {
-  const granted = new Set(permissionsForRole(profile.role));
+function RolesTab({ profile, grantedPermissions }: { profile: ProfileData; grantedPermissions: readonly string[] }) {
+  const granted = new Set(grantedPermissions);
   const modules = Array.from(new Set(PERMISSION_CATALOG.map((permission) => permission.module)));
 
   return (
@@ -214,7 +214,7 @@ function RolesTab({ profile }: { profile: ProfileData }) {
         ))}
       </div>
       <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">
-        Los permisos derivan del rol asignado ({roleLabels[profile.role]}). Los permisos personalizados por usuario llegan en la Fase 2 del módulo.
+        Los permisos derivan del rol asignado ({roleLabels[profile.role]}) y se editan para todo el rol en Configuración → Permisos.
       </p>
     </section>
   );

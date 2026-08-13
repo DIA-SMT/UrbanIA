@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { NormativeRelationshipType } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 
 /**
  * Anclar o desanclar un articulo del Codigo es trabajo del equipo: los anclajes
@@ -13,7 +13,7 @@ import { getSessionUser, isStaff } from "@/lib/auth/api";
 async function requireStaff(): Promise<NextResponse | null> {
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "norms.edit")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   return null;
 }
 

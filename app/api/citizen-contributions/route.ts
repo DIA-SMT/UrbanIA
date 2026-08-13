@@ -1,9 +1,8 @@
 import { CitizenContributionKind, CitizenContributionStatus, ProposalSource, ProposalStatus } from "@prisma/client";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { canAccessAdmin, readSessionToken, sessionCookieName } from "@/lib/auth/session";
+import { canViewInternal, getSessionUser } from "@/lib/auth/api";
 import { CONTRIBUTION_BLOCK_MESSAGE, moderateContribution } from "@/lib/moderation";
 import { analyzeAggression } from "@/lib/ai/moderation-intent";
 import { UNCLASSIFIED_AXIS } from "@/lib/citizen/contributions";
@@ -66,9 +65,8 @@ export async function GET() {
     return NextResponse.json({ contributions: [], isLive: false });
   }
 
-  const store = await cookies();
-  const session = await readSessionToken(store.get(sessionCookieName)?.value);
-  if (!session || !canAccessAdmin(session.role)) {
+  const session = await getSessionUser();
+  if (!session || !canViewInternal(session)) {
     return NextResponse.json({ error: "Necesitas una sesion municipal para ver los aportes." }, { status: 401 });
   }
 
@@ -132,8 +130,9 @@ export async function POST(request: Request) {
   }
 
   // Presentar requiere cuenta: la identidad sale de la sesión, no del formulario.
-  const store = await cookies();
-  const session = await readSessionToken(store.get(sessionCookieName)?.value);
+  // Alcanza con que la sesión exista: presentar una propuesta es un derecho de
+  // cualquier vecino, no un permiso del catálogo.
+  const session = await getSessionUser();
 
   if (!session) {
     return NextResponse.json(

@@ -14,14 +14,14 @@ import { hasPermission, type Permission } from "@/lib/auth/permissions";
 export async function requireSettingsAccess(permission: Permission = "users.manage"): Promise<SessionUser> {
   const session = await getSessionUser();
   if (!session) redirect("/ingresar");
-  if (!hasPermission(session.role, permission)) redirect("/admin");
+  if (!hasPermission(session, permission)) redirect("/admin");
   return session;
 }
 
 /** Para rutas de API: null si falta sesión o permiso; la ruta responde 401/403. */
 export async function getSettingsSession(permission: Permission = "users.manage"): Promise<SessionUser | null> {
   const session = await getSessionUser();
-  if (!session || !hasPermission(session.role, permission)) return null;
+  if (!session || !hasPermission(session, permission)) return null;
   return session;
 }
 

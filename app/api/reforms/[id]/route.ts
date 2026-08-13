@@ -2,7 +2,7 @@ import { ReformStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { handleDocumentDelete } from "@/lib/normas/api/document-delete";
 import { handleDocumentsList, handleDocumentsPost } from "@/lib/normas/api/documents";
 import { handleReformExport } from "@/lib/normas/api/reform-export";
@@ -58,7 +58,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "norms.edit")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
   const { id } = await params;
   const parsed = patchSchema.safeParse(await request.json().catch(() => null));
@@ -87,7 +87,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (session.role !== "ADMIN") {
+  if (!hasPermission(session, "norms.delete")) {
     return NextResponse.json({ error: "Sin permisos", detail: "Solo un administrador puede eliminar un código nuevo." }, { status: 403 });
   }
 

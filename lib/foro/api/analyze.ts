@@ -43,7 +43,7 @@ Cada lista puede tener 0 a 5 ítems reales: no rellenes por completar. Escribí 
  */
 export async function handleDebateAnalyze(request: Request) {
   const session = await getSessionUser();
-  if (!session || !hasPermission(session.role, "debates.create")) {
+  if (!session || !hasPermission(session, "debates.create")) {
     return NextResponse.json({ error: "Solo un administrador puede solicitar el análisis." }, { status: 403 });
   }
 

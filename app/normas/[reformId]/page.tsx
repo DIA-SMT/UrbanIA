@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
-import { canViewInternal, getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
 import { getReform, listAuthorNames, listReformDocuments } from "@/lib/projects/data";
 import { NormsBoard } from "@/components/normas/norms-board";
 
@@ -14,7 +14,7 @@ export default async function ReformPage({ params }: { params: Promise<{ reformI
   const session = await getSessionUser();
   if (!session) redirect("/ingresar");
   // Pantalla interna: el rol Consulta la lee, los ciudadanos no entran.
-  if (!canViewInternal(session.role)) redirect("/");
+  if (!canViewInternal(session)) redirect("/");
 
   const [reform, knownAuthors, documents] = await Promise.all([
     getReform(reformId).catch(() => null),
@@ -23,7 +23,7 @@ export default async function ReformPage({ params }: { params: Promise<{ reformI
   ]);
   if (!reform) notFound();
 
-  const canEdit = session ? isStaff(session.role) : false;
+  const canEdit = session ? hasPermission(session, "norms.edit") : false;
 
   return (
     <AppShell>

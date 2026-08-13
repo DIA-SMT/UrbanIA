@@ -12,10 +12,10 @@ type PageProps = { params: Promise<{ id: string }> };
 export default async function DebatePage({ params }: PageProps) {
   const session = await getSessionUser();
   if (!session) redirect("/ingresar");
-  if (!canViewInternal(session.role)) redirect("/");
+  if (!canViewInternal(session)) redirect("/");
 
   const { id } = await params;
-  const canModerate = hasPermission(session.role, "debates.moderate");
+  const canModerate = hasPermission(session, "debates.moderate");
   const debate = await getDebateDetail(id, { userId: session.userId, canModerate });
   if (!debate) notFound();
 
@@ -23,9 +23,9 @@ export default async function DebatePage({ params }: PageProps) {
     <AppShell>
       <DebateDetailView
         debate={debate}
-        canParticipate={hasPermission(session.role, "debates.participate")}
+        canParticipate={hasPermission(session, "debates.participate")}
         canModerate={canModerate}
-        canManage={hasPermission(session.role, "debates.create")}
+        canManage={hasPermission(session, "debates.create")}
       />
     </AppShell>
   );

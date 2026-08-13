@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { DiagnosisUnavailableError, formalizeNorm } from "@/lib/projects/diagnosis";
 
 
@@ -14,7 +14,7 @@ export async function handleFormalize(_request: Request, id: string) {
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "ai.execute")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   try {
     const result = await formalizeNorm(id);
     return NextResponse.json(result, { status: 200 });

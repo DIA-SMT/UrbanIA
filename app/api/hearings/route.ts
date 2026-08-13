@@ -1,7 +1,7 @@
 import { HearingStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { canViewInternal, getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
 import { handleIngest } from "@/lib/hearings/api/ingest";
 import { createHearing, getHearingCounts, listHearings, type HearingFilters } from "@/lib/hearings/data";
 
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   // Registro interno de audiencias. El vecino lee el registro publico en
   // /audiencias-publicas, que sale de lib/hearings/public-data.
   const session = await getSessionUser();
-  if (!session || !canViewInternal(session.role)) {
+  if (!session || !canViewInternal(session)) {
     return NextResponse.json({ error: "Sesion requerida" }, { status: 401 });
   }
   if (!process.env.DATABASE_URL) {
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado", detail: "Iniciá sesión para registrar una audiencia." }, { status: 401 });
-  if (!isStaff(session.role)) {
+  if (!hasPermission(session, "hearings.create")) {
     return NextResponse.json({ error: "Sin permisos", detail: "Solo el equipo municipal puede registrar audiencias." }, { status: 403 });
   }
 

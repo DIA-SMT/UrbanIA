@@ -1,7 +1,7 @@
 import { MunicipalArea, ProjectStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { canViewInternal, getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
 import { createNorm, listNorms, listProjects } from "@/lib/projects/data";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ function parseEnum<T extends Record<string, string>>(value: string | null, optio
 export async function GET(request: Request) {
   // Material de trabajo interno: normas en redaccion del codigo nuevo.
   const session = await getSessionUser();
-  if (!session || !canViewInternal(session.role)) {
+  if (!session || !canViewInternal(session)) {
     return NextResponse.json({ error: "Sesion requerida" }, { status: 401 });
   }
   if (!process.env.DATABASE_URL) {
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
   if (!session) {
     return NextResponse.json({ error: "No autenticado", detail: "Iniciá sesión para redactar normas." }, { status: 401 });
   }
-  if (!isStaff(session.role)) {
+  if (!hasPermission(session, "projects.create")) {
     return NextResponse.json({ error: "Sin permisos", detail: "Solo el equipo municipal puede redactar normas." }, { status: 403 });
   }
 

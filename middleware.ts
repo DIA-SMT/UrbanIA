@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { canAccessAdmin, readSessionToken, sessionCookieName } from "@/lib/auth/session";
+import { readSessionToken, sessionCookieName } from "@/lib/auth/session";
 
 export async function middleware(request: NextRequest) {
   const session = await readSessionToken(request.cookies.get(sessionCookieName)?.value);
 
-  if (session && canAccessAdmin(session.role)) {
+  // Solo presencia de sesion. El chequeo de PERMISO ya no puede vivir aca: la
+  // matriz rol -> permiso esta en la base y este archivo corre en el runtime
+  // Edge, donde Prisma no existe. Una copia de la matriz en Edge seria una
+  // autoridad sombra que se desincroniza de lo que muestra la pantalla de
+  // permisos, y falla ABIERTA (dejaria pasar a un rol al que le acaban de
+  // revocar el acceso).
+  //
+  // El permiso lo exige cada pagina y cada ruta con su propio guard. Eso ahora
+  // es cierto de verdad: las cuatro rutas que dependian solo de esta barrera
+  // (/admin, /consulta-cpu, /api/cpu y /admin/configuracion) tienen guard propio.
+  if (session) {
     return NextResponse.next();
   }
 

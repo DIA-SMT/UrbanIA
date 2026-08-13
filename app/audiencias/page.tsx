@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
-import { canViewInternal, getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
 import { getHearingCounts, listHearings } from "@/lib/hearings/data";
 import { listReformOptions } from "@/lib/projects/data";
 import { HearingsBoard } from "@/components/hearings/hearings-board";
@@ -18,8 +18,8 @@ export default async function AudienciasPage() {
   const session = await getSessionUser();
   if (!session) redirect("/ingresar");
   // Pantalla interna: el rol Consulta la lee, los ciudadanos no entran.
-  if (!canViewInternal(session.role)) redirect("/");
-  const canCreate = isStaff(session.role);
+  if (!canViewInternal(session)) redirect("/");
+  const canCreate = hasPermission(session, "hearings.create");
 
   if (process.env.DATABASE_URL) {
     try {

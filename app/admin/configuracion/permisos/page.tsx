@@ -1,7 +1,10 @@
 import { Check, Minus } from "lucide-react";
 import { requireSettingsAccess } from "@/lib/settings/guard";
-import { PERMISSION_CATALOG, permissionsForRole } from "@/lib/auth/permissions";
+import { PERMISSION_CATALOG } from "@/lib/auth/permissions";
+import { loadPermissionMatrix } from "@/lib/auth/permissions-store";
 import { ROLE_ORDER, roleLabels } from "@/lib/settings/shared";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Permisos | Configuración | UrbanIA"
@@ -11,7 +14,7 @@ export default async function PermisosPage() {
   await requireSettingsAccess("roles.manage");
 
   const modules = Array.from(new Set(PERMISSION_CATALOG.map((permission) => permission.module)));
-  const granted = new Map(ROLE_ORDER.map((role) => [role, new Set(permissionsForRole(role))]));
+  const granted = await loadPermissionMatrix();
 
   return (
     <div>
@@ -41,7 +44,7 @@ export default async function PermisosPage() {
         </div>
       </section>
       <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
-        En la Fase 2 esta matriz pasa a la base de datos y se vuelve editable, con permisos personalizados por usuario.
+        La matriz ya vive en la base de datos. La edición desde esta pantalla llega en el próximo paso.
       </p>
     </div>
   );
@@ -52,7 +55,7 @@ function ModuleRows({
   granted
 }: {
   module: string;
-  granted: Map<(typeof ROLE_ORDER)[number], Set<string>>;
+  granted: Map<(typeof ROLE_ORDER)[number], ReadonlySet<string>>;
 }) {
   const rows = PERMISSION_CATALOG.filter((permission) => permission.module === module);
   return (

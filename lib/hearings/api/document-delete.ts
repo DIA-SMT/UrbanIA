@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { getHearing } from "@/lib/hearings/data";
 import { removeHearingDocument } from "@/lib/storage/supabase";
 import { removeHearingReportKnowledge } from "@/lib/knowledge/ingest-hearing-report";
@@ -17,7 +17,7 @@ export async function handleDocumentDelete(id: string, docId: string) {
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "documents.delete")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
   try {
     const meeting = await prisma.meeting.findFirst({ where: { id, kind: "PUBLIC_HEARING" }, select: { metadata: true } });

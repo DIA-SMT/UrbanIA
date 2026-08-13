@@ -18,7 +18,7 @@ export const metadata = {
 export default async function AyudaInternaPage() {
   const session = await getSessionUser();
   if (!session) redirect("/ingresar");
-  if (!canViewInternal(session.role)) redirect("/");
+  if (!canViewInternal(session)) redirect("/");
 
   return (
     <AppShell>

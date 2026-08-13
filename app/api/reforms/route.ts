@@ -1,7 +1,7 @@
 import { ReformStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { canViewInternal, getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
 import { createReform, listReforms } from "@/lib/projects/data";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   // Reformas normativas en construccion: trabajo interno, no publicado.
   const session = await getSessionUser();
-  if (!session || !canViewInternal(session.role)) {
+  if (!session || !canViewInternal(session)) {
     return NextResponse.json({ error: "Sesion requerida" }, { status: 401 });
   }
   if (!process.env.DATABASE_URL) {
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   if (!session) {
     return NextResponse.json({ error: "No autenticado", detail: "Iniciá sesión para crear un código nuevo." }, { status: 401 });
   }
-  if (!isStaff(session.role)) {
+  if (!hasPermission(session, "norms.create")) {
     return NextResponse.json({ error: "Sin permisos", detail: "Solo el equipo municipal puede crear códigos nuevos." }, { status: 403 });
   }
 

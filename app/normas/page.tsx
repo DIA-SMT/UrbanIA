@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
-import { canViewInternal, getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
 import { listReforms } from "@/lib/projects/data";
 import { ReformsBoard } from "@/components/normas/reforms-board";
 import { EMPTY_TOPICS_DEMAND, type TopicsDemandPayload } from "@/lib/citizen/shared";
@@ -16,8 +16,8 @@ export default async function NormasPage() {
   const session = await getSessionUser();
   if (!session) redirect("/ingresar");
   // Pantalla interna: el rol Consulta la lee, los ciudadanos no entran.
-  if (!canViewInternal(session.role)) redirect("/");
-  const canCreate = session ? isStaff(session.role) : false;
+  if (!canViewInternal(session)) redirect("/");
+  const canCreate = session ? hasPermission(session, "norms.create") : false;
 
   // La demanda ciudadana solo se calcula para el equipo: son textos de vecinos
   // identificables, y el mismo criterio que aplica la API tiene que aplicar acá.

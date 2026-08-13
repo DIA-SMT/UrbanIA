@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { removeNormDocument } from "@/lib/storage/supabase";
 
 
@@ -18,7 +18,7 @@ export async function handleDocumentDelete(_request: Request, id: string, docId:
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "documents.delete")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
   try {
     const document = await prisma.reformDocument.findFirst({

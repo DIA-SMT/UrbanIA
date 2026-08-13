@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 import { buildFullHearingAudio } from "@/lib/hearings/audio-export";
 import { createHearingAudioDownloadUrl, hearingAudioFullExists, hearingAudioFullPath } from "@/lib/storage/supabase";
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "hearings.edit")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
   const id = new URL(request.url).searchParams.get("id") ?? "";
   const meeting = await prisma.meeting.findFirst({

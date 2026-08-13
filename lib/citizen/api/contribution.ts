@@ -1,9 +1,8 @@
 import { CitizenContributionStatus } from "@prisma/client";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { canAccessAdmin, readSessionToken, sessionCookieName } from "@/lib/auth/session";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { ASSIGNABLE_AXES } from "@/lib/citizen/contributions";
 
 
@@ -28,10 +27,9 @@ export async function handleContributionPatch(request: Request, id: string) {
   }
 
   // Clasificar un aporte es trabajo municipal: requiere sesion de personal.
-  const store = await cookies();
-  const session = await readSessionToken(store.get(sessionCookieName)?.value);
+  const session = await getSessionUser();
 
-  if (!session || !canAccessAdmin(session.role)) {
+  if (!session || !hasPermission(session, "proposals.manage")) {
     return NextResponse.json({ error: "Necesitas una sesion municipal para revisar aportes." }, { status: 401 });
   }
 
@@ -60,10 +58,11 @@ export async function handleContributionPatch(request: Request, id: string) {
 export async function handleContributionDelete(_request: Request, id: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "La base de datos no esta configurada." }, { status: 503 });
-  }  const store = await cookies();
-  const session = await readSessionToken(store.get(sessionCookieName)?.value);
+  }
 
-  if (!session || !canAccessAdmin(session.role)) {
+  const session = await getSessionUser();
+
+  if (!session || !hasPermission(session, "proposals.manage")) {
     return NextResponse.json({ error: "Necesitas una sesion municipal para eliminar aportes." }, { status: 401 });
   }
 

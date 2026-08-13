@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 
 
@@ -48,7 +48,7 @@ async function guard() {
   if (!session) {
     return { error: NextResponse.json({ error: "No autenticado", detail: "Iniciá sesión para apoyar una norma." }, { status: 401 }) };
   }
-  if (!isStaff(session.role)) {
+  if (!hasPermission(session, "projects.edit")) {
     return {
       error: NextResponse.json(
         { error: "Sin permisos", detail: "Solo el equipo municipal puede apoyar u objetar una norma." },

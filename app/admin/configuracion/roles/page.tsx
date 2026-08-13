@@ -2,7 +2,7 @@ import { ShieldCheck } from "lucide-react";
 import { prisma } from "@/lib/db/prisma";
 import { RoleBadge } from "@/components/settings/badges";
 import { requireSettingsAccess } from "@/lib/settings/guard";
-import { permissionsForRole } from "@/lib/auth/permissions";
+import { loadPermissionMatrix } from "@/lib/auth/permissions-store";
 import { ROLE_ORDER, roleDescriptions, roleLabels } from "@/lib/settings/shared";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,10 @@ export const metadata = {
 export default async function RolesPage() {
   await requireSettingsAccess("roles.manage");
 
-  const counts = await prisma.user.groupBy({ by: ["role"], _count: { _all: true } });
+  const [counts, matriz] = await Promise.all([
+    prisma.user.groupBy({ by: ["role"], _count: { _all: true } }),
+    loadPermissionMatrix()
+  ]);
   const countByRole = new Map(counts.map((row) => [row.role, row._count._all]));
 
   return (
@@ -22,12 +25,12 @@ export default async function RolesPage() {
       <div className="mb-4">
         <h2 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">Roles</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Un rol es un conjunto de permisos, no una lista de pantallas. En esta fase los roles son fijos; la edición de roles y los permisos personalizados llegan en la Fase 2.
+          Un rol es un conjunto de permisos, no una lista de pantallas. Los roles son fijos, pero qué permisos incluye cada uno se edita en la pestaña Permisos.
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {ROLE_ORDER.map((role) => {
-          const permissions = permissionsForRole(role);
+          const permissions = matriz.get(role) ?? new Set();
           const total = countByRole.get(role) ?? 0;
           return (
             <article key={role} className="surface-panel p-5 transition-shadow duration-200 hover:shadow-card-hover">
@@ -39,7 +42,7 @@ export default async function RolesPage() {
                   <div>
                     <h3 className="text-base font-black text-slate-950 dark:text-white">{roleLabels[role]}</h3>
                     <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">
-                      {total} usuario{total === 1 ? "" : "s"} · {permissions.length} permiso{permissions.length === 1 ? "" : "s"}
+                      {total} usuario{total === 1 ? "" : "s"} · {permissions.size} permiso{permissions.size === 1 ? "" : "s"}
                     </p>
                   </div>
                 </div>

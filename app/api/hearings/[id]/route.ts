@@ -2,7 +2,7 @@ import { HearingStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
 import { handleAnalyze } from "@/lib/hearings/api/analyze";
 import { handleAnalyzeRecording } from "@/lib/hearings/api/analyze-recording";
 import { handleAudioPart, handleAudioPartUrl } from "@/lib/hearings/api/audio";
@@ -83,6 +83,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (new URL(request.url).searchParams.get("action") === "resumen") {
     return handleSummaryPdf(request, id);
   }
+  // Este GET no tenia ningun chequeo de sesion: devolvia la audiencia completa a
+  // cualquiera que supiera el id, y /api/hearings no esta en el matcher del
+  // middleware, asi que tampoco lo cubria esa barrera. Lo consume el polling de
+  // la ingesta, que ya corre autenticado.
+  const session = await getSessionUser();
+  if (!session || !canViewInternal(session)) {
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  }
+
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
@@ -116,7 +125,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "hearings.edit")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
   const parsed = patchSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
@@ -148,7 +157,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (session.role !== "ADMIN") {
+  if (!hasPermission(session, "hearings.delete")) {
     return NextResponse.json({ error: "Sin permisos", detail: "Solo un administrador puede eliminar audiencias." }, { status: 403 });
   }
 
