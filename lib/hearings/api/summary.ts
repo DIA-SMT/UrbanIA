@@ -3,7 +3,12 @@ import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, isStaff } from "@/lib/auth/api";
 import { getHearing } from "@/lib/hearings/data";
 import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
-import { downloadHearingDocument } from "@/lib/storage/supabase";
+import {
+  downloadHearingDocument,
+  hasSupabaseStorage,
+  removeHearingDocument,
+  uploadHearingDocument
+} from "@/lib/storage/supabase";
 import { extractPdfText, sanitizePdfText } from "@/lib/pdf/extract-text";
 import { renderHtmlToPdf } from "@/lib/pdf/render-pdf";
 import { generateSummary } from "@/lib/hearings/summary-generate";
@@ -117,21 +122,25 @@ async function documentExcerpts(meetingId: string): Promise<DocumentExcerpt[]> {
   return excerpts;
 }
 
-export async function handleSummaryPdf(_request: Request, id: string) {
+/** PDF listo + su nombre de archivo, o un error ya formateado para responder. */
+type BuiltSummary = { ok: true; pdf: Buffer; fileName: string } | { ok: false; response: NextResponse };
+
+/**
+ * Genera el resumen ejecutivo en PDF. Es el paso caro (dos pasadas del modelo
+ * + render con Chromium), asi que vive separado del handler: lo usan tanto la
+ * descarga como la publicacion para la ciudadania.
+ */
+async function buildSummaryPdf(id: string): Promise<BuiltSummary> {
   if (!process.env.DATABASE_URL) {
-    return errorResponse("Base de datos no disponible", "No se puede generar el resumen en este momento.", 503);
-  }
-  const session = await getSessionUser();
-  if (!session || !isStaff(session.role)) {
-    return errorResponse("Sesión requerida", "Ingresá con tu cuenta municipal para generar el resumen.", 401);
+    return { ok: false, response: errorResponse("Base de datos no disponible", "No se puede generar el resumen en este momento.", 503) };
   }
   if (!hasOpenRouterConfig()) {
-    return errorResponse("IA no configurada", "Falta configurar el servicio de análisis para esta instancia.", 503);
+    return { ok: false, response: errorResponse("IA no configurada", "Falta configurar el servicio de análisis para esta instancia.", 503) };
   }
 
   const hearing = await getHearing(id).catch(() => null);
   if (!hearing) {
-    return errorResponse("Audiencia no encontrada", "El enlace no corresponde a una audiencia del registro.", 404);
+    return { ok: false, response: errorResponse("Audiencia no encontrada", "El enlace no corresponde a una audiencia del registro.", 404) };
   }
 
   const fullTranscript = hearing.transcriptSegments
@@ -149,11 +158,14 @@ export async function handleSummaryPdf(_request: Request, id: string) {
   const excerpts = await documentExcerpts(id);
 
   if (transcript.trim().length < 400 && excerpts.length === 0) {
-    return errorResponse(
-      "Material insuficiente",
-      "Esta audiencia todavía no tiene transcripción ni documentos con texto: no hay de dónde redactar un resumen.",
-      422
-    );
+    return {
+      ok: false,
+      response: errorResponse(
+        "Material insuficiente",
+        "Esta audiencia todavía no tiene transcripción ni documentos con texto: no hay de dónde redactar un resumen.",
+        422
+      )
+    };
   }
 
   const when = hearing.occurredAt
@@ -185,7 +197,7 @@ export async function handleSummaryPdf(_request: Request, id: string) {
     payload = await generateSummary(material);
   } catch (error) {
     console.error("No se pudo generar el resumen de la audiencia", error);
-    return errorResponse("No se pudo generar el resumen", generationErrorDetail(error), 502);
+    return { ok: false, response: errorResponse("No se pudo generar el resumen", generationErrorDetail(error), 502) };
   }
 
   const options = { hearingTitle: hearing.title, when, docCode: `AUD-${id.slice(-6).toUpperCase()}` };
@@ -208,11 +220,14 @@ export async function handleSummaryPdf(_request: Request, id: string) {
   const municipalFooterLogo = getMunicipalIsoLogoDataUri();
   const diaLogo = getDiaLogoDataUri();
   if (!municipalHeaderLogo || !municipalFooterLogo || !diaLogo) {
-    return errorResponse(
-      "Identidad institucional no disponible",
-      "Falta uno de los recursos oficiales necesarios para generar el PDF. Contactá al equipo administrador.",
-      500
-    );
+    return {
+      ok: false,
+      response: errorResponse(
+        "Identidad institucional no disponible",
+        "Falta uno de los recursos oficiales necesarios para generar el PDF. Contactá al equipo administrador.",
+        500
+      )
+    };
   }
   const documentOptions = {
     ...options,
@@ -235,25 +250,118 @@ export async function handleSummaryPdf(_request: Request, id: string) {
         .trim()
         .slice(0, 80) || "Audiencia";
     const fileName = `Resumen ejecutivo - ${readableTitle}.pdf`;
-    const fallbackName = `Resumen_${readableTitle
+    return { ok: true, pdf, fileName };
+  } catch (error) {
+    console.error("No se pudo renderizar el PDF de la audiencia.", error);
+    return {
+      ok: false,
+      response: errorResponse(
+        "No se pudo generar el PDF",
+        "El documento fue redactado, pero el servicio de exportación no respondió. Probá de nuevo en unos minutos.",
+        503
+      )
+    };
+  }
+}
+
+/** Nombre ASCII de respaldo para Content-Disposition. */
+function fallbackFileName(fileName: string) {
+  const readableTitle = fileName.replace(/^Resumen ejecutivo - /, "").replace(/\.pdf$/, "");
+  return `Resumen_${readableTitle
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^A-Za-z0-9 _-]/g, "")
       .trim()
       .replace(/\s+/g, "_") || "audiencia"}.pdf`;
-    return new NextResponse(new Uint8Array(pdf), {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodeContentDispositionFileName(fileName)}`,
-        "Cache-Control": "no-store"
-      }
-    });
-  } catch (error) {
-    console.error("No se pudo renderizar el PDF de la audiencia.", error);
-    return errorResponse(
-      "No se pudo generar el PDF",
-      "El documento fue redactado, pero el servicio de exportación no respondió. Probá de nuevo en unos minutos.",
-      503
-    );
+}
+
+/** Solo personal municipal: generar cuesta dos pasadas del modelo. */
+async function requireStaff() {
+  const session = await getSessionUser();
+  return session && isStaff(session.role) ? session : null;
+}
+
+/** GET ?action=resumen — descarga el PDF recien generado (uso interno). */
+export async function handleSummaryPdf(_request: Request, id: string) {
+  if (!(await requireStaff())) {
+    return errorResponse("Sesión requerida", "Ingresá con tu cuenta municipal para generar el resumen.", 401);
   }
+
+  const built = await buildSummaryPdf(id);
+  if (!built.ok) return built.response;
+
+  return new NextResponse(new Uint8Array(built.pdf), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${fallbackFileName(built.fileName)}"; filename*=UTF-8''${encodeContentDispositionFileName(built.fileName)}`,
+      "Cache-Control": "no-store"
+    }
+  });
+}
+
+/**
+ * POST ?action=publicar-resumen — genera el PDF, lo sube al bucket de
+ * audiencias y lo deja publicado en el portal ciudadano. El vecino descarga
+ * ESTE archivo: nunca dispara una generacion.
+ */
+export async function handlePublishSummary(_request: Request, id: string) {
+  if (!(await requireStaff())) {
+    return errorResponse("Sesión requerida", "Ingresá con tu cuenta municipal para publicar el resumen.", 401);
+  }
+  if (!hasSupabaseStorage()) {
+    return errorResponse("Almacenamiento no disponible", "Falta configurar Supabase Storage para publicar documentos.", 503);
+  }
+
+  const built = await buildSummaryPdf(id);
+  if (!built.ok) return built.response;
+
+  const previous = await prisma.meeting.findUnique({ where: { id }, select: { publicSummaryPath: true } });
+
+  try {
+    const uploaded = await uploadHearingDocument({
+      meetingId: id,
+      fileName: built.fileName,
+      contentType: "application/pdf",
+      bytes: built.pdf
+    });
+
+    await prisma.meeting.update({
+      where: { id },
+      data: { publicSummaryUrl: uploaded.url, publicSummaryPath: uploaded.storagePath, publicSummaryAt: new Date() }
+    });
+
+    // El anterior ya no lo referencia nadie: se borra despues de guardar el
+    // nuevo, para no quedarse sin resumen publicado si algo falla.
+    if (previous?.publicSummaryPath && previous.publicSummaryPath !== uploaded.storagePath) {
+      await removeHearingDocument(previous.publicSummaryPath).catch(() => undefined);
+    }
+
+    return NextResponse.json({ ok: true, url: uploaded.url });
+  } catch (error) {
+    console.error("No se pudo publicar el resumen de la audiencia.", error);
+    return errorResponse("No se pudo publicar", "El PDF se generó, pero no se pudo guardar en el almacenamiento.", 503);
+  }
+}
+
+/** POST ?action=despublicar-resumen — saca el resumen del portal ciudadano. */
+export async function handleUnpublishSummary(_request: Request, id: string) {
+  if (!(await requireStaff())) {
+    return errorResponse("Sesión requerida", "Ingresá con tu cuenta municipal para despublicar el resumen.", 401);
+  }
+
+  const meeting = await prisma.meeting.findUnique({ where: { id }, select: { publicSummaryPath: true } });
+  if (!meeting) {
+    return errorResponse("Audiencia no encontrada", "El enlace no corresponde a una audiencia del registro.", 404);
+  }
+
+  await prisma.meeting.update({
+    where: { id },
+    data: { publicSummaryUrl: null, publicSummaryPath: null, publicSummaryAt: null }
+  });
+
+  if (meeting.publicSummaryPath) {
+    await removeHearingDocument(meeting.publicSummaryPath).catch(() => undefined);
+  }
+
+  return NextResponse.json({ ok: true });
 }

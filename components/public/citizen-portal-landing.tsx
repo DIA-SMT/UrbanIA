@@ -34,6 +34,11 @@ const PORTAL_TOUR: TourStep[] = [
     body: "Propuestas, reclamos o aportes: lo que cargás acá queda registrado con tu nombre y tu zona, y el equipo municipal lo revisa. Solo necesitás una cuenta de vecino, gratuita, con tu DNI."
   },
   {
+    anchor: "audiencias",
+    title: "Seguí las audiencias públicas",
+    body: "Cada audiencia sobre las normas de la ciudad queda registrada: cuándo fue, dónde, qué temas se trataron y a qué conclusiones se llegó. Podés leerlas sin cuenta."
+  },
+  {
     anchor: "migue",
     title: "Preguntale a Migue",
     body: "Migue es la inteligencia artificial de la ciudad. Escribile como hablás y te responde sobre el Código citando el artículo en que se apoya. Lo abrís con la burbuja de abajo a la derecha."
@@ -41,7 +46,7 @@ const PORTAL_TOUR: TourStep[] = [
   {
     anchor: "ayuda",
     title: "¿Necesitás más ayuda?",
-    body: "En la sección Ayuda tenés la guía completa de todas las herramientas, paso a paso, tanto para vecinos como para el equipo municipal."
+    body: "En la sección Ayuda tenés la guía completa del portal, paso a paso: el Código, Migue, cómo presentar una propuesta y cómo seguir las audiencias públicas."
   },
   {
     title: "¡Listo!",
@@ -162,6 +167,16 @@ export function CitizenPortalLanding({ chapterCount, articleCount }: LandingProp
             title="Presentar propuesta o reclamo"
             detail="Contanos con tus palabras que te gustaria que la ciudad regule, cambie o mejore. Necesitas una cuenta de vecino."
             cta="Dejar mi aporte"
+            isLight={isLight}
+          />
+          <EntryCard
+            href="/audiencias-publicas"
+            dataTour="audiencias"
+            icon={Landmark}
+            eyebrow="Seguir"
+            title="Audiencias publicas"
+            detail="Cuando se debaten las normas de la ciudad, la audiencia queda registrada: fecha, lugar, temas tratados y las conclusiones a las que se llego."
+            cta="Ver las audiencias"
             isLight={isLight}
           />
         </section>

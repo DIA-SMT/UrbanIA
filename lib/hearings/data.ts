@@ -301,6 +301,8 @@ export async function getHearing(id: string): Promise<HearingDetail | null> {
     participantCount: meeting._count.participants,
     description: meeting.description,
     modality: meeting.modality,
+    publicSummaryUrl: meeting.publicSummaryUrl,
+    publicSummaryAt: meeting.publicSummaryAt ? meeting.publicSummaryAt.toISOString() : null,
     hearingSource: meeting.hearingSource,
     createdAt: meeting.createdAt.toISOString(),
     liveNotes,

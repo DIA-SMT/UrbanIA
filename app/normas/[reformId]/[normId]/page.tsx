@@ -1,6 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser, isStaff } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 import { getNorm, getReform, listAuthorNames } from "@/lib/projects/data";
 import { NormEditor } from "@/components/normas/form/norm-editor";
@@ -18,6 +18,9 @@ export default async function NormaPage({ params }: { params: Promise<{ reformId
   if (!process.env.DATABASE_URL) notFound();
 
   const session = await getSessionUser();
+  if (!session) redirect("/ingresar");
+  // Pantalla interna: el rol Consulta la lee, los ciudadanos no entran.
+  if (!canViewInternal(session.role)) redirect("/");
 
   const [reform, norm, account, knownAuthors] = await Promise.all([
     getReform(reformId).catch(() => null),

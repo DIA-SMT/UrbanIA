@@ -1,12 +1,17 @@
 import { ReformStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser, isStaff } from "@/lib/auth/api";
 import { createReform, listReforms } from "@/lib/projects/data";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  // Reformas normativas en construccion: trabajo interno, no publicado.
+  const session = await getSessionUser();
+  if (!session || !canViewInternal(session.role)) {
+    return NextResponse.json({ error: "Sesion requerida" }, { status: 401 });
+  }
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ reforms: [], isLive: false });
   }

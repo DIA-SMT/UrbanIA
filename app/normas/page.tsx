@@ -1,5 +1,6 @@
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser, isStaff } from "@/lib/auth/api";
 import { listReforms } from "@/lib/projects/data";
 import { ReformsBoard } from "@/components/normas/reforms-board";
 import { EMPTY_TOPICS_DEMAND, type TopicsDemandPayload } from "@/lib/citizen/shared";
@@ -13,6 +14,9 @@ export default async function NormasPage() {
   let isLive = false;
 
   const session = await getSessionUser();
+  if (!session) redirect("/ingresar");
+  // Pantalla interna: el rol Consulta la lee, los ciudadanos no entran.
+  if (!canViewInternal(session.role)) redirect("/");
   const canCreate = session ? isStaff(session.role) : false;
 
   // La demanda ciudadana solo se calcula para el equipo: son textos de vecinos

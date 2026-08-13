@@ -1,5 +1,6 @@
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser, isStaff } from "@/lib/auth/api";
 import { getHearingCounts, listHearings } from "@/lib/hearings/data";
 import { listReformOptions } from "@/lib/projects/data";
 import { HearingsBoard } from "@/components/hearings/hearings-board";
@@ -12,6 +13,13 @@ export default async function AudienciasPage() {
   let counts: HearingCounts = { upcoming: 0, processing: 0, completed: 0 };
   let reforms: Array<{ id: string; code: string; title: string }> = [];
   let isLive = false;
+
+  // El guard va ANTES de consultar: sin sesion interna no se toca la base.
+  const session = await getSessionUser();
+  if (!session) redirect("/ingresar");
+  // Pantalla interna: el rol Consulta la lee, los ciudadanos no entran.
+  if (!canViewInternal(session.role)) redirect("/");
+  const canCreate = isStaff(session.role);
 
   if (process.env.DATABASE_URL) {
     try {
@@ -31,9 +39,6 @@ export default async function AudienciasPage() {
       console.error("No se pudo cargar el registro de audiencias", error);
     }
   }
-
-  const session = await getSessionUser();
-  const canCreate = session ? isStaff(session.role) : false;
 
   return (
     <AppShell>

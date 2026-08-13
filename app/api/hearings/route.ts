@@ -1,7 +1,7 @@
 import { HearingStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser, isStaff } from "@/lib/auth/api";
 import { handleIngest } from "@/lib/hearings/api/ingest";
 import { createHearing, getHearingCounts, listHearings, type HearingFilters } from "@/lib/hearings/data";
 
@@ -10,6 +10,12 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
+  // Registro interno de audiencias. El vecino lee el registro publico en
+  // /audiencias-publicas, que sale de lib/hearings/public-data.
+  const session = await getSessionUser();
+  if (!session || !canViewInternal(session.role)) {
+    return NextResponse.json({ error: "Sesion requerida" }, { status: 401 });
+  }
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ hearings: [], counts: { upcoming: 0, processing: 0, completed: 0 }, isLive: false });
   }
