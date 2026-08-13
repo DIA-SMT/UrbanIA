@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Compass, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CircleHelp, Compass, X } from "lucide-react";
 
 /**
  * Recorrido guiado sobre la pantalla real: una tarjeta flotante que va llevando
@@ -61,16 +61,39 @@ export function useGuidedTour(tourId: string): { open: boolean; start: () => voi
 
 const HIGHLIGHT_STYLE = "0 0 0 3px rgba(31, 137, 246, 0.85), 0 0 0 8px rgba(31, 137, 246, 0.25)";
 
+/**
+ * Boton "¿Como funciona?" para las pantallas DENTRO del AppShell (tema por
+ * clase dark, por eso las clases duales). El portal tiene el suyo propio en
+ * PortalHeader, que se estila con la bandera isLight.
+ */
+export function TourButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Recorrido guiado por esta pantalla"
+      className="urban-button inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-2 text-xs font-bold text-slate-600 transition hover:border-sky-300 hover:text-sky-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:border-sky-300/40 dark:hover:text-sky-200"
+    >
+      <CircleHelp className="h-4 w-4" />
+      <span className="hidden sm:inline">¿Cómo funciona?</span>
+    </button>
+  );
+}
+
 export function GuidedTour({
   steps,
   open,
   onClose,
-  isLight = true
+  isLight
 }: {
   steps: TourStep[];
   open: boolean;
   onClose: () => void;
-  /** El portal maneja el tema con esta bandera (no con la clase dark). */
+  /**
+   * El PORTAL maneja el tema con esta bandera (no con la clase dark): pasarla
+   * ahi. Dentro del AppShell NO pasarla: sin ella, la tarjeta usa las clases
+   * duales (dark:) y sigue el tema de la app sola.
+   */
   isLight?: boolean;
 }) {
   const [index, setIndex] = useState(0);
@@ -122,6 +145,10 @@ export function GuidedTour({
   const step = steps[index];
   const isLast = index === steps.length - 1;
 
+  // Tres variantes LITERALES por lugar (claro / oscuro / dual con dark:), no
+  // clases armadas por codigo: Tailwind solo genera las que ve escritas.
+  const themed = (light: string, dark: string, dual: string) => (isLight === undefined ? dual : isLight ? light : dark);
+
   return (
     <div
       role="dialog"
@@ -129,9 +156,11 @@ export function GuidedTour({
       className="fixed inset-x-4 top-1/2 z-[70] mx-auto w-auto max-w-sm -translate-y-1/2 sm:inset-x-auto sm:left-1/2 sm:w-96 sm:-translate-x-1/2"
     >
       <div
-        className={`rounded-2xl border p-5 shadow-2xl ${
-          isLight ? "border-slate-200 bg-white text-slate-900" : "border-white/10 bg-[#0d1b2a] text-slate-100"
-        }`}
+        className={`rounded-2xl border p-5 shadow-2xl ${themed(
+          "border-slate-200 bg-white text-slate-900",
+          "border-white/10 bg-[#0d1b2a] text-slate-100",
+          "border-slate-200 bg-white text-slate-900 dark:border-white/10 dark:bg-[#0d1b2a] dark:text-slate-100"
+        )}`}
       >
         <div className="flex items-start justify-between gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-full bg-[#1f89f6]/12 text-[#1f89f6]">
@@ -141,28 +170,36 @@ export function GuidedTour({
             type="button"
             onClick={onClose}
             aria-label="Cerrar recorrido"
-            className={`rounded-md p-1 transition ${isLight ? "text-slate-400 hover:text-slate-700" : "text-slate-500 hover:text-slate-200"}`}
+            className={`rounded-md p-1 transition ${themed(
+              "text-slate-400 hover:text-slate-700",
+              "text-slate-500 hover:text-slate-200",
+              "text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200"
+            )}`}
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         <h2 className="mt-3 text-lg font-black leading-tight">{step.title}</h2>
-        <p className={`mt-2 text-sm leading-6 ${isLight ? "text-slate-600" : "text-slate-300"}`}>{step.body}</p>
+        <p className={`mt-2 text-sm leading-6 ${themed("text-slate-600", "text-slate-300", "text-slate-600 dark:text-slate-300")}`}>
+          {step.body}
+        </p>
 
         <div className="mt-4 flex items-center gap-1.5" aria-hidden>
           {steps.map((_, dot) => (
             <span
               key={dot}
               className={`h-1.5 rounded-full transition-all ${
-                dot === index ? "w-5 bg-[#1f89f6]" : `w-1.5 ${isLight ? "bg-slate-300" : "bg-white/20"}`
+                dot === index
+                  ? "w-5 bg-[#1f89f6]"
+                  : `w-1.5 ${themed("bg-slate-300", "bg-white/20", "bg-slate-300 dark:bg-white/20")}`
               }`}
             />
           ))}
         </div>
 
         <div className="mt-3 flex items-center justify-between gap-3">
-          <span className={`text-xs font-bold tabular-nums ${isLight ? "text-slate-400" : "text-slate-500"}`}>
+          <span className={`text-xs font-bold tabular-nums ${themed("text-slate-400", "text-slate-500", "text-slate-400 dark:text-slate-500")}`}>
             {index + 1} / {steps.length}
           </span>
           <div className="flex items-center gap-2">
@@ -170,11 +207,11 @@ export function GuidedTour({
               <button
                 type="button"
                 onClick={() => setIndex(index - 1)}
-                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-bold transition ${
-                  isLight
-                    ? "border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
-                    : "border-white/15 text-slate-300 hover:border-white/30 hover:text-white"
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-bold transition ${themed(
+                  "border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900",
+                  "border-white/15 text-slate-300 hover:border-white/30 hover:text-white",
+                  "border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:border-white/15 dark:text-slate-300 dark:hover:border-white/30 dark:hover:text-white"
+                )}`}
               >
                 <ArrowLeft className="h-4 w-4" />
                 Anterior
@@ -195,9 +232,11 @@ export function GuidedTour({
           <button
             type="button"
             onClick={onClose}
-            className={`mx-auto mt-3 block text-xs font-semibold transition ${
-              isLight ? "text-slate-400 hover:text-slate-600" : "text-slate-500 hover:text-slate-300"
-            }`}
+            className={`mx-auto mt-3 block text-xs font-semibold transition ${themed(
+              "text-slate-400 hover:text-slate-600",
+              "text-slate-500 hover:text-slate-300",
+              "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+            )}`}
           >
             Saltar recorrido
           </button>
