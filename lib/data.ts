@@ -26,6 +26,12 @@ type SidebarSection = {
   adminOnly?: boolean;
   /** Solo se muestra a usuarios internos logueados (no ciudadanos ni anónimos). */
   internalOnly?: boolean;
+  /**
+   * Permiso concreto que exige la pantalla destino. Cuando está, manda sobre los
+   * flags de arriba: es lo único que no se desincroniza del guard del server
+   * ahora que la matriz de permisos se edita desde la interfaz.
+   */
+  permission?: string;
   /** Ancla del recorrido guiado: se emite como data-tour en el enlace. */
   tourId?: string;
   items: SidebarItem[];
@@ -64,6 +70,9 @@ export const sidebarSections: SidebarSection[] = [
     title: "Aportes ciudadanos",
     icon: Users,
     href: "/participacion",
+    // La bandeja muestra nombre, DNI y email de cada vecino: la gobierna
+    // proposals.manage, no el acceso general al sistema interno.
+    permission: "proposals.manage",
     tourId: "nav-participacion",
     items: []
   },

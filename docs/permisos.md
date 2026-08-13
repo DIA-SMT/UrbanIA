@@ -93,6 +93,30 @@ Se chequea contra **usuarios reales**, no contra la configuración de roles, por
 la misma razón que `user-actions.ts` cuenta administradores activos: lo que
 importa es que exista alguien que efectivamente pueda entrar a arreglarlo.
 
+## `internal.view` no da acceso a datos personales
+
+Es una invariante deliberada, no una casualidad. `internal.view` habilita mapas,
+normas, audiencias y documentos: exactamente lo que promete su etiqueta.
+
+La bandeja de aportes ciudadanos —que muestra nombre, DNI, email y texto de cada
+vecino— exige **`proposals.manage`**, tanto para leerla como para editarla, pese a
+vivir dentro del sistema interno.
+
+El motivo es que la matriz es editable. Conceder `internal.view` al rol Ciudadano
+es un escenario contemplado (que los vecinos puedan mirar el mapa y las normas
+desde adentro), y ese día esa casilla no puede significar además "leer los datos
+personales de todos los que presentaron algo". Una casilla que hace más de lo que
+dice es exactamente lo que este módulo vino a eliminar.
+
+Consecuencia asumida: el rol Consulta no ve la bandeja. Su descripción habla de
+proyectos, reuniones, documentos y mapas, no de aportes ciudadanos.
+
+Si agregás una pantalla que muestre datos personales, colgala de un permiso
+propio y no de `internal.view`. En el menú lateral eso se declara con el campo
+`permission` de `SidebarSection` (`lib/data.ts`), que manda sobre los flags
+`adminOnly` / `internalOnly` y es lo único que no se desincroniza del guard del
+servidor.
+
 ## Agregar un permiso nuevo
 
 1. Sumalo a `PERMISSION_CATALOG`.
