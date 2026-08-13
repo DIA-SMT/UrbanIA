@@ -60,6 +60,12 @@ export function LoginPage({ initialError, ciditucEnabled }: LoginPageProps) {
           ) : null}
 
           {ciditucEnabled ? (
+            // Navegacion REAL del navegador, no <Link>: el endpoint responde un
+            // redirect al Derivador de Cidituc, que es otro dominio. Con routing
+            // del lado del cliente el redirect no se sigue y el login no arranca.
+            // La regla lo marca desde que /api/auth es un catch-all y la confunde
+            // con una pagina; es un endpoint.
+            // eslint-disable-next-line @next/next/no-html-link-for-pages
             <a href="/api/auth?action=cidituc-start" className="urban-button mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-[#0284c7] px-5 text-sm font-black text-white shadow-[0_12px_28px_rgba(2,132,199,0.22)] hover:bg-[#0369a1]">
               <Fingerprint className="h-4 w-4" />
               Ingresar con Cidituc
