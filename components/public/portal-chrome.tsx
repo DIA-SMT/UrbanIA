@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, CircleHelp, LogIn, LogOut, Moon, Sun, UserRound } from "lucide-react";
+import { ArrowRight, ChevronDown, CircleHelp, LogIn, LogOut, Moon, Sun, UserRound } from "lucide-react";
 
 /**
  * Chrome y sistema visual del portal ciudadano, compartido por la landing, el
@@ -129,7 +129,13 @@ export function PortalHeader({
   );
 }
 
-type PortalSessionUser = { name: string; role: string };
+/**
+ * `permissions` llega resuelto desde /api/auth?action=me. El menú decide con el
+ * PERMISO y no con el nombre del rol, así el día que un administrador le conceda
+ * `internal.view` a Ciudadano desde la matriz, estas cuentas ven la puerta sin
+ * que haya que tocar código. Es la misma pregunta que se hace el servidor.
+ */
+type PortalSessionUser = { name: string; role: string; permissions?: string[] };
 
 const portalRoleLabels: Record<string, string> = {
   ADMIN: "Administración",
@@ -143,6 +149,7 @@ function PortalAccountMenu({ isLight }: { isLight: boolean }) {
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const puedeEntrarAlSistemaInterno = user?.permissions?.includes("internal.view") ?? false;
 
   useEffect(() => {
     let mounted = true;
@@ -227,11 +234,24 @@ function PortalAccountMenu({ isLight }: { isLight: boolean }) {
           </div>
 
           {user ? (
-            <div className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold ${isLight ? "text-slate-400" : "text-slate-500"}`}>
-              <LogIn className="h-4 w-4" />
-              <span>Ingresar</span>
-              <span className="ml-auto text-[10px] font-bold uppercase tracking-wide">Sesión activa</span>
-            </div>
+            // Con sesión, "Ingresar" no es una opción: ya ingresaste. Antes había
+            // acá una fila deshabilitada que solo repetía lo que ya dicen el
+            // nombre, el rol y el punto verde del avatar. En su lugar va la única
+            // puerta que faltaba: hasta ahora, desde el portal no existía ningún
+            // link al sistema interno y había que escribir /admin a mano.
+            puedeEntrarAlSistemaInterno ? (
+              <Link
+                href="/admin"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 text-sm font-bold transition ${
+                  isLight ? "text-sky-700 hover:bg-sky-50" : "text-sky-200 hover:bg-white/[0.06]"
+                }`}
+              >
+                <ArrowRight className="h-4 w-4" />
+                Sistema interno
+              </Link>
+            ) : null
           ) : (
             <Link
               href="/ingresar"

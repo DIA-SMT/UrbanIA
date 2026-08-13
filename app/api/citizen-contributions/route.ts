@@ -2,7 +2,7 @@ import { CitizenContributionKind, CitizenContributionStatus, ProposalSource, Pro
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { canViewInternal, getSessionUser } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { CONTRIBUTION_BLOCK_MESSAGE, moderateContribution } from "@/lib/moderation";
 import { analyzeAggression } from "@/lib/ai/moderation-intent";
 import { UNCLASSIFIED_AXIS } from "@/lib/citizen/contributions";
@@ -65,9 +65,12 @@ export async function GET() {
     return NextResponse.json({ contributions: [], isLive: false });
   }
 
+  // proposals.manage y no internal.view: este GET devuelve nombre, DNI y email
+  // de cada vecino, y la matriz de permisos es editable. Ver el comentario de
+  // app/participacion/page.tsx.
   const session = await getSessionUser();
-  if (!session || !canViewInternal(session)) {
-    return NextResponse.json({ error: "Necesitas una sesion municipal para ver los aportes." }, { status: 401 });
+  if (!session || !hasPermission(session, "proposals.manage")) {
+    return NextResponse.json({ error: "Necesitas permisos de gestion de aportes para verlos." }, { status: 403 });
   }
 
   try {
