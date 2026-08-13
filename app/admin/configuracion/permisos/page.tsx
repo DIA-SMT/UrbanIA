@@ -1,8 +1,8 @@
-import { Check, Minus } from "lucide-react";
+import type { UserRole } from "@prisma/client";
 import { requireSettingsAccess } from "@/lib/settings/guard";
-import { PERMISSION_CATALOG } from "@/lib/auth/permissions";
 import { loadPermissionMatrix } from "@/lib/auth/permissions-store";
-import { ROLE_ORDER, roleLabels } from "@/lib/settings/shared";
+import { PermissionsMatrix } from "@/components/settings/permissions-matrix";
+import { ROLE_ORDER } from "@/lib/settings/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +13,11 @@ export const metadata = {
 export default async function PermisosPage() {
   await requireSettingsAccess("roles.manage");
 
-  const modules = Array.from(new Set(PERMISSION_CATALOG.map((permission) => permission.module)));
-  const granted = await loadPermissionMatrix();
+  const matriz = await loadPermissionMatrix();
+  const matrizInicial: Record<string, string[]> = {};
+  for (const role of ROLE_ORDER) {
+    matrizInicial[role] = Array.from(matriz.get(role) ?? []);
+  }
 
   return (
     <div>
@@ -24,68 +27,12 @@ export default async function PermisosPage() {
           Matriz de permisos por rol. El servidor valida cada operación contra esta matriz: cambiar un permiso cambia lo que el rol puede hacer, sin tocar pantallas.
         </p>
       </div>
-      <section className="surface-panel overflow-hidden">
-        <div className="urban-scrollbar overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-200/80 text-[11px] font-black uppercase tracking-[0.08em] text-slate-400 dark:border-white/10 dark:text-slate-500">
-                <th scope="col" className="px-4 py-3">Permiso</th>
-                {ROLE_ORDER.map((role) => (
-                  <th key={role} scope="col" className="px-3 py-3 text-center">{roleLabels[role]}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {modules.map((module) => (
-                <ModuleRows key={module} module={module} granted={granted} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
-        La matriz ya vive en la base de datos. La edición desde esta pantalla llega en el próximo paso.
+
+      <PermissionsMatrix roles={ROLE_ORDER as UserRole[]} matrizInicial={matrizInicial} />
+
+      <p className="mt-3 text-xs leading-5 text-slate-400 dark:text-slate-500">
+        Los cambios rigen apenas se guardan, para todas las cuentas del rol, y quedan asentados en Auditoría. El sistema rechaza el único guardado del que no se puede volver: dejar sin ninguna cuenta activa que pueda administrar permisos.
       </p>
     </div>
-  );
-}
-
-function ModuleRows({
-  module,
-  granted
-}: {
-  module: string;
-  granted: Map<(typeof ROLE_ORDER)[number], ReadonlySet<string>>;
-}) {
-  const rows = PERMISSION_CATALOG.filter((permission) => permission.module === module);
-  return (
-    <>
-      <tr className="border-b border-slate-100 bg-slate-50/60 dark:border-white/5 dark:bg-white/[0.02]">
-        <th colSpan={1 + ROLE_ORDER.length} scope="colgroup" className="px-4 py-2 text-left text-[11px] font-black uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
-          {module}
-        </th>
-      </tr>
-      {rows.map((permission) => (
-        <tr key={permission.key} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/70 dark:border-white/5 dark:hover:bg-white/[0.03]">
-          <td className="px-4 py-2.5">
-            <p className="font-semibold text-slate-700 dark:text-slate-200">{permission.label}</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500">{permission.description}</p>
-          </td>
-          {ROLE_ORDER.map((role) => {
-            const has = granted.get(role)?.has(permission.key) ?? false;
-            return (
-              <td key={role} className="px-3 py-2.5 text-center">
-                {has ? (
-                  <Check aria-hidden className="mx-auto h-4 w-4 text-emerald-500" />
-                ) : (
-                  <Minus aria-hidden className="mx-auto h-4 w-4 text-slate-300 dark:text-slate-600" />
-                )}
-                <span className="sr-only">{has ? "Permitido" : "No permitido"}</span>
-              </td>
-            );
-          })}
-        </tr>
-      ))}
-    </>
   );
 }

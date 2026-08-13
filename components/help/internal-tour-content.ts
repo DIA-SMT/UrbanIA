@@ -127,7 +127,7 @@ export const USUARIOS_TOUR: TourStep[] = [
   {
     anchor: "config-nav",
     title: "Las seis secciones",
-    body: "Usuarios es la pantalla principal. Roles y Permisos muestran qué habilita cada rol; Seguridad explica las políticas vigentes y Auditoría guarda cada cambio."
+    body: "Usuarios es la pantalla principal. Roles muestra qué habilita cada rol y Permisos deja editar esa matriz; Seguridad explica las políticas vigentes y Auditoría guarda cada cambio."
   },
   {
     anchor: "usuarios-buscador",
