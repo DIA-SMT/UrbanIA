@@ -64,7 +64,7 @@ export function shellTourSteps(role: string | null): TourStep[] {
           {
             anchor: "nav-config",
             title: "Configuración (solo administradores)",
-            body: "El panel de accesos: quién entra al sistema y qué puede hacer. Adentro están Usuarios, Roles, Permisos, Solicitudes de acceso, la integración con Cidituc, Seguridad y la auditoría de todos los cambios."
+            body: "El panel de accesos: quién entra al sistema y qué puede hacer. Adentro están Usuarios, Roles, Permisos, Solicitudes de acceso, Seguridad y la auditoría de todos los cambios."
           }
         ]
       : []),
@@ -126,8 +126,8 @@ export const USUARIOS_TOUR: TourStep[] = [
   },
   {
     anchor: "config-nav",
-    title: "Las siete secciones",
-    body: "Usuarios es la pantalla principal. Roles y Permisos muestran qué habilita cada rol; Cidituc aprovisiona las identidades; Seguridad explica las políticas vigentes y Auditoría guarda cada cambio."
+    title: "Las seis secciones",
+    body: "Usuarios es la pantalla principal. Roles y Permisos muestran qué habilita cada rol; Seguridad explica las políticas vigentes y Auditoría guarda cada cambio."
   },
   {
     anchor: "usuarios-buscador",

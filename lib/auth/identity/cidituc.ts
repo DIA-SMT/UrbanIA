@@ -190,84 +190,13 @@ export const ciditucProvider: IdentityProvider = {
   }
 };
 
-export type CiditucDiagnostico = {
-  estado: "OK" | "RUTA_INCORRECTA" | "SIN_RESPUESTA" | "RESPUESTA_RARA" | "NO_CONFIGURADO";
-  titulo: string;
-  detalle: string;
-  /** Host consultado, para ver de un vistazo si la variable apunta a otro lado. */
-  host: string | null;
-};
-
 /**
- * Prueba de conexion contra el backend de Cidituc, para la pantalla de
- * integracion. Manda un token deliberadamente invalido: si el backend esta
- * bien, responde 401. Cualquier otra cosa distingue "la URL apunta mal" de
- * "no llegamos al servidor", que es la diferencia que hasta ahora solo se veia
- * en los logs del hosting.
- *
- * Usa el MISMO transporte que el login (getDeCidituc). Con `fetch` mediria un
- * camino distinto del que corre en el ingreso real, y podria dar verde con el
- * login roto, o al reves.
+ * La prueba de conexion contra el backend vivia acá, para la pantalla de
+ * Configuración > Cidituc que se eliminó. El mismo chequeo se hace a mano y
+ * está documentado en docs/integracion-cidituc.md: un GET a
+ * {CIDITUC_API_URL}/usuarios/authStatus con un token inválido tiene que
+ * responder 401.
  */
-export async function diagnosticarCidituc(): Promise<CiditucDiagnostico> {
-  const configurada = process.env.CIDITUC_API_URL;
-  if (!configurada) {
-    return {
-      estado: "NO_CONFIGURADO",
-      titulo: "Falta CIDITUC_API_URL",
-      detalle: "Sin esa variable UrbanIA no tiene contra qué validar el token.",
-      host: null
-    };
-  }
-
-  let host: string;
-  try {
-    host = new URL(configurada).host;
-  } catch {
-    return {
-      estado: "NO_CONFIGURADO",
-      titulo: "CIDITUC_API_URL no es una URL válida",
-      detalle: `El valor cargado no se puede interpretar como URL: "${configurada}". Reviná que no tenga comillas ni espacios.`,
-      host: null
-    };
-  }
-
-  const endpoint = `${configurada.replace(/\/$/, "")}/usuarios/authStatus`;
-  try {
-    const response = await getDeCidituc(endpoint, "diagnostico-token-invalido", 8_000);
-
-    if (response.status === 401 || response.status === 403) {
-      return {
-        estado: "OK",
-        titulo: "El backend responde",
-        detalle: `Rechaza un token inválido con ${response.status}, que es lo esperado. La URL es correcta y hay conexión.`,
-        host
-      };
-    }
-    if (response.status === 404) {
-      return {
-        estado: "RUTA_INCORRECTA",
-        titulo: "El servidor responde, pero ahí no está el endpoint",
-        detalle: `${host} devolvió 404 en /usuarios/authStatus. CIDITUC_API_URL apunta a un host que no sirve la API de Cidituc.`,
-        host
-      };
-    }
-    return {
-      estado: "RESPUESTA_RARA",
-      titulo: `El backend respondió ${response.status}`,
-      detalle: `Se esperaba 401 para un token inválido. Puede estar caído o con un problema propio.`,
-      host
-    };
-  } catch (error) {
-    return {
-      estado: "SIN_RESPUESTA",
-      titulo: "No se pudo conectar con el backend",
-      detalle: `No hubo respuesta desde ${host}. Motivo: ${motivoDeFallo(error)}. Suele ser un firewall que no deja salir hacia ese host o puerto desde donde corre la app, o el servidor apagado.`,
-      host
-    };
-  }
-}
-
 export function ciditucIntegrationStatus() {
   return {
     enabled: ciditucProvider.isEnabled(),
