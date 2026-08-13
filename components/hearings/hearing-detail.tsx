@@ -32,6 +32,7 @@ import { HearingFields } from "@/components/hearings/live/hearing-fields";
 import { ConclusionsFields } from "@/components/hearings/conclusions-fields";
 import { HearingDocuments } from "@/components/hearings/hearing-documents";
 import { AudioAnalysisPanel } from "@/components/hearings/audio-analysis-panel";
+import { GuidedTour, TourButton, useGuidedTour, type TourStep } from "@/components/help/guided-tour";
 import {
   emptyHearingConclusions,
   emptyHearingFicha,
@@ -176,6 +177,7 @@ export function HearingDetail({
   const [expanded, setExpanded] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const tour = useGuidedTour("audiencias-detalle");
   const [summaryDownloading, setSummaryDownloading] = useState(false);
   const [summaryError, setSummaryError] = useState("");
   const [summaryDownload, setSummaryDownload] = useState<SummaryDownload | null>(null);
@@ -485,7 +487,8 @@ export function HearingDetail({
               {hearing.hearingSource ? <span className="text-xs text-slate-500">{hearingSourceLabels[hearing.hearingSource]}</span> : null}
             </div>
           </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2" data-tour="estado-acciones">
+            <TourButton onClick={tour.start} />
             <span className={`rounded-md border px-2.5 py-1 text-[11px] font-black ${hearingStatusStyles[hearing.hearingStatus]}`}>
               {hearingStatusLabels[hearing.hearingStatus]}
             </span>
@@ -663,7 +666,11 @@ export function HearingDetail({
 
       {/* Audiencia grabada en vivo: de aca sale la transcripcion. Va arriba de
           los avisos porque es la accion que destraba todo lo demas. */}
-      {canEdit ? <AudioAnalysisPanel hearingId={hearing.id} media={hearing.mediaFiles} /> : null}
+      {canEdit ? (
+        <div data-tour="grabacion">
+          <AudioAnalysisPanel hearingId={hearing.id} media={hearing.mediaFiles} />
+        </div>
+      ) : null}
 
       {hearing.ingestWarning || canGenerateAnalysis ? (
         <div className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-4">
@@ -714,6 +721,7 @@ export function HearingDetail({
         <Section
           title="Ficha de la audiencia"
           icon={ClipboardList}
+          dataTour="ficha"
           action={canEdit ? <EditButton label="Editar ficha" onClick={() => setFichaDraft(hearing.ficha)} /> : undefined}
         >
           <div className="grid gap-3 sm:grid-cols-2">
@@ -723,7 +731,7 @@ export function HearingDetail({
           </div>
         </Section>
       ) : canEdit ? (
-        <Section title="Ficha de la audiencia" icon={ClipboardList}>
+        <Section title="Ficha de la audiencia" icon={ClipboardList} dataTour="ficha">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-slate-400">Todavía no se cargó la ficha de datos de esta audiencia.</p>
             <button
@@ -764,6 +772,7 @@ export function HearingDetail({
         <Section
           title="Conclusiones y temas observados"
           icon={Sparkles}
+          dataTour="conclusiones"
           badge={hearing.conclusionsByTeam ? "Firmadas por el equipo" : "Borrador de Migue"}
           action={canEdit ? <EditButton label="Editar conclusiones" onClick={() => setConclusionsDraft(c ?? emptyHearingConclusions())} /> : undefined}
         >
@@ -774,7 +783,7 @@ export function HearingDetail({
           </div>
         </Section>
       ) : canEdit ? (
-        <Section title="Conclusiones y temas observados" icon={Sparkles}>
+        <Section title="Conclusiones y temas observados" icon={Sparkles} dataTour="conclusiones">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-slate-400">Todavía no se cargaron las conclusiones de esta audiencia.</p>
             <button
@@ -790,7 +799,12 @@ export function HearingDetail({
       ) : null}
 
       {matchGroups.length ? (
-        <Section title="Cruce con el código nuevo" icon={Scale} badge={`${matchGroups.length} ${matchGroups.length === 1 ? "norma" : "normas"}`}>
+        <Section
+          title="Cruce con el código nuevo"
+          icon={Scale}
+          dataTour="cruces"
+          badge={`${matchGroups.length} ${matchGroups.length === 1 ? "norma" : "normas"}`}
+        >
           <div className="grid gap-2">
             {matchGroups.map((group) => (
               <div key={group.normId} className="rounded-lg border border-white/8 bg-white/[0.03] p-3">
@@ -847,7 +861,9 @@ export function HearingDetail({
         </Section>
       ) : null}
 
-      <HearingDocuments hearingId={hearing.id} documents={hearing.documents} canEdit={canEdit} />
+      <div data-tour="documentos">
+        <HearingDocuments hearingId={hearing.id} documents={hearing.documents} canEdit={canEdit} />
+      </div>
 
       {hasExtra ? (
         <div>
@@ -920,25 +936,76 @@ export function HearingDetail({
           ) : null}
         </div>
       ) : null}
+
+      <GuidedTour steps={DETAIL_TOUR} open={tour.open} onClose={tour.close} />
     </div>
   );
 }
+
+/**
+ * Recorrido guiado del expediente. Varias secciones son condicionales (una
+ * audiencia sin grabacion no tiene el panel de audio): si el ancla no esta, el
+ * paso se muestra sin resaltar, y los textos estan escritos para tolerar eso.
+ */
+const DETAIL_TOUR: TourStep[] = [
+  {
+    title: "El expediente de la audiencia",
+    body: "Todo lo que dejó la audiencia vive en esta pantalla: la grabación, el acta, la ficha, las conclusiones y los cruces con las normas. Te mostramos qué es cada cosa."
+  },
+  {
+    anchor: "estado-acciones",
+    title: "Estado y acciones",
+    body: "El estado del trámite y las acciones principales: continuar una audiencia en curso, generar el resumen ejecutivo en PDF, o eliminarla (solo Administración — y borra también la grabación)."
+  },
+  {
+    anchor: "grabacion",
+    title: "La grabación y su análisis",
+    body: "Si la audiencia se grabó en vivo, acá están sus tramos de audio. «Analizar audio» genera la transcripción con oradores, los cruces y el resumen; «Descargar audio» baja la grabación completa en un MP3."
+  },
+  {
+    anchor: "ficha",
+    title: "La ficha de la audiencia",
+    body: "Los datos estructurados: tema principal, origen de la propuesta, participantes. El equipo la completa a mano —o con ayuda de Migue cuando hay transcripción— y la puede editar siempre."
+  },
+  {
+    anchor: "conclusiones",
+    title: "Las conclusiones",
+    body: "El cierre del debate. Migue redacta un borrador y el equipo lo revisa y firma. Lo firmado por una persona no se pisa nunca al re-correr la IA."
+  },
+  {
+    anchor: "cruces",
+    title: "El cruce con el código nuevo",
+    body: "Cada vez que el debate tocó una norma del código en discusión, queda registrado: la cita textual, la postura del vecino (apoya, se opone, pide un cambio) y el minuto. El ícono de la esquina te lleva a la norma."
+  },
+  {
+    anchor: "documentos",
+    title: "Documentos adjuntos",
+    body: "Los archivos de la audiencia —informes, presentaciones, anexos— se suben y descargan desde acá."
+  },
+  {
+    title: "¡Listo!",
+    body: "Con «Ver todo el detalle» aparecen la transcripción completa y los archivos multimedia. Podés repetir este recorrido cuando quieras con «¿Cómo funciona?»."
+  }
+];
 
 function Section({
   title,
   icon: Icon,
   badge,
   action,
+  dataTour,
   children
 }: {
   title: string;
   icon?: typeof Scale;
   badge?: string;
   action?: React.ReactNode;
+  /** Ancla del recorrido guiado ([data-tour]). */
+  dataTour?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="urban-card rounded-lg p-4 lg:p-5">
+    <section data-tour={dataTour} className="urban-card rounded-lg p-4 lg:p-5">
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="inline-flex items-center gap-2 text-sm font-black text-white">
           {Icon ? <Icon className="h-4 w-4 text-[#1f89f6]" /> : null}

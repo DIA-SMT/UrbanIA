@@ -6,12 +6,45 @@ import type { HearingStatus } from "@prisma/client";
 import { Brain, Filter, Plus, Search, Upload } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { HearingCard } from "@/components/hearings/hearing-card";
+import { GuidedTour, TourButton, useGuidedTour, type TourStep } from "@/components/help/guided-tour";
 import { hearingStatusLabels, hearingVisibleStatuses, type HearingCounts, type HearingListItem } from "@/lib/hearings/shared";
 
 type StatusFilter = HearingStatus | "ALL";
 type ReformFilter = string | "ALL";
 
 type ReformOption = { id: string; code: string; title: string };
+
+/** Recorrido guiado del registro. Los anchors viven en las secciones de abajo. */
+const BOARD_TOUR: TourStep[] = [
+  {
+    title: "El registro de audiencias",
+    body: "Acá queda la memoria pública de cada audiencia sobre el código nuevo: cuándo fue, qué se debatió, su acta y sus conclusiones. Te mostramos cómo se usa."
+  },
+  {
+    anchor: "acciones",
+    title: "Crear o cargar una audiencia",
+    body: "«Nueva audiencia» es para una que está por ocurrir: se graba en vivo y después se transcribe con IA. «Cargar audiencia» es para una que ya pasó: acepta transcripciones, videos de YouTube o archivos de audio. (Requiere cuenta municipal.)"
+  },
+  {
+    anchor: "estados",
+    title: "El estado del ciclo, de un vistazo",
+    body: "Cuántas audiencias están por venir, cuántas se están procesando y cuántas ya cerraron con su acta completa."
+  },
+  {
+    anchor: "filtros",
+    title: "Encontrá la que buscás",
+    body: "Filtrá por estado o por código nuevo en debate, o buscá directamente por título."
+  },
+  {
+    anchor: "listado",
+    title: "Una tarjeta por audiencia",
+    body: "Cada tarjeta muestra fecha, estado y avance. Entrá a una para ver su detalle completo: el acta, los cruces con las normas, las conclusiones y el audio."
+  },
+  {
+    title: "¡Listo!",
+    body: "Podés repetir este recorrido cuando quieras con el botón «¿Cómo funciona?», y en la sección Ayuda tenés la guía completa paso a paso."
+  }
+];
 
 /**
  * Registro de audiencias publicas: primer pantallazo limpio y consultable, con
@@ -34,6 +67,7 @@ export function HearingsBoard({
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [reformId, setReformId] = useState<ReformFilter>("ALL");
   const [query, setQuery] = useState("");
+  const tour = useGuidedTour("audiencias-board");
 
   const visible = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -65,24 +99,27 @@ export function HearingsBoard({
                 Registro y consulta de las audiencias sobre el código nuevo: cada una queda persistida, con su cruce contra las mininormas de la Fábrica de Normas y su análisis. La IA orienta; el equipo valida.
               </p>
             </div>
-            {canCreate ? (
-              <div className="flex flex-wrap gap-2">
-                <Link href="/audiencias/nueva" className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white">
-                  <Plus className="h-4 w-4" />
-                  Nueva audiencia
-                </Link>
-                <Link
-                  href="/audiencias/cargar"
-                  className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-slate-200"
-                >
-                  <Upload className="h-4 w-4" />
-                  Cargar audiencia
-                </Link>
-              </div>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2" data-tour={canCreate ? "acciones" : undefined}>
+              {canCreate ? (
+                <>
+                  <Link href="/audiencias/nueva" className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-3 text-sm font-black text-white">
+                    <Plus className="h-4 w-4" />
+                    Nueva audiencia
+                  </Link>
+                  <Link
+                    href="/audiencias/cargar"
+                    className="urban-button inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-slate-200"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Cargar audiencia
+                  </Link>
+                </>
+              ) : null}
+              <TourButton onClick={tour.start} />
+            </div>
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <div className="mt-6 grid gap-3 sm:grid-cols-3" data-tour="estados">
             <StatCard label="Próximas" value={counts.upcoming} />
             <StatCard label="En procesamiento" value={counts.processing} />
             <StatCard label="Finalizadas" value={counts.completed} />
@@ -90,7 +127,7 @@ export function HearingsBoard({
         </div>
       </section>
 
-      <section className="urban-card rounded-lg p-4 lg:p-5">
+      <section className="urban-card rounded-lg p-4 lg:p-5" data-tour="filtros">
         <FilterRow label="Estado">
           <FilterChip active={status === "ALL"} onClick={() => setStatus("ALL")}>Todos</FilterChip>
           {hearingVisibleStatuses.map((value) => (
@@ -120,7 +157,7 @@ export function HearingsBoard({
         </label>
       </section>
 
-      <section className="urban-card rounded-lg p-4 lg:p-5">
+      <section className="urban-card rounded-lg p-4 lg:p-5" data-tour="listado">
         {visible.length ? (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {visible.map((hearing) => (
@@ -149,6 +186,8 @@ export function HearingsBoard({
           />
         )}
       </section>
+
+      <GuidedTour steps={BOARD_TOUR} open={tour.open} onClose={tour.close} />
     </div>
   );
 }

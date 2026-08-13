@@ -9,8 +9,13 @@
  * - Un item que falla se reintenta con espera creciente; agotados los intentos
  *   NO se descarta, queda en la cola esperando que alguien llame a retryStuck()
  *   (el barrido periodico, o el cierre de la audiencia).
- * - El orden se respeta: la cola no saltea un item trabado para seguir con el
- *   siguiente, porque los tramos se numeran y conviene subirlos en orden.
+ * - El orden se respeta MIENTRAS se pueda: los items sanos suben en el orden en
+ *   que entraron, pero un item que agoto sus reintentos se aparta y los demas
+ *   siguen. Antes el trabado frenaba a toda la cola (decision original, "los
+ *   tramos conviene subirlos en orden"), y en la IX Audiencia (2026-08-12) eso
+ *   dejo ~15 minutos de audio retenidos en memoria detras de un tramo que no
+ *   iba a subir nunca. Los tramos se numeran: el orden de subida es cosmetico,
+ *   no perder audio no.
  */
 
 export type UploadQueueState = {
@@ -44,6 +49,13 @@ export class UploadQueue<T> {
   private working = false;
   private uploadedCount = 0;
   private lastError = "";
+  /**
+   * Hay un flush() esperando. Mientras dure, retryStuck() no hace nada: si el
+   * barrido periodico revive items agotados mas rapido de lo que drain() los
+   * vuelve a agotar, drain() no termina nunca y el cierre de la audiencia
+   * queda colgado en "Cerrando..." sin mensaje ni salida.
+   */
+  private flushing = false;
 
   constructor(private readonly options: UploadQueueOptions<T>) {}
 
@@ -79,8 +91,13 @@ export class UploadQueue<T> {
     void this.drain();
   }
 
-  /** Devuelve los intentos a cero en lo que quedo trabado, para volver a probar. */
+  /**
+   * Devuelve los intentos a cero en lo que quedo trabado, para volver a probar.
+   * Durante un flush NO hace nada: revivir items mientras el cierre espera es
+   * lo que puede dejar a drain() sin condicion de salida.
+   */
   retryStuck(): void {
+    if (this.flushing) return;
     for (const entry of this.items) {
       if (entry.attempts >= this.maxAttempts) entry.attempts = 0;
     }
@@ -89,28 +106,38 @@ export class UploadQueue<T> {
   /**
    * Vacia la cola de a uno. Reentrante: si ya hay un drain corriendo, vuelve en
    * el acto y deja que el que esta en curso levante los items nuevos.
+   *
+   * Los items agotados se SALTEAN, no cortan el ciclo: quedan en la cola
+   * (marcados stuck) esperando el proximo retryStuck(), y los que vienen detras
+   * suben igual.
    */
   async drain(): Promise<void> {
     if (this.working) return;
     this.working = true;
     try {
-      while (this.items.length) {
-        const entry = this.items[0];
-        // Agotado: se corta el ciclo en vez de girar sobre el mismo item.
-        if (entry.attempts >= this.maxAttempts) break;
+      while (true) {
+        // El primer item con intentos disponibles: el orden de llegada se
+        // respeta entre los sanos, los agotados se dejan atras.
+        const entry = this.items.find((candidate) => candidate.attempts < this.maxAttempts);
+        if (!entry) break;
 
         try {
           await this.options.upload(entry.item);
-          this.items.shift();
+          this.items.splice(this.items.indexOf(entry), 1);
           this.uploadedCount += 1;
-          this.lastError = "";
+          // El error se limpia solo si no queda nadie trabado: mientras haya un
+          // item agotado, su mensaje es el diagnostico que el operador necesita.
+          if (!this.items.some((candidate) => candidate.attempts >= this.maxAttempts)) {
+            this.lastError = "";
+          }
           this.emit();
         } catch (error) {
           entry.attempts += 1;
           this.lastError = error instanceof Error ? error.message : "No se pudo subir.";
           this.emit();
-          if (entry.attempts >= this.maxAttempts) break;
-          await this.sleep(this.backoff[entry.attempts - 1] ?? this.backoff[this.backoff.length - 1] ?? 0);
+          if (entry.attempts < this.maxAttempts) {
+            await this.sleep(this.backoff[entry.attempts - 1] ?? this.backoff[this.backoff.length - 1] ?? 0);
+          }
         }
       }
     } finally {
@@ -127,10 +154,17 @@ export class UploadQueue<T> {
    * el acto si ya venia trabajando, dando por terminado algo que sigue en curso.
    */
   async flush(): Promise<boolean> {
+    // El orden importa: primero se destraba lo agotado, y recien despues se
+    // cierra la puerta a que el barrido vuelva a destrabar durante la espera.
     this.retryStuck();
-    void this.drain();
-    while (this.working) {
-      await this.sleep(FLUSH_POLL_MS);
+    this.flushing = true;
+    try {
+      void this.drain();
+      while (this.working) {
+        await this.sleep(FLUSH_POLL_MS);
+      }
+    } finally {
+      this.flushing = false;
     }
     this.emit();
     return this.items.length === 0;

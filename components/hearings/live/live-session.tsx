@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, Loader2, LogOut, Square, TriangleAlert } from "lucide-react";
 import { HearingFields } from "@/components/hearings/live/hearing-fields";
+import { GuidedTour, TourButton, useGuidedTour, type TourStep } from "@/components/help/guided-tour";
 import { NotesCanvas } from "@/components/hearings/live/notes-canvas";
 import { clearPendingParts } from "@/components/hearings/live/pending-audio-store";
 import { RecorderPanel } from "@/components/hearings/live/recorder-panel";
@@ -13,6 +14,37 @@ import { useRecorder } from "@/components/hearings/live/use-recorder";
 import { emptyHearingFicha, type HearingFicha } from "@/lib/hearings/shared";
 
 const AUTOSAVE_INTERVAL_MS = 60_000;
+
+/**
+ * Recorrido guiado de la sesion en vivo. CORTO a proposito: quien lo ve por
+ * primera vez suele estar por arrancar una audiencia real, con gente esperando.
+ * Cinco pasos, lo esencial para operar sin miedo, y listo.
+ */
+const LIVE_TOUR: TourStep[] = [
+  {
+    title: "La sesión en vivo",
+    body: "Desde acá se registra la audiencia mientras ocurre. Lo esencial: grabar el audio, anotar lo que la grabación no capta, y cerrar. La transcripción se genera después, con un botón, desde el detalle."
+  },
+  {
+    anchor: "grabadora",
+    title: "Grabar es lo único crítico",
+    body: "«Comenzar a grabar» pide el micrófono y arranca. El audio se sube solo cada 5 minutos: fijate que el medidor se mueva cuando se habla y que el contador de tramos guardados avance. Mientras eso pase, la audiencia está a salvo."
+  },
+  {
+    anchor: "notas",
+    title: "Tus notas, aparte del acta",
+    body: "Anotá quién habla, los momentos clave, lo que el audio solo no va a poder decir. Se guardan cada minuto y no se mezclan con la transcripción: son tu registro de sala."
+  },
+  {
+    anchor: "ficha",
+    title: "La ficha, si hay tiempo",
+    body: "Los datos estructurados de la audiencia. Se pueden completar acá o después, desde el detalle: nada de esto frena la grabación."
+  },
+  {
+    title: "Al terminar",
+    body: "«Finalizar audiencia» corta la grabación, espera a que todo el audio esté arriba y cierra. Si falta subir algo, te avisa antes. Después, en el detalle, «Analizar audio» genera el acta completa."
+  }
+];
 
 /**
  * Sesion en vivo de una audiencia (ruta /audiencias/[id]/en-vivo).
@@ -49,6 +81,7 @@ export function LiveSession({
   baseOffsetMs?: number;
 }) {
   const router = useRouter();
+  const tour = useGuidedTour("audiencias-en-vivo");
 
   const [notes, setNotes] = useState(initialNotes);
   const [ficha, setFicha] = useState<HearingFicha>(initialFicha ?? emptyHearingFicha());
@@ -69,10 +102,30 @@ export function LiveSession({
   const lastSavedRef = useRef("");
   const savingRef = useRef(false);
 
-  const upload = useAudioUpload({ meetingId, alreadyUploaded: recordedParts });
+  // Punto de reanudacion de la grabacion: arranca con lo que sabe el server
+  // (tramos ya subidos) y se corre hacia adelante si la recuperacion encuentra
+  // tramos pendientes en IndexedDB con indices mas altos. En un ref y no en
+  // estado: lo lee la grabadora en el momento de arrancar, no re-renderiza.
+  const resumePointRef = useRef({ index: firstPartIndex, offsetMs: baseOffsetMs });
+  const upload = useAudioUpload({
+    meetingId,
+    alreadyUploaded: recordedParts,
+    onRecovered: (parts) => {
+      for (const part of parts) {
+        resumePointRef.current = {
+          index: Math.max(resumePointRef.current.index, part.index + 1),
+          offsetMs: Math.max(resumePointRef.current.offsetMs, part.offsetMs + part.durationMs)
+        };
+      }
+      // El reloj tambien: los tramos rescatados son audio grabado, y sin esto
+      // marcaba menos tiempo del real por el resto de la sesion (el operador
+      // que anota "minuto 43" apuntaba a otro momento de la transcripcion).
+      recordedMsRef.current = Math.max(recordedMsRef.current, resumePointRef.current.offsetMs);
+    }
+  });
   // enqueue es estable (useCallback sin dependencias), asi que la grabadora no
   // se reconstruye en cada render.
-  const recorder = useRecorder({ onPart: upload.enqueue, firstPartIndex, baseOffsetMs });
+  const recorder = useRecorder({ onPart: upload.enqueue, nextPart: () => resumePointRef.current });
 
   /* --------------------------- Cronometro grabado -------------------------- */
   // Cuenta el tiempo GRABADO, no el tiempo en pantalla: si el operador detiene y
@@ -189,7 +242,10 @@ export function LiveSession({
     const saved = await saveDraft({ force: true });
     if (!saved || !allUp) {
       setExiting(false);
-      if (!allUp) setFinalizeError("Quedaron tramos de audio sin subir. No cierres esta pestaña: se sigue reintentando.");
+      if (!allUp)
+        setFinalizeError(
+          "Quedaron tramos de audio sin subir y la grabación quedó detenida. No cierres esta pestaña: se sigue reintentando. Si la audiencia continúa, apretá «Reanudar grabación» (la numeración sigue sola, no pisa nada)."
+        );
       return;
     }
     router.push(`/audiencias/${meetingId}`);
@@ -203,18 +259,24 @@ export function LiveSession({
       const allUp = await stopAndFlush();
       await saveDraft({ force: true });
 
+      // El estado se lee DESPUES de esperar al flush y sin pasar por el render:
+      // el ultimo tramo se encola recien dentro de recorder.stop(), asi que los
+      // valores que capturo el closure de este click ya son viejos y llegaron a
+      // decir "quedaron 0 tramos sin subir" con uno pendiente en pantalla.
+      const queue = upload.snapshot();
+
       // Dos motivos para frenar antes de cerrar, ambos salvables por el
       // operador con una segunda pulsada: falta subir audio, o no hay audio.
       if (!confirmFinalize) {
         if (!allUp) {
           setFinalizeError(
-            `Quedaron ${upload.pending} ${upload.pending === 1 ? "tramo" : "tramos"} de audio sin subir y se siguen reintentando. Si cerrás ahora, ese audio se pierde. Volvé a apretar para cerrar igual.`
+            `Quedaron ${queue.pending} ${queue.pending === 1 ? "tramo" : "tramos"} de audio sin subir y se siguen reintentando. Si cerrás ahora, la audiencia queda cerrada sin ese audio (la copia local se conserva en esta computadora para rescatarla). Volvé a apretar para cerrar igual.`
           );
           setConfirmFinalize(true);
           setFinalizing(false);
           return;
         }
-        if (upload.uploaded === 0) {
+        if (queue.uploaded === 0) {
           setFinalizeError("No se grabó audio en esta audiencia, así que no va a haber nada para transcribir. Volvé a apretar para cerrar igual.");
           setConfirmFinalize(true);
           setFinalizing(false);
@@ -231,9 +293,12 @@ export function LiveSession({
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.detail || payload?.error || "No se pudo finalizar la audiencia.");
       }
-      // Audiencia cerrada: el audio ya esta en el servidor y las copias locales
-      // no tienen mas razon de existir (ocupan disco del navegador).
-      await clearPendingParts(meetingId);
+      // Las copias locales se sueltan SOLO si todo el audio llego al servidor.
+      // Si el operador eligio cerrar con tramos sin subir, esas copias son lo
+      // unico que queda de ese audio: borrarlas convierte una perdida avisada
+      // en una definitiva, y son justo las que permitieron rescatar la IX
+      // Audiencia. Unos MB de disco valen menos que audio de audiencia publica.
+      if (allUp) await clearPendingParts(meetingId);
       router.push(`/audiencias/${meetingId}`);
     } catch (error) {
       setFinalizeError(error instanceof Error ? error.message : "No se pudo finalizar la audiencia.");
@@ -266,6 +331,7 @@ export function LiveSession({
           <h1 className="mt-1 truncate text-2xl font-black leading-tight text-white">{title}</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <TourButton onClick={tour.start} />
           <button
             type="button"
             onClick={saveAndExit}
@@ -308,41 +374,50 @@ export function LiveSession({
         </div>
       ) : null}
 
-      <RecorderPanel
-        supported={recorder.supported}
-        recording={recorder.recording}
-        starting={recorder.starting}
-        error={recorder.error}
-        level={recorder.level}
-        elapsedLabel={elapsedLabel}
-        uploaded={upload.uploaded}
-        pending={upload.pending}
-        stuck={upload.stuck}
-        uploadError={upload.error}
-        recovered={upload.recovered}
-        onStart={() => void recorder.start()}
-        onStop={() => void recorder.stop()}
-      />
+      <div data-tour="grabadora">
+        <RecorderPanel
+          supported={recorder.supported}
+          recording={recorder.recording}
+          starting={recorder.starting}
+          error={recorder.error}
+          level={recorder.level}
+          elapsedLabel={elapsedLabel}
+          uploaded={upload.uploaded}
+          pending={upload.pending}
+          stuck={upload.stuck}
+          uploadError={upload.error}
+          recovered={upload.recovered}
+          recovering={upload.recovering}
+          onStart={() => void recorder.start()}
+          onStop={() => void recorder.stop()}
+        />
+      </div>
 
-      <NotesCanvas value={notes} onChange={setNotes} />
+      <div data-tour="notas">
+        <NotesCanvas value={notes} onChange={setNotes} />
+      </div>
 
       {/* La ficha se completa a mano: sin transcripcion en el momento, Migue no
           tiene de donde sacarla. Vuelve a poder completarse desde el detalle,
           una vez analizado el audio. */}
-      <HearingFields
-        value={ficha}
-        disabled={finalizing}
-        aiAvailable={false}
-        completing={false}
-        error=""
-        onChange={setFicha}
-        onCompleteWithAi={() => {}}
-      />
+      <div data-tour="ficha">
+        <HearingFields
+          value={ficha}
+          disabled={finalizing}
+          aiAvailable={false}
+          completing={false}
+          error=""
+          onChange={setFicha}
+          onCompleteWithAi={() => {}}
+        />
+      </div>
 
       <p className="text-xs leading-5 text-slate-500">
         El audio se graba en tramos y se sube solo mientras la audiencia transcurre; las notas y la ficha se guardan cada minuto y al salir.
         La transcripción, los cruces con las normas y las conclusiones se generan después, desde el detalle, con “Analizar audio”.
       </p>
+
+      <GuidedTour steps={LIVE_TOUR} open={tour.open} onClose={tour.close} />
     </div>
   );
 }

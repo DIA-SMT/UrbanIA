@@ -56,7 +56,7 @@ test("se cae la red un rato: reintenta y termina subiendo el mismo tramo", async
   assert.equal(queue.state().pending, 0);
 });
 
-test("un tramo que nunca sube NO se descarta ni traba a los que siguen para siempre", async () => {
+test("un tramo que nunca sube NO se descarta, y los que siguen suben igual", async () => {
   const { queue, uploaded } = makeQueue((item) => item !== "part-0");
 
   queue.enqueue("part-0");
@@ -64,23 +64,25 @@ test("un tramo que nunca sube NO se descarta ni traba a los que siguen para siem
 
   // flush devuelve false: quedo audio sin subir y el cierre tiene que enterarse.
   assert.equal(await queue.flush(), false);
-  assert.deepEqual(uploaded, []);
+  // El trabado no arrastra al resto: part-1 subio aunque part-0 no pueda.
+  // (Leccion de la IX Audiencia: un tramo imposible retenia el audio de todos.)
+  assert.deepEqual(uploaded, ["part-1"]);
 
   const state = queue.state();
   assert.equal(state.stuck, true);
-  assert.equal(state.pending, 2, "los dos tramos siguen en la cola, ninguno se perdio");
+  assert.equal(state.pending, 1, "el tramo trabado sigue en la cola, no se perdio");
   assert.match(state.error, /part-0/);
 });
 
-test("el orden se respeta: no se saltea un tramo trabado para subir el siguiente", async () => {
-  const { queue, uploaded } = makeQueue((item) => item !== "part-0");
+test("el orden se respeta entre tramos sanos: suben como entraron", async () => {
+  const { queue, uploaded } = makeQueue(() => true);
 
+  queue.enqueue("part-2");
   queue.enqueue("part-0");
   queue.enqueue("part-1");
   await queue.flush();
 
-  // part-1 podria haber subido solo, pero se numeran y van en orden.
-  assert.deepEqual(uploaded, []);
+  assert.deepEqual(uploaded, ["part-2", "part-0", "part-1"]);
 });
 
 test("vuelve la red: retryStuck destraba y sube todo lo que habia quedado", async () => {
@@ -96,6 +98,41 @@ test("vuelve la red: retryStuck destraba y sube todo lo que habia quedado", asyn
   assert.equal(await queue.flush(), true, "flush destraba lo agotado antes de reintentar");
   assert.deepEqual(uploaded, ["part-0", "part-1"]);
   assert.equal(queue.state().error, "", "el error viejo se limpia al salir bien");
+});
+
+test("flush TERMINA aunque el barrido periodico destrabe en el medio", async () => {
+  // El caso que colgaba el cierre: el barrido de 60s revive los items agotados
+  // mas rapido de lo que drain los agota, y flush se queda esperando para
+  // siempre con la pantalla en "Cerrando...". retryStuck durante un flush no
+  // tiene que hacer nada.
+  // Con esperas REALES (chicas): si el flush fuera instantaneo el barrido no
+  // llegaria a intercalarse y el test no probaria nada.
+  const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+  const queue = new UploadQueue<string>({
+    backoffMs: [5, 5, 5],
+    onChange: () => {},
+    upload: async () => {
+      await wait(5);
+      throw new Error("sin red");
+    }
+  });
+  queue.enqueue("part-0");
+  queue.enqueue("part-1");
+
+  // El barrido corriendo en paralelo, como el setInterval de use-audio-upload.
+  let sweeps = 0;
+  const sweeping = setInterval(() => {
+    sweeps += 1;
+    queue.retryStuck();
+    void queue.drain();
+  }, 3);
+
+  const result = await queue.flush();
+  clearInterval(sweeping);
+
+  assert.equal(result, false, "flush termina y avisa que quedo audio sin subir");
+  assert.ok(sweeps > 0, "el barrido efectivamente corrio durante el flush");
+  assert.equal(queue.state().pending, 2, "los dos tramos siguen guardados");
 });
 
 /** Cola cuyas subidas quedan colgadas hasta que el test las suelta a mano. */
