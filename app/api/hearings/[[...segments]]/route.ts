@@ -2,6 +2,7 @@ import { HearingStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
+import { readModuleId, type SegmentsArg } from "@/lib/api/segments";
 import { prisma } from "@/lib/db/prisma";
 import { handleAnalyze } from "@/lib/hearings/api/analyze";
 import { handleAnalyzeRecording } from "@/lib/hearings/api/analyze-recording";
@@ -58,8 +59,6 @@ export const maxDuration = 300;
  * Cada handler vive en lib/hearings/api/ con su codigo intacto: esto es una
  * centralita, no una refundicion de la logica.
  */
-/** Segmentos de la URL. Vacio en la coleccion, `[id]` en una audiencia. */
-type Segments = { params: Promise<{ segments?: string[] }> };
 const POST_ACTIONS = {
   analyze: handleAnalyze,
   // Grabacion en vivo: firmar la subida de un tramo y registrarlo ya subido.
@@ -88,8 +87,9 @@ function accion(request: Request): string {
   return new URL(request.url).searchParams.get("action") ?? "";
 }
 
-export async function GET(request: Request, { params }: Segments) {
-  const id = (await params).segments?.[0] ?? null;
+export async function GET(request: Request, { params }: SegmentsArg) {
+  const id = await readModuleId(params);
+  if (id instanceof NextResponse) return id;
 
   if (id) {
     // `?action=resumen` genera el resumen ejecutivo imprimible (staff).
@@ -157,18 +157,24 @@ const createSchema = z.object({
  * Con `?id=`, una operacion sobre ESA audiencia (ver POST_ACTIONS). Sin id,
  * registrar una audiencia nueva o cargar una ya ocurrida (`?action=ingest`).
  */
-export async function POST(request: Request, { params }: Segments) {
-  const id = (await params).segments?.[0] ?? null;
+export async function POST(request: Request, { params }: SegmentsArg) {
+  const id = await readModuleId(params);
+  if (id instanceof NextResponse) return id;
   if (id) {
     const action = accion(request);
-    const handler = POST_ACTIONS[action as PostAction];
-    if (!handler) {
+    // hasOwn y no un `in` ni el lookup pelado: `action` lo elige el cliente, y
+    // las claves que POST_ACTIONS hereda de Object.prototype ("constructor",
+    // "toString", "valueOf") resolvian a algo truthy. Se colaban por el chequeo
+    // de abajo y se llamaban como si fueran handlers, asi que un anonimo sacaba
+    // un 500 de la funcion mas cargada del proyecto con solo pedir
+    // ?action=constructor.
+    if (!Object.hasOwn(POST_ACTIONS, action)) {
       return NextResponse.json(
         { error: "Acción inválida", detail: `"${action}" no es una operación de audiencia.` },
         { status: 400 }
       );
     }
-    return handler(request, id);
+    return POST_ACTIONS[action as PostAction](request, id);
   }
 
   if (accion(request) === "ingest") {
@@ -225,8 +231,9 @@ const patchSchema = z.object({
   hearingStatus: z.nativeEnum(HearingStatus).optional()
 });
 
-export async function PATCH(request: Request, { params }: Segments) {
-  const id = (await params).segments?.[0] ?? null;
+export async function PATCH(request: Request, { params }: SegmentsArg) {
+  const id = await readModuleId(params);
+  if (id instanceof NextResponse) return id;
   if (!id) return NextResponse.json({ error: "Falta la audiencia" }, { status: 400 });
 
   // `?action=ficha` edita la Ficha 1 del expediente; sin action, los datos
@@ -260,8 +267,9 @@ export async function PATCH(request: Request, { params }: Segments) {
   }
 }
 
-export async function DELETE(request: Request, { params }: Segments) {
-  const id = (await params).segments?.[0] ?? null;
+export async function DELETE(request: Request, { params }: SegmentsArg) {
+  const id = await readModuleId(params);
+  if (id instanceof NextResponse) return id;
   if (!id) return NextResponse.json({ error: "Falta la audiencia" }, { status: 400 });
 
   // Con `?docId=` se borra UN documento adjunto (permiso de staff); sin el, la

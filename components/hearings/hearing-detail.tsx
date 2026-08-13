@@ -328,8 +328,12 @@ export function HearingDetail({
     setConclusionsError("");
     setSavingConclusions(true);
     try {
+      // POST y no PUT: cuando el modulo tenia una ruta por operacion, las
+      // conclusiones vivian en /api/hearings/<id>/conclusions con un PUT propio.
+      // Al consolidar, `conclusions` paso a ser una accion del POST y este fetch
+      // quedo con el verbo viejo, o sea guardando contra un 405 desde entonces.
       const response = await fetch(`/api/hearings/${hearing.id}?action=conclusions`, {
-        method: "PUT",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conclusions: conclusionsDraft })
       });

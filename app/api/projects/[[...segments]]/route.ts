@@ -2,6 +2,7 @@ import { MunicipalArea, ProjectStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
+import { readModuleId, type SegmentsArg } from "@/lib/api/segments";
 import { prisma } from "@/lib/db/prisma";
 import { handleDiagnose } from "@/lib/projects/api/diagnose";
 import { handleDiagnosisUpdate } from "@/lib/projects/api/diagnosis-update";
@@ -37,8 +38,6 @@ export const maxDuration = 60;
  *
  * Cada handler vive en lib/projects/api/ con su codigo intacto.
  */
-/** Segmentos de la URL. Vacio en la coleccion, `[id]` en una norma. */
-type Segments = { params: Promise<{ segments?: string[] }> };
 
 function accion(request: Request): string {
   return new URL(request.url).searchParams.get("action") ?? "";
@@ -51,8 +50,9 @@ function parseEnum<T extends Record<string, string>>(value: string | null, optio
   return undefined;
 }
 
-export async function GET(request: Request, { params }: Segments) {
-  const id = (await params).segments?.[0] ?? null;
+export async function GET(request: Request, { params }: SegmentsArg) {
+  const id = await readModuleId(params);
+  if (id instanceof NextResponse) return id;
 
   if (id) {
     // Sub-recursos de solo lectura; sin action, el detalle de la norma.
@@ -110,8 +110,9 @@ const createSchema = z.object({
   authorName: z.string().trim().min(1).max(120)
 });
 
-export async function POST(request: Request, { params }: Segments) {
-  const id = (await params).segments?.[0] ?? null;
+export async function POST(request: Request, { params }: SegmentsArg) {
+  const id = await readModuleId(params);
+  if (id instanceof NextResponse) return id;
   if (id) {
     switch (accion(request)) {
       case "diagnose":
@@ -174,8 +175,9 @@ const patchSchema = z.object({
   reformId: z.string().trim().min(1).max(60).nullish()
 });
 
-export async function PATCH(request: Request, { params }: Segments) {
-  const id = (await params).segments?.[0] ?? null;
+export async function PATCH(request: Request, { params }: SegmentsArg) {
+  const id = await readModuleId(params);
+  if (id instanceof NextResponse) return id;
   if (!id) return NextResponse.json({ error: "Falta la norma" }, { status: 400 });
 
   // Con `?diagnosisId=` se edita ESE diagnostico; sin el, la norma.
@@ -204,8 +206,9 @@ export async function PATCH(request: Request, { params }: Segments) {
   }
 }
 
-export async function DELETE(request: Request, { params }: Segments) {
-  const id = (await params).segments?.[0] ?? null;
+export async function DELETE(request: Request, { params }: SegmentsArg) {
+  const id = await readModuleId(params);
+  if (id instanceof NextResponse) return id;
   if (!id) return NextResponse.json({ error: "Falta la norma" }, { status: 400 });
 
   // Sub-recursos: quitar una opinion o el apoyo. Sin eso, borrar la norma
