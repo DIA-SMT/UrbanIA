@@ -24,11 +24,15 @@ function formatSize(bytes: number | null): string {
 export function HearingDocuments({
   hearingId,
   documents,
-  canEdit
+  canUpload,
+  canDelete
 }: {
   hearingId: string;
   documents: HearingDocumentView[];
-  canEdit: boolean;
+  /** documents.upload */
+  canUpload: boolean;
+  /** documents.delete: el tacho es un permiso aparte del de subir. */
+  canDelete: boolean;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -105,7 +109,7 @@ export function HearingDocuments({
     }
   }
 
-  if (!canEdit && documents.length === 0) return null;
+  if (!canUpload && documents.length === 0) return null;
 
   return (
     <section className="urban-card rounded-lg p-4 lg:p-5">
@@ -114,7 +118,7 @@ export function HearingDocuments({
           <Paperclip className="h-4 w-4 text-[#1f89f6]" />
           Documentos adjuntos
         </p>
-        {canEdit ? (
+        {canUpload ? (
           <>
             <input
               ref={inputRef}
@@ -169,7 +173,7 @@ export function HearingDocuments({
                 >
                   <Download className="h-3.5 w-3.5" />
                 </a>
-                {canEdit ? (
+                {canDelete ? (
                   <button
                     type="button"
                     onClick={() => remove(document.id, document.fileName)}

@@ -1,7 +1,7 @@
 import { HearingStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { canViewInternal, getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 import { handleAnalyze } from "@/lib/hearings/api/analyze";
 import { handleAnalyzeRecording } from "@/lib/hearings/api/analyze-recording";
@@ -96,6 +96,16 @@ export async function GET(request: Request, { params }: Segments) {
     if (accion(request) === "resumen") {
       return handleSummaryPdf(request, id);
     }
+
+    // El detalle no tenia ningun chequeo de sesion: devolvia la audiencia
+    // completa a cualquiera que supiera el id, y /api/hearings no esta en el
+    // matcher del middleware, asi que tampoco lo cubria esa barrera. Lo consume
+    // el polling de la ingesta, que ya corre autenticado.
+    const sessionDetalle = await getSessionUser();
+    if (!sessionDetalle || !canViewInternal(sessionDetalle)) {
+      return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+    }
+
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
     }
@@ -109,9 +119,10 @@ export async function GET(request: Request, { params }: Segments) {
   // Registro interno de audiencias. El vecino lee el registro publico en
   // /audiencias-publicas, que sale de lib/hearings/public-data.
   const session = await getSessionUser();
-  if (!session || !canViewInternal(session.role)) {
+  if (!session || !canViewInternal(session)) {
     return NextResponse.json({ error: "Sesion requerida" }, { status: 401 });
   }
+
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ hearings: [], counts: { upcoming: 0, processing: 0, completed: 0 }, isLive: false });
   }
@@ -173,7 +184,7 @@ export async function POST(request: Request, { params }: Segments) {
 
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado", detail: "Iniciá sesión para registrar una audiencia." }, { status: 401 });
-  if (!isStaff(session.role)) {
+  if (!hasPermission(session, "hearings.create")) {
     return NextResponse.json({ error: "Sin permisos", detail: "Solo el equipo municipal puede registrar audiencias." }, { status: 403 });
   }
 
@@ -229,7 +240,7 @@ export async function PATCH(request: Request, { params }: Segments) {
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "hearings.edit")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
   const parsed = patchSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
@@ -263,7 +274,7 @@ export async function DELETE(request: Request, { params }: Segments) {
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (session.role !== "ADMIN") {
+  if (!hasPermission(session, "hearings.delete")) {
     return NextResponse.json({ error: "Sin permisos", detail: "Solo un administrador puede eliminar audiencias." }, { status: 403 });
   }
 

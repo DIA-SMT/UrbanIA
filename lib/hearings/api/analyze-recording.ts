@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 import { matchFullTranscript } from "@/lib/hearings/batch-match";
 
@@ -21,7 +21,7 @@ export async function handleAnalyzeRecording(_request: Request, id: string) {
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "ai.execute")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
   const meeting = await prisma.meeting.findFirst({
     where: { id, kind: "PUBLIC_HEARING" },

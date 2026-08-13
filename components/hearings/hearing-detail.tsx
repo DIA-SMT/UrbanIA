@@ -123,11 +123,22 @@ export function HearingDetail({
   hearing,
   canEdit = false,
   canDelete = false,
+  canRunAi = false,
+  canPublish = false,
+  canUploadDocs = false,
+  canDeleteDocs = false,
   aiAvailable = false
 }: {
   hearing: HearingDetailData;
+  /** hearings.edit: ficha, conclusiones, continuar en vivo. */
   canEdit?: boolean;
   canDelete?: boolean;
+  /** ai.execute: transcribir, analizar, reintentar la ingesta. */
+  canRunAi?: boolean;
+  /** content.publish: generar el PDF y publicarlo en el portal. */
+  canPublish?: boolean;
+  canUploadDocs?: boolean;
+  canDeleteDocs?: boolean;
   aiAvailable?: boolean;
 }) {
   const router = useRouter();
@@ -201,7 +212,7 @@ export function HearingDetail({
   // Audiencia ya transcripta a la que le falta el resumen: el analisis es el
   // ultimo paso de la ingesta y puede haber fallado solo (tipico: quedarse sin
   // credito despues de pagar la transcripcion). Se puede rehacer sin re-ingestar.
-  const canGenerateAnalysis = canEdit && hearing.transcriptSegments.length > 0 && !hearing.analysis;
+  const canGenerateAnalysis = canRunAi && hearing.transcriptSegments.length > 0 && !hearing.analysis;
 
   async function generateAnalysis() {
     setAnalyzeError("");
@@ -501,7 +512,7 @@ export function HearingDetail({
                 Continuar en vivo
               </Link>
             ) : null}
-            {canEdit && (hearing.transcriptSegments.length > 0 || hearing.documents.length > 0) ? (
+            {canPublish && (hearing.transcriptSegments.length > 0 || hearing.documents.length > 0) ? (
               // La IA redacta el borrador con la transcripción y los documentos;
               // tarda ~30-60 s y descarga el PDF sin salir de esta pantalla.
               <button
@@ -516,7 +527,7 @@ export function HearingDetail({
                 {summaryDownloading ? "Generando PDF…" : summaryDownload ? "Volver a generar PDF" : "Generar resumen PDF"}
               </button>
             ) : null}
-            {canEdit && (hearing.transcriptSegments.length > 0 || hearing.documents.length > 0) ? (
+            {canPublish && (hearing.transcriptSegments.length > 0 || hearing.documents.length > 0) ? (
               // Publicar sube el PDF al portal ciudadano. Se genera de nuevo al
               // publicar para que lo que ve el vecino sea la version vigente.
               <button
@@ -531,7 +542,7 @@ export function HearingDetail({
                 {publishing ? "Publicando…" : publishedAt ? "Actualizar el publicado" : "Publicar para la ciudadanía"}
               </button>
             ) : null}
-            {canEdit && publishedAt ? (
+            {canPublish && publishedAt ? (
               <button
                 type="button"
                 onClick={unpublishSummary}
@@ -650,7 +661,7 @@ export function HearingDetail({
           {retryError ? <p className="mt-2 text-xs font-bold text-rose-200">{retryError}</p> : null}
           {retryStarted ? (
             <p className="mt-2 text-xs font-bold text-emerald-200">Procesamiento relanzado: puede tardar varios minutos. Actualizá la página para ver el avance.</p>
-          ) : canEdit ? (
+          ) : canRunAi ? (
             <button
               type="button"
               onClick={retryIngest}
@@ -666,7 +677,7 @@ export function HearingDetail({
 
       {/* Audiencia grabada en vivo: de aca sale la transcripcion. Va arriba de
           los avisos porque es la accion que destraba todo lo demas. */}
-      {canEdit ? (
+      {canRunAi ? (
         <div data-tour="grabacion">
           <AudioAnalysisPanel hearingId={hearing.id} media={hearing.mediaFiles} />
         </div>
@@ -862,7 +873,7 @@ export function HearingDetail({
       ) : null}
 
       <div data-tour="documentos">
-        <HearingDocuments hearingId={hearing.id} documents={hearing.documents} canEdit={canEdit} />
+        <HearingDocuments hearingId={hearing.id} documents={hearing.documents} canUpload={canUploadDocs} canDelete={canDeleteDocs} />
       </div>
 
       {hasExtra ? (

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { UserProfile, type ProfileData } from "@/components/settings/user-profile";
 import { requireSettingsAccess } from "@/lib/settings/guard";
+import { resolveRolePermissions } from "@/lib/auth/permissions-store";
 import { getUserProfile } from "@/lib/settings/users";
 import { fullName } from "@/lib/settings/shared";
 
@@ -48,5 +49,10 @@ export default async function UsuarioPerfilPage({ params }: PageProps) {
     recentProjects: recentProjects.map((item) => ({ ...item, createdAt: item.createdAt.toISOString() }))
   };
 
-  return <UserProfile profile={profile} />;
+  // La matriz vive en la base y este componente es cliente: los permisos del rol
+  // se resuelven acá y viajan como props. Importarlos en el cliente devolvería
+  // una copia congelada del código.
+  const grantedPermissions = Array.from(await resolveRolePermissions(user.role));
+
+  return <UserProfile profile={profile} grantedPermissions={grantedPermissions} />;
 }

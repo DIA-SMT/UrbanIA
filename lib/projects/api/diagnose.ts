@@ -1,6 +1,6 @@
 import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { compareNormWithOldCode, DiagnosisUnavailableError, MissingArticleTextError } from "@/lib/projects/diagnosis";
 
 
@@ -16,7 +16,7 @@ export async function handleDiagnose(_request: Request, id: string) {
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "ai.execute")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   try {
     const result = await compareNormWithOldCode(id);
     // El diagnostico ancla articulos: sin esto, el explorador del codigo y el

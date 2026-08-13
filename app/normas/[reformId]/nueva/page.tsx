@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 import { getReform, listAuthorNames } from "@/lib/projects/data";
 import { NormEditor } from "@/components/normas/form/norm-editor";
@@ -14,7 +14,7 @@ export default async function NuevaNormaPage({ params }: { params: Promise<{ ref
   if (!session) {
     redirect("/ingresar");
   }
-  if (!isStaff(session.role)) {
+  if (!hasPermission(session, "projects.create")) {
     redirect("/normas");
   }
 

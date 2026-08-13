@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 
 
@@ -27,7 +27,7 @@ export async function handleOpinionsList(_request: Request, id: string) {
 
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "projects.edit")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   try {
     const opinions = await prisma.normOpinion.findMany({
       where: { projectId: id },
@@ -63,7 +63,7 @@ export async function handleOpinionCreate(request: Request, id: string) {
   if (!session) {
     return NextResponse.json({ error: "No autenticado", detail: "Iniciá sesión para dejar una devolución." }, { status: 401 });
   }
-  if (!isStaff(session.role)) {
+  if (!hasPermission(session, "projects.edit")) {
     return NextResponse.json(
       { error: "Sin permisos", detail: "Solo el equipo municipal puede opinar sobre una norma." },
       { status: 403 }

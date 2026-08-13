@@ -1,7 +1,7 @@
 import { MunicipalArea, ProjectStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { canViewInternal, getSessionUser, isStaff } from "@/lib/auth/api";
+import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 import { handleDiagnose } from "@/lib/projects/api/diagnose";
 import { handleDiagnosisUpdate } from "@/lib/projects/api/diagnosis-update";
@@ -72,7 +72,7 @@ export async function GET(request: Request, { params }: Segments) {
 
   // Material de trabajo interno: normas en redaccion del codigo nuevo.
   const session = await getSessionUser();
-  if (!session || !canViewInternal(session.role)) {
+  if (!session || !canViewInternal(session)) {
     return NextResponse.json({ error: "Sesion requerida" }, { status: 401 });
   }
   if (!process.env.DATABASE_URL) {
@@ -138,7 +138,7 @@ export async function POST(request: Request, { params }: Segments) {
   if (!session) {
     return NextResponse.json({ error: "No autenticado", detail: "Iniciá sesión para redactar normas." }, { status: 401 });
   }
-  if (!isStaff(session.role)) {
+  if (!hasPermission(session, "projects.create")) {
     return NextResponse.json({ error: "Sin permisos", detail: "Solo el equipo municipal puede redactar normas." }, { status: 403 });
   }
 
@@ -187,7 +187,7 @@ export async function PATCH(request: Request, { params }: Segments) {
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "projects.edit")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
   const parsed = patchSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
@@ -219,7 +219,7 @@ export async function DELETE(request: Request, { params }: Segments) {
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (session.role !== "ADMIN") {
+  if (!hasPermission(session, "projects.delete")) {
     return NextResponse.json({ error: "Sin permisos", detail: "Solo un administrador puede eliminar normas." }, { status: 403 });
   }
 

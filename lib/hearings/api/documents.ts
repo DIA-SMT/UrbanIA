@@ -1,7 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { getHearing } from "@/lib/hearings/data";
 import { attachHearingDocument, registerHearingDocument } from "@/lib/hearings/attach-document";
 import { createHearingDocumentUploadUrl, downloadHearingDocument, hasSupabaseStorage, removeHearingDocument } from "@/lib/storage/supabase";
@@ -50,7 +50,7 @@ async function guardDocumentRequest(): Promise<NextResponse | null> {
   }
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!isStaff(session.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "documents.upload")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   return null;
 }
 

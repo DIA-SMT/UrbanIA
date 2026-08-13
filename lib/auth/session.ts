@@ -1,5 +1,14 @@
 import type { UserRole } from "@prisma/client";
-import { canViewInternal } from "@/lib/auth/permissions";
+
+/*
+ * Módulo EDGE-SAFE: lo importa middleware.ts, así que no puede tocar Prisma.
+ *
+ * Por eso acá NO hay ninguna función de permisos. Antes vivía `canAccessAdmin`,
+ * que leía la matriz hardcodeada; con la matriz en la base, una copia acá sería
+ * una autoridad sombra que se desincroniza en silencio de lo que muestra
+ * /admin/configuracion/permisos. Los permisos se resuelven en runtime Node, con
+ * `getSessionUser()`.
+ */
 
 type SessionPayload = {
   userId: string;
@@ -9,10 +18,6 @@ type SessionPayload = {
 const encoder = new TextEncoder();
 
 export const sessionCookieName = "urbania_session";
-
-export function canAccessAdmin(role: UserRole) {
-  return canViewInternal(role);
-}
 
 export async function createSessionToken(payload: SessionPayload) {
   const body = base64UrlEncode(JSON.stringify(payload));

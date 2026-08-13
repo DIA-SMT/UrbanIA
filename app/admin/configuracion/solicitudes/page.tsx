@@ -1,5 +1,4 @@
 import { Fingerprint, Inbox } from "lucide-react";
-import Link from "next/link";
 import { prisma } from "@/lib/db/prisma";
 import { formatDate } from "@/components/settings/format";
 import { requireSettingsAccess } from "@/lib/settings/guard";
@@ -40,8 +39,7 @@ export default async function SolicitudesPage() {
           <div>
             <p className="text-sm font-bold text-sky-900 dark:text-sky-100">La bandeja se activa con la integración Cidituc</p>
             <p className="mt-1 text-xs leading-5 text-sky-800/80 dark:text-sky-200/80">
-              La estructura ya está lista: cuando la integración esté operativa, cada persona validada en Cidituc que pida acceso aparecerá acá para aprobarse o rechazarse.{" "}
-              <Link href="/admin/configuracion/cidituc" className="font-bold underline decoration-sky-400 underline-offset-2">Ver estado de la integración</Link>.
+              La estructura ya está lista: cuando la integración esté operativa, cada persona validada en Cidituc que pida acceso aparecerá acá para aprobarse o rechazarse.
             </p>
           </div>
         </div>

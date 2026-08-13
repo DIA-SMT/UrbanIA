@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
-import { getSessionUser, isStaff } from "@/lib/auth/api";
+import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { getHearing } from "@/lib/hearings/data";
 import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import {
@@ -278,7 +278,7 @@ function fallbackFileName(fileName: string) {
 /** Solo personal municipal: generar cuesta dos pasadas del modelo. */
 async function requireStaff() {
   const session = await getSessionUser();
-  return session && isStaff(session.role) ? session : null;
+  return session && hasPermission(session, "content.publish") ? session : null;
 }
 
 /** GET ?action=resumen — descarga el PDF recien generado (uso interno). */

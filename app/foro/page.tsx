@@ -33,12 +33,12 @@ export default async function ForoPage({ searchParams }: PageProps) {
   const session = await getSessionUser();
   if (!session) redirect("/ingresar");
   // Foro interno: el rol Consulta lee; los ciudadanos no acceden por ahora.
-  if (!canViewInternal(session.role)) redirect("/");
+  if (!canViewInternal(session)) redirect("/");
 
   const params = await searchParams;
   const activeFilter = statusFilters.find((filter) => filter.key === params?.estado) ?? statusFilters[0];
   const debates = await listDebates(activeFilter.status);
-  const canCreate = hasPermission(session.role, "debates.create");
+  const canCreate = hasPermission(session, "debates.create");
 
   return (
     <AppShell>
