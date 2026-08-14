@@ -20,22 +20,59 @@ export type MigueQuestionAnalysis = {
   normativa: boolean;
   /** true si la pregunta es sobre la propia conversación (qué hablamos, resumen). */
   conversacion: boolean;
+  /**
+   * true si el mensaje no es una consulta: un saludo, una prueba, un token sin
+   * sentido, tecleo al azar.
+   *
+   * Existe porque sin este eje el clasificador tenía que meter cualquier cosa en
+   * "normativa" o "conversacion", y un mensaje como "bot" terminaba contado como
+   * una pregunta sobre el Código que Migue no pudo responder. Eso inflaba la tasa
+   * de huecos de conocimiento con ruido.
+   *
+   * Se llama "descartable" y NO "broma" a propósito: no se puede conocer la
+   * intención (puede ser una prueba del equipo, un mensaje mandado sin querer o un
+   * chico jugando), y la etiqueta la leen otras personas.
+   */
+  descartable: boolean;
   /** Consulta reescrita para el retrieval (términos urbanísticos, distritos). */
   consulta: string;
 };
+
+/**
+ * Descarte por forma, antes de gastar una llamada al modelo. Deliberadamente
+ * conservador: solo lo que no puede ser una consulta bajo ninguna lectura.
+ *
+ * El umbral es "menos de 2 caracteres" y no más: un código de distrito como "R1"
+ * mide exactamente dos y es una consulta legítima. Con un umbral de 3 se descartaba
+ * en silencio, que es el peor error posible acá — se perdería demanda real sin
+ * dejar rastro. Lo semántico ("bot", "asdasd") queda para el clasificador, que sí
+ * puede juzgarlo; esto solo ataja lo que no puede ser una consulta de ninguna forma.
+ */
+function esDescartablePorForma(question: string): boolean {
+  const limpia = question.trim();
+  if (limpia.length < 2) return true;
+  // Sin una sola letra ni número no hay consulta posible: solo signos o emoji.
+  return !/[\p{L}\p{N}]/u.test(limpia);
+}
 
 const INTENT_MODEL = "openai/gpt-4o-mini";
 
 const INTENT_SYSTEM_PROMPT = [
   "Sos el clasificador de intención de Migue, el asistente urbano de la Municipalidad de San Miguel de Tucumán.",
   "Tu única tarea es analizar la consulta del usuario y devolver un JSON con esta forma exacta:",
-  '{"normativa": <true|false>, "conversacion": <true|false>, "consulta": "<consulta reescrita para buscar en la base normativa>"}',
+  '{"normativa": <true|false>, "conversacion": <true|false>, "descartable": <true|false>, "consulta": "<consulta reescrita para buscar en la base normativa>"}',
   "",
   "Reglas para pedidos de redacción (evaluá esto PRIMERO, antes que \"conversacion\"):",
   "- Si el usuario pide redactar, armar, escribir, formalizar o mejorar una propuesta, un reclamo o un aporte, NO es \"conversacion\" aunque diga \"con lo que hablamos\" o \"con lo que te conte\": poné conversacion en false.",
   "- En esos casos poné normativa en true: el borrador tiene que fundamentarse en el Código de Planeamiento.",
   "- La consulta reescrita debe describir EL TEMA URBANO del que se habló en el historial, nunca el pedido de redacción en sí.",
   "- Ejemplo: historial sobre una plaza abandonada, con juegos rotos y sin luz + \"redactame la propuesta con lo que hablamos\" → \"espacio publico plaza equipamiento recreativo iluminacion mantenimiento arbolado\".",
+  "",
+  "Reglas para \"descartable\" (evaluá esto ANTES que todo lo demás):",
+  "- true si el mensaje NO es una consulta: un saludo suelto (\"hola\", \"buenas\"), una prueba (\"test\", \"bot\", \"probando\"), tecleo al azar (\"asdasd\"), o un mensaje sin ningún contenido interpretable.",
+  "- Si es true, poné normativa y conversacion en false y dejá la consulta igual, sin reescribirla.",
+  "- NO es descartable una consulta corta pero legítima: un código de distrito solo (\"C1a\", \"R1\"), un número de artículo (\"art 29\") o una palabra que sí es un tema urbano (\"alturas\", \"retiros\").",
+  "- Ante la duda poné false: es peor descartar una consulta real que dejar pasar una prueba.",
   "",
   "Reglas para \"conversacion\" (evaluá esto DESPUÉS):",
   "- true si la pregunta es sobre la propia charla y no pide información nueva ni un texto nuevo: \"¿de qué estuvimos hablando?\", \"¿te acordás?\", \"resumime lo anterior\", \"¿qué te pregunté antes?\".",
@@ -64,7 +101,13 @@ export async function analyzeMigueQuestion(
   history: Array<{ role: "user" | "assistant"; content: string }> = [],
   options: { attachmentExcerpt?: string } = {}
 ): Promise<MigueQuestionAnalysis> {
-  const fallback: MigueQuestionAnalysis = { normativa: false, conversacion: false, consulta: question };
+  const fallback: MigueQuestionAnalysis = { normativa: false, conversacion: false, descartable: false, consulta: question };
+
+  // Lo que no puede ser una consulta ni se manda al clasificador: ahorra la
+  // llamada y no queda a criterio del modelo.
+  if (esDescartablePorForma(question)) {
+    return { normativa: false, conversacion: false, descartable: true, consulta: question };
+  }
 
   try {
     const recentHistory = history
@@ -91,13 +134,21 @@ export async function analyzeMigueQuestion(
       { model: INTENT_MODEL, json: true, maxTokens: 120, temperature: 0 }
     );
 
-    const parsed = JSON.parse(response.answer) as { normativa?: unknown; conversacion?: unknown; consulta?: unknown };
-    const conversacion = parsed.conversacion === true;
+    const parsed = JSON.parse(response.answer) as {
+      normativa?: unknown;
+      conversacion?: unknown;
+      descartable?: unknown;
+      consulta?: unknown;
+    };
+    const descartable = parsed.descartable === true;
+    // Descartable gana sobre los otros dos ejes: si el mensaje no era una consulta,
+    // no puede ser normativa ni sobre la conversación.
+    const conversacion = !descartable && parsed.conversacion === true;
     const consulta = typeof parsed.consulta === "string" && parsed.consulta.trim().length >= 3
       ? parsed.consulta.trim()
       : question;
 
-    return { normativa: !conversacion && parsed.normativa === true, conversacion, consulta };
+    return { normativa: !descartable && !conversacion && parsed.normativa === true, conversacion, descartable, consulta };
   } catch (error) {
     console.warn("Migue intent analysis failed, using raw question.", error instanceof Error ? error.message : error);
     return fallback;

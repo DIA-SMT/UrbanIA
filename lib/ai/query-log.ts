@@ -28,6 +28,7 @@ async function writeAiQuery(entry: {
   sources: LoggedSource[];
   answered: boolean;
   normative: boolean;
+  discarded: boolean;
   mode: string;
   module: string;
 }): Promise<void> {
@@ -39,6 +40,7 @@ async function writeAiQuery(entry: {
         sources: entry.sources,
         answered: entry.answered,
         normative: entry.normative,
+        discarded: entry.discarded,
         mode: entry.mode,
         module: entry.module
       }
@@ -73,6 +75,8 @@ export async function logAssistantQuery(entry: {
   /** La fuente citada que se le muestra al usuario; null = Migue no pudo citar. */
   source: AnswerSource | null;
   normative: boolean;
+  /** El mensaje no era una consulta (ver `descartable` del clasificador). */
+  discarded: boolean;
   mode: string;
   module: string;
 }): Promise<void> {
@@ -98,6 +102,7 @@ export async function logAssistantQuery(entry: {
     })),
     answered,
     normative: entry.normative,
+    discarded: entry.discarded,
     mode: entry.mode,
     module: entry.module
   });
@@ -117,12 +122,16 @@ export async function logCpuQuery(entry: {
   answer: string;
   citations: { number: string; title: string }[];
   documents: { label: string; source: string }[];
+  /** El mensaje no era una consulta (ver `descartable` del clasificador). */
+  discarded: boolean;
 }): Promise<void> {
   if (!process.env.DATABASE_URL) {
     return;
   }
 
-  const answered = (entry.citations.length > 0 || entry.documents.length > 0) && !answerLooksUnanswered(entry.answer);
+  // Una descartada nunca es un hueco de conocimiento: no había nada que responder.
+  const answered =
+    entry.discarded || ((entry.citations.length > 0 || entry.documents.length > 0) && !answerLooksUnanswered(entry.answer));
 
   await writeAiQuery({
     question: entry.question,
@@ -142,7 +151,10 @@ export async function logCpuQuery(entry: {
       }))
     ],
     answered,
-    normative: true,
+    // Una descartada no es una consulta normativa, aunque haya entrado por el
+    // canal del Código.
+    normative: !entry.discarded,
+    discarded: entry.discarded,
     mode: "cpu",
     module: "consulta-cpu"
   });

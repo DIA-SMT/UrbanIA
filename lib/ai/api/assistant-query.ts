@@ -286,6 +286,7 @@ export async function handleAssistantQuery(request: Request) {
         retrieval,
         source,
         normative: analysis.normativa,
+        discarded: analysis.descartable,
         mode: assistantContext.mode,
         module: assistantContext.module
       });
