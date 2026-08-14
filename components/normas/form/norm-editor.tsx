@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { MunicipalArea, ProjectStatus } from "@prisma/client";
 import { ArrowLeft, FileDown, Loader2, PenLine, Save, Send, Trash2 } from "lucide-react";
-import { useActiveVoter } from "@/components/normas/active-voter";
+import { useSessionActor } from "@/components/normas/session-actor";
 import { FormBlock } from "@/components/projects/form/form-ui";
 import { TeamFeedbackBlock } from "@/components/normas/form/team-feedback-block";
 import { IdentificationBlock } from "@/components/normas/form/identification-block";
@@ -33,18 +33,12 @@ export function NormEditor({
   reform,
   norm,
   canEdit,
-  canDelete = false,
-  accountName = null,
-  knownAuthors = []
+  canDelete = false
 }: {
   reform: { id: string; code: string; title: string };
   norm: NormDetail | null;
   canEdit: boolean;
   canDelete?: boolean;
-  /** Cuenta de quien esta redactando. En una norma nueva es el unico respaldo. */
-  accountName?: string | null;
-  /** Gente que ya firmo una norma o devolucion: alimenta el desplegable. */
-  knownAuthors?: string[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -78,9 +72,6 @@ export function NormEditor({
   const [summary, setSummary] = useState(norm?.summary ?? seeded.summary ?? "");
   const [articleText, setArticleText] = useState(norm?.articleText ?? "");
   const [officialNotes, setOfficialNotes] = useState(norm?.officialNotes ?? "");
-  // Vacio en una norma nueva a proposito: prellenarlo con la cuenta compartida
-  // invitaria a dejarlo asi, que es justo lo que hay que evitar.
-  const [authorName, setAuthorName] = useState(norm?.authorName ?? "");
 
   const [anchors, setAnchors] = useState<ProjectAnchorView[]>(norm?.anchors ?? []);
   const [analyses, setAnalyses] = useState<ProjectDiagnosisView[]>(norm?.diagnoses ?? []);
@@ -99,24 +90,30 @@ export function NormEditor({
   const [error, setError] = useState("");
   const creatingRef = useRef(false);
 
-  const { voter } = useActiveVoter();
+  const actor = useSessionActor();
 
   /**
    * Editar es del autor, opinar es de todos.
    *
    * Una norma existente se abre SIEMPRE en modo lectura: desde el tablero se
    * entra a leerla y dejar una devolucion, no a tocarla. El boton "Editar" solo
-   * aparece si la identidad activa coincide con quien la redacto. Las normas
-   * viejas sin autor cargado las puede editar cualquiera del equipo (si nadie
-   * pudiera, quedarian clavadas para siempre); al guardarlas toman autor.
+   * aparece si quien mira es quien la redacto. Las normas viejas sin autor
+   * cargado las puede editar cualquiera del equipo (si nadie pudiera, quedarian
+   * clavadas para siempre); al guardarlas toman autor.
+   *
+   * La comparacion mira el userId, que es la identidad real, y cae al nombre para
+   * las normas cargadas antes de Cidituc: esas se firmaron con un nombre
+   * declarado desde una cuenta compartida, asi que su authorId no dice quien las
+   * escribio.
    */
-  const isOwner = !norm?.authorName || (Boolean(voter) && voter === norm.authorName);
+  const isOwner =
+    !norm?.authorName || norm.authorId === actor?.userId || (Boolean(actor) && norm.authorName === actor?.name);
   const [editing, setEditing] = useState(!norm);
 
   const readOnly = !canEdit || !editing;
-  // El autor entra en la condicion: la norma no se persiste hasta que se sepa
-  // quien la redacta. La cuenta es compartida y no alcanza para identificarlo.
-  const canDraft = title.trim().length > 0 && summary.trim().length >= MIN_SUMMARY && authorName.trim().length > 0;
+  // El autor ya no entra en la condicion: lo sella el servidor con la cuenta que
+  // crea la norma, asi que no hay nada que completar en pantalla.
+  const canDraft = title.trim().length > 0 && summary.trim().length >= MIN_SUMMARY;
   const canCompare = canDraft && articleText.trim().length > 0;
 
   const corePayload = useCallback(
@@ -127,10 +124,11 @@ export function NormEditor({
       areas,
       articleNumber: articleNumber.trim() || null,
       articleText: articleText.trim() || null,
-      officialNotes: officialNotes.trim() || null,
-      authorName: authorName.trim() || null
+      officialNotes: officialNotes.trim() || null
+      // Sin authorName: al crear lo sella el servidor con la cuenta de la sesion,
+      // y al editar la API ya no lo acepta para que nadie reatribuya una norma.
     }),
-    [title, summary, status, areas, articleNumber, articleText, officialNotes, authorName]
+    [title, summary, status, areas, articleNumber, articleText, officialNotes]
   );
 
   // Crea el borrador (una sola vez) cuando hay titulo + objeto valido.
@@ -388,15 +386,15 @@ export function NormEditor({
           articleNumber={articleNumber}
           status={status}
           areas={areas}
-          authorName={authorName}
-          accountName={norm?.authorAccount ?? accountName}
-          knownAuthors={knownAuthors}
+          // En una norma existente se muestra su autor; en una nueva, la cuenta
+          // con la que se va a firmar al guardarla.
+          authorName={norm?.authorName ?? actor?.name ?? null}
+          isNew={!norm}
           disabled={readOnly}
           onTitleChange={setTitle}
           onArticleNumberChange={setArticleNumber}
           onStatusChange={setStatus}
           onToggleArea={toggleArea}
-          onAuthorNameChange={setAuthorName}
         />
       </FormBlock>
 
@@ -480,8 +478,6 @@ export function NormEditor({
       {/* Solo sobre una norma persistida: sobre un borrador sin id no hay nada que opinar.
           Sin colapsar: si arranca cerrado cuando no hay devoluciones, nadie lo encuentra
           para dejar la primera. */}
-      {/* accountName en TeamFeedbackBlock es la cuenta de quien MIRA, no la de quien
-          creo la norma: el que deja la devolucion puede ser de otra direccion. */}
       {normId ? (
         <div id="opiniones" className="scroll-mt-6">
         <FormBlock
@@ -492,8 +488,6 @@ export function NormEditor({
           <TeamFeedbackBlock
             normId={normId}
             canEdit={canEdit}
-            accountName={accountName}
-            knownAuthors={knownAuthors}
             initialSupport={{
               supportCount: norm?.supportCount ?? 0,
               objectionCount: norm?.objectionCount ?? 0,

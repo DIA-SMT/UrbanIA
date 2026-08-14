@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSessionUser, hasPermission } from "@/lib/auth/api";
+import { getSessionActor, hasPermission } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 
 
@@ -8,17 +8,18 @@ import { prisma } from "@/lib/db/prisma";
  * Apoyo (+1) u objecion (-1) del equipo municipal a una norma. Interno: los vecinos
  * no votan normas.
  *
- * El voto se cuenta por NOMBRE declarado, no por cuenta: las direcciones comparten
- * una cuenta institucional y con una clave por cuenta solo podia votar el primero.
- * Es una solucion provisoria y no verificable (ver la migracion
- * 20260721140000_norm_support_by_voter_name); userId se guarda igual para saber
- * desde que cuenta salio cada voto.
+ * Un voto por persona y por norma, y la persona la pone el SERVIDOR desde la
+ * sesion. El cliente no manda a nombre de quien vota: si lo mandara, cualquiera
+ * con permiso podria votar como otro o varias veces con nombres distintos, que es
+ * lo que pasaba con el esquema declarativo anterior (ver la migracion
+ * 20260814120000_voto_por_cuenta_de_persona). voterName se sigue guardando, pero
+ * como sello para mostrar quien voto sin ir a buscar cada cuenta.
  */
 
-async function readSummary(projectId: string, voterName: string | null) {
+async function readSummary(projectId: string, userId: string) {
   const supports = await prisma.normSupport.findMany({
     where: { projectId },
-    select: { voterName: true, value: true }
+    select: { userId: true, voterName: true, value: true }
   });
 
   let supportCount = 0;
@@ -28,7 +29,7 @@ async function readSummary(projectId: string, voterName: string | null) {
   for (const support of supports) {
     if (support.value > 0) supportCount += 1;
     else if (support.value < 0) objectionCount += 1;
-    if (voterName && support.voterName === voterName) myValue = support.value > 0 ? 1 : -1;
+    if (support.userId === userId) myValue = support.value > 0 ? 1 : -1;
   }
 
   return {
@@ -36,7 +37,7 @@ async function readSummary(projectId: string, voterName: string | null) {
     objectionCount,
     net: supportCount - objectionCount,
     myValue,
-    voters: supports.map((support) => ({ voterName: support.voterName, value: support.value }))
+    voters: supports.map((support) => ({ userId: support.userId, voterName: support.voterName, value: support.value }))
   };
 }
 
@@ -44,11 +45,14 @@ async function guard() {
   if (!process.env.DATABASE_URL) {
     return { error: NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 }) };
   }
-  const session = await getSessionUser();
-  if (!session) {
+  // getSessionActor y no getSessionUser: hace falta el nombre para el sello, y
+  // devuelve null si la cuenta fue borrada, que aca tiene que ser un 401 y no un
+  // error de clave foranea al escribir.
+  const actor = await getSessionActor();
+  if (!actor) {
     return { error: NextResponse.json({ error: "No autenticado", detail: "Iniciá sesión para apoyar una norma." }, { status: 401 }) };
   }
-  if (!hasPermission(session, "projects.edit")) {
+  if (!hasPermission(actor, "projects.edit")) {
     return {
       error: NextResponse.json(
         { error: "Sin permisos", detail: "Solo el equipo municipal puede apoyar u objetar una norma." },
@@ -56,17 +60,15 @@ async function guard() {
       )
     };
   }
-  return { session };
+  return { actor };
 }
 
-export async function handleSupportGet(request: Request, id: string) {
+export async function handleSupportGet(_request: Request, id: string) {
   const gate = await guard();
-  if (gate.error) return gate.error;  // El servidor no sabe quien esta trabajando (vive en el sessionStorage del
-  // navegador), asi que el nombre viaja como parametro para resolver myValue.
-  const voterName = new URL(request.url).searchParams.get("voterName");
+  if (gate.error) return gate.error;
 
   try {
-    return NextResponse.json(await readSummary(id, voterName));
+    return NextResponse.json(await readSummary(id, gate.actor.userId));
   } catch (error) {
     console.error("No se pudo leer el apoyo de la norma", error);
     return NextResponse.json({ error: "No se pudo leer el apoyo" }, { status: 500 });
@@ -74,16 +76,17 @@ export async function handleSupportGet(request: Request, id: string) {
 }
 
 const voteSchema = z.object({
-  value: z.union([z.literal(1), z.literal(-1)]),
-  voterName: z.string().trim().min(1).max(120)
+  value: z.union([z.literal(1), z.literal(-1)])
 });
 
 export async function handleSupportCreate(request: Request, id: string) {
   const gate = await guard();
-  if (gate.error) return gate.error;  const parsed = voteSchema.safeParse(await request.json().catch(() => null));
+  if (gate.error) return gate.error;
+
+  const parsed = voteSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Datos inválidos", detail: "Elegí tu nombre y un apoyo válido (+1 a favor o -1 en contra)." },
+      { error: "Datos inválidos", detail: "Mandá un apoyo válido (+1 a favor o -1 en contra)." },
       { status: 400 }
     );
   }
@@ -95,12 +98,14 @@ export async function handleSupportCreate(request: Request, id: string) {
     }
 
     await prisma.normSupport.upsert({
-      where: { projectId_voterName: { projectId: id, voterName: parsed.data.voterName } },
-      create: { projectId: id, userId: gate.session.userId, voterName: parsed.data.voterName, value: parsed.data.value },
-      update: { value: parsed.data.value, userId: gate.session.userId }
+      where: { projectId_userId: { projectId: id, userId: gate.actor.userId } },
+      create: { projectId: id, userId: gate.actor.userId, voterName: gate.actor.name, value: parsed.data.value },
+      // El sello se refresca al revotar: si el nombre de la cuenta cambio, el
+      // listado de votantes muestra el actual y no uno viejo.
+      update: { value: parsed.data.value, voterName: gate.actor.name }
     });
 
-    return NextResponse.json(await readSummary(id, parsed.data.voterName));
+    return NextResponse.json(await readSummary(id, gate.actor.userId));
   } catch (error) {
     console.error("No se pudo registrar el apoyo", error);
     return NextResponse.json(
@@ -110,21 +115,16 @@ export async function handleSupportCreate(request: Request, id: string) {
   }
 }
 
-const removeSchema = z.object({ voterName: z.string().trim().min(1).max(120) });
-
 /** Vuelve a neutral: la persona retira su apoyo u objecion. */
-export async function handleSupportDelete(request: Request, id: string) {
+export async function handleSupportDelete(_request: Request, id: string) {
   const gate = await guard();
-  if (gate.error) return gate.error;  const parsed = removeSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Datos inválidos", detail: "Elegí tu nombre para retirar el voto." }, { status: 400 });
-  }
+  if (gate.error) return gate.error;
 
   try {
     // deleteMany y no delete: si no habia voto, delete tira P2025 y esto tiene que
     // ser idempotente (doble click en el boton activo).
-    await prisma.normSupport.deleteMany({ where: { projectId: id, voterName: parsed.data.voterName } });
-    return NextResponse.json(await readSummary(id, parsed.data.voterName));
+    await prisma.normSupport.deleteMany({ where: { projectId: id, userId: gate.actor.userId } });
+    return NextResponse.json(await readSummary(id, gate.actor.userId));
   } catch (error) {
     console.error("No se pudo quitar el apoyo", error);
     return NextResponse.json({ error: "No se pudo quitar el apoyo" }, { status: 500 });

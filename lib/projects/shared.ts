@@ -309,11 +309,11 @@ export type ProjectListItem = {
   objectionCount: number;
   supportNet: number;
   /**
-   * Quienes votaron y que votaron. El voto propio lo resuelve el cliente contra
-   * la identidad activa: se cuenta por nombre declarado, y el servidor no sabe
-   * quien esta trabajando (vive en el sessionStorage del navegador).
+   * Quienes votaron y que votaron. El voto propio lo resuelve el cliente
+   * comparando `userId` contra la identidad de la sesion; `voterName` es solo el
+   * sello para mostrar el nombre sin ir a buscar cada cuenta.
    */
-  voters: { voterName: string; value: number }[];
+  voters: { userId: string; voterName: string; value: number }[];
 };
 
 export type ProjectDetail = ProjectListItem & {

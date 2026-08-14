@@ -3,16 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ThumbsDown, ThumbsUp } from "lucide-react";
-import { useActiveVoter } from "@/components/normas/active-voter";
+import { useSessionActor } from "@/components/normas/session-actor";
 
 /**
  * Apoyo (+1) u objecion (-1) sobre una norma. Un solo componente para el tablero y
  * el detalle: la regla de "clickear el voto activo lo retira" es sutil y no puede
  * vivir duplicada en dos lugares.
  *
- * El voto va por NOMBRE declarado, no por cuenta: varias personas comparten la
- * cuenta institucional y con una clave por cuenta solo podia votar la primera.
- * Sin identidad activa elegida no se puede votar.
+ * Un voto por cuenta y por norma. El cliente NO manda a nombre de quien vota: la
+ * identidad la pone el servidor desde la sesion. Aca el userId de la sesion se usa
+ * solo para saber cual de los botones esta activo.
  *
  * Los contadores se muestran SIEMPRE, incluso en cero. Ocultarlos cuando no hay
  * votos hacia que la funcion fuera invisible hasta que alguien ya la habia usado,
@@ -23,7 +23,7 @@ export type SupportSummary = {
   supportCount: number;
   objectionCount: number;
   net: number;
-  voters: { voterName: string; value: number }[];
+  voters: { userId: string; voterName: string; value: number }[];
 };
 
 export function SupportControls({
@@ -40,12 +40,12 @@ export function SupportControls({
   onChange?: (summary: SupportSummary) => void;
 }) {
   const router = useRouter();
-  const { voter } = useActiveVoter();
+  const actor = useSessionActor();
   const [summary, setSummary] = useState<SupportSummary>(initial);
   const [voting, setVoting] = useState(false);
 
-  const myValue = voter ? summary.voters.find((entry) => entry.voterName === voter)?.value ?? null : null;
-  const enabled = canVote && Boolean(voter);
+  const myValue = actor ? summary.voters.find((entry) => entry.userId === actor.userId)?.value ?? null : null;
+  const enabled = canVote && Boolean(actor);
 
   async function vote(value: 1 | -1) {
     if (!enabled || voting) return;
@@ -55,7 +55,9 @@ export function SupportControls({
       const response = await fetch(`/api/projects/${normId}?action=support`, {
         method: removing ? "DELETE" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(removing ? { voterName: voter } : { value, voterName: voter })
+        // Retirar no lleva cuerpo, y votar lleva solo el valor: a nombre de quien
+        // se vota lo decide el servidor.
+        body: removing ? undefined : JSON.stringify({ value })
       });
       const payload = await response.json();
       if (response.ok) {
@@ -72,7 +74,7 @@ export function SupportControls({
     }
   }
 
-  const missingVoter = canVote && !voter;
+  const missingVoter = canVote && !actor;
 
   return (
     <div className="flex items-center gap-1.5">
@@ -144,7 +146,7 @@ function VoteButton({
         onClick();
       }}
       disabled={disabled}
-      title={missingVoter ? "Elegí tu nombre arriba para poder votar" : label}
+      title={missingVoter ? "Iniciá sesión para poder votar" : label}
       aria-label={`${label} (${count})`}
       aria-pressed={active}
       className={`group inline-flex items-center gap-1.5 rounded-full border font-semibold transition-all duration-150 active:scale-95 disabled:pointer-events-none disabled:opacity-40 ${

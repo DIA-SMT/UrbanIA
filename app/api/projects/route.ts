@@ -1,7 +1,7 @@
 import { MunicipalArea, ProjectStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
+import { canViewInternal, getSessionActor, getSessionUser, hasPermission } from "@/lib/auth/api";
 import { createNorm, listNorms, listProjects } from "@/lib/projects/data";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +43,12 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * El autor NO viaja en el request: la norma queda firmada por la cuenta que la
+ * crea, sellada desde la sesion en el handler. Antes se pedia porque las
+ * direcciones compartian una cuenta institucional y el nombre declarado era el
+ * unico dato que distinguia a la persona.
+ */
 const createSchema = z.object({
   reformId: z.string().trim().min(1).max(60),
   title: z.string().trim().min(1).max(200),
@@ -51,13 +57,7 @@ const createSchema = z.object({
   areas: z.array(z.nativeEnum(MunicipalArea)).max(9).optional(),
   articleNumber: z.string().trim().max(20).nullish(),
   articleText: z.string().trim().max(40000).nullish(),
-  officialNotes: z.string().trim().max(8000).nullish(),
-  /**
-   * Quien redacta, dentro de la cuenta institucional compartida. Obligatorio al
-   * crear: sin esto todas las normas de una direccion quedan firmadas igual.
-   * En el PATCH sigue siendo opcional, porque es una edicion parcial.
-   */
-  authorName: z.string().trim().min(1).max(120)
+  officialNotes: z.string().trim().max(8000).nullish()
 });
 
 export async function POST(request: Request) {
@@ -68,18 +68,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const session = await getSessionUser();
-  if (!session) {
+  const actor = await getSessionActor();
+  if (!actor) {
     return NextResponse.json({ error: "No autenticado", detail: "Iniciá sesión para redactar normas." }, { status: 401 });
   }
-  if (!hasPermission(session, "projects.create")) {
+  if (!hasPermission(actor, "projects.create")) {
     return NextResponse.json({ error: "Sin permisos", detail: "Solo el equipo municipal puede redactar normas." }, { status: 403 });
   }
 
   const parsed = createSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Datos inválidos", detail: "Revisá el autor, el título y el objeto de la norma." },
+      { error: "Datos inválidos", detail: "Revisá el título y el objeto de la norma." },
       { status: 400 }
     );
   }
@@ -87,7 +87,9 @@ export async function POST(request: Request) {
   try {
     const norm = await createNorm({
       ...parsed.data,
-      createdById: session.userId
+      createdById: actor.userId,
+      // Firma sellada desde la sesion: quien crea la norma es su autor.
+      authorName: actor.name
     });
     return NextResponse.json({ norm }, { status: 201 });
   } catch (error) {

@@ -33,7 +33,7 @@ const listInclude = {
   budgetItems: { select: { amount: true } },
   diagnoses: { orderBy: { version: "desc" }, take: 1, select: { feasibility: true } },
   createdBy: { select: { id: true, name: true } },
-  supports: { select: { voterName: true, value: true } },
+  supports: { select: { userId: true, voterName: true, value: true } },
   _count: { select: { opinions: true } }
 } satisfies Prisma.ProjectInclude;
 
@@ -44,7 +44,7 @@ const detailInclude = {
   proposal: { select: { id: true, title: true } },
   reform: { select: { id: true, code: true, title: true } },
   createdBy: { select: { id: true, name: true } },
-  supports: { select: { voterName: true, value: true } },
+  supports: { select: { userId: true, voterName: true, value: true } },
   _count: { select: { opinions: true } }
 } satisfies Prisma.ProjectInclude;
 
@@ -76,11 +76,12 @@ function asCitedArticles(value: Prisma.JsonValue | null): ProjectCitedArticle[] 
 /**
  * Apoyo del equipo sobre una norma.
  *
- * El voto propio NO se resuelve aca: se cuenta por nombre declarado, y quien esta
- * trabajando vive en el sessionStorage del navegador, que el servidor no ve. Por
- * eso se devuelve la lista de votantes y el cliente marca el boton activo.
+ * Se devuelve la lista completa de votantes con su userId, y el cliente marca el
+ * boton activo comparando contra la identidad de la sesion. El userId viaja
+ * porque es la identidad real del voto: el nombre es solo el sello para mostrar y
+ * puede cambiar si un admin corrige la cuenta.
  */
-function toSupportSummary(supports: { voterName: string; value: number }[]) {
+function toSupportSummary(supports: { userId: string; voterName: string; value: number }[]) {
   let supportCount = 0;
   let objectionCount = 0;
 
@@ -93,7 +94,7 @@ function toSupportSummary(supports: { voterName: string; value: number }[]) {
     supportCount,
     objectionCount,
     supportNet: supportCount - objectionCount,
-    voters: supports.map((support) => ({ voterName: support.voterName, value: support.value }))
+    voters: supports.map((support) => ({ userId: support.userId, voterName: support.voterName, value: support.value }))
   };
 }
 
@@ -191,31 +192,6 @@ export async function getProjectAnchors(projectId: string): Promise<ProjectAncho
     notes: link.notes,
     createdBy: link.createdBy
   }));
-}
-
-/**
- * Nombres que ya firmaron una norma o una devolucion.
- *
- * Alimentan el desplegable de autoria. No se recuerda "el ultimo que escribio":
- * la cuenta es compartida y prellenar el campo con el nombre anterior hace que la
- * proxima persona publique firmando como otra sin darse cuenta. La lista se ofrece,
- * pero elegirse es un acto explicito.
- */
-export async function listAuthorNames(): Promise<string[]> {
-  const [fromNorms, fromOpinions] = await Promise.all([
-    prisma.project.findMany({
-      where: { authorName: { not: null } },
-      select: { authorName: true },
-      distinct: ["authorName"]
-    }),
-    prisma.normOpinion.findMany({ select: { authorName: true }, distinct: ["authorName"] })
-  ]);
-
-  const names = new Set<string>();
-  for (const row of fromNorms) if (row.authorName) names.add(row.authorName);
-  for (const row of fromOpinions) names.add(row.authorName);
-
-  return [...names].sort((a, b) => a.localeCompare(b, "es"));
 }
 
 export type ProjectFilters = { status?: ProjectStatus; stage?: ProjectStage; area?: MunicipalArea; reformId?: string };

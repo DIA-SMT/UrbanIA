@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSessionUser, hasPermission } from "@/lib/auth/api";
+import { getSessionActor, getSessionUser, hasPermission } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 
 
@@ -27,7 +27,7 @@ export async function handleOpinionsList(_request: Request, id: string) {
 
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!hasPermission(session, "projects.edit")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (!hasPermission(session, "projects.edit")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   try {
     const opinions = await prisma.normOpinion.findMany({
       where: { projectId: id },
@@ -40,15 +40,13 @@ export async function handleOpinionsList(_request: Request, id: string) {
   }
 }
 
+/**
+ * Solo el texto. Quien firma NO viaja en el request: lo pone el servidor desde la
+ * sesion. Cuando el nombre lo mandaba el cliente, cualquiera con permiso podia
+ * firmar una devolucion a nombre de otra persona.
+ */
 const createSchema = z.object({
-  body: z.string().trim().min(1).max(4000),
-  /**
-   * Quien firma la devolucion. Obligatorio: las direcciones comparten una cuenta
-   * institucional, asi que sin esto todas las devoluciones quedan firmadas igual
-   * y no se sabe quien opino. Se exige en el servidor y no solo en el formulario,
-   * porque la regla es del sistema, no de la pantalla.
-   */
-  authorName: z.string().trim().min(1).max(120)
+  body: z.string().trim().min(1).max(4000)
 });
 
 export async function handleOpinionCreate(request: Request, id: string) {
@@ -59,11 +57,13 @@ export async function handleOpinionCreate(request: Request, id: string) {
     );
   }
 
-  const session = await getSessionUser();
-  if (!session) {
+  // getSessionActor devuelve null si la cuenta ya no existe, asi que cubre de una
+  // lo que antes era una consulta aparte para no romper por clave foranea.
+  const actor = await getSessionActor();
+  if (!actor) {
     return NextResponse.json({ error: "No autenticado", detail: "Iniciá sesión para dejar una devolución." }, { status: 401 });
   }
-  if (!hasPermission(session, "projects.edit")) {
+  if (!hasPermission(actor, "projects.edit")) {
     return NextResponse.json(
       { error: "Sin permisos", detail: "Solo el equipo municipal puede opinar sobre una norma." },
       { status: 403 }
@@ -71,32 +71,25 @@ export async function handleOpinionCreate(request: Request, id: string) {
   }  const parsed = createSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Datos inválidos", detail: "Escribí tu nombre y el texto de la devolución (máximo 4000 caracteres)." },
+      { error: "Datos inválidos", detail: "Escribí el texto de la devolución (máximo 4000 caracteres)." },
       { status: 400 }
     );
   }
 
   try {
-    // Se valida que la cuenta siga existiendo: sin eso, un userId viejo rompe por
-    // clave foranea y el error sale como un 500 en vez de un 401 entendible.
-    const [norm, account] = await Promise.all([
-      prisma.project.findUnique({ where: { id }, select: { id: true } }),
-      prisma.user.findUnique({ where: { id: session.userId }, select: { id: true } })
-    ]);
+    const norm = await prisma.project.findUnique({ where: { id }, select: { id: true } });
 
     if (!norm) {
       return NextResponse.json({ error: "Norma inexistente", detail: "La norma que intentás comentar no existe." }, { status: 404 });
-    }
-    if (!account) {
-      return NextResponse.json({ error: "No autenticado", detail: "No encontramos tu cuenta. Volvé a ingresar." }, { status: 401 });
     }
 
     const opinion = await prisma.normOpinion.create({
       data: {
         projectId: id,
-        userId: session.userId,
-        // Snapshot: la devolucion queda identificada aunque se borre la cuenta.
-        authorName: parsed.data.authorName,
+        userId: actor.userId,
+        // Sello del nombre: la devolucion sigue identificada aunque se borre la
+        // cuenta y userId quede en null.
+        authorName: actor.name,
         body: parsed.data.body
       }
     });
