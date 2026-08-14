@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, ArrowUpRight, BookOpen, FileText, Loader2, Paperclip, ScrollText, Send, Sparkles, X } from "lucide-react";
+import Image from "next/image";
+import { AlertTriangle, ArrowUpRight, BookOpen, FileText, Loader2, Paperclip, ScrollText, Send, X } from "lucide-react";
 import { MarkdownText } from "@/components/assistant/markdown-text";
 import { SourceModal } from "@/components/cpu/source-modal";
 import { ATTACHMENT_ACCEPT, formatFileSize, useAttachment, type ChatAttachment } from "@/components/shared/use-attachment";
@@ -198,8 +199,21 @@ export function CpuChatPanel({
 function EmptyState({ onPick, disabled }: { onPick: (question: string) => void; disabled: boolean }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-5 py-10 text-center md:py-14">
-      <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-[#1f89f6] dark:bg-sky-400/10">
-        <Sparkles className="h-7 w-7" />
+      {/* Migue en persona en vez de una chispa genérica: es la misma cara del
+          botón flotante, así se reconoce a quién le estás por preguntar. */}
+      <div className="migue-medallion-halo">
+        <span className="migue-medallion">
+          <Image
+            src="/migue/migue-cara.png"
+            alt="Migue, el asistente del Código de Planeamiento Urbano"
+            width={256}
+            height={256}
+            className="migue-medallion-image"
+            // Es lo primero que se ve al entrar: sin priority el medallón queda
+            // un instante como un círculo gris.
+            priority
+          />
+        </span>
       </div>
       <h2 className="mt-5 text-2xl font-black tracking-[-0.02em] text-slate-950 dark:text-white md:text-3xl">
         ¿Qué querés consultar del Código?

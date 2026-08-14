@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db/prisma";
 import { applyOwnerCookie, resolveCpuOwner } from "@/lib/cpu/owner";
 import { attachmentSchema, buildAttachmentBlock, type QueryAttachment } from "@/lib/ai/attachment";
 import { analyzeMigueQuestion } from "@/lib/ai/migue-intent";
+import { logCpuQuery } from "@/lib/ai/query-log";
 
 
 // Debe cubrir un chunk completo de planilla (hasta 2200 chars) para no cortar filas.
@@ -360,6 +361,11 @@ export async function handleCpuQuery(request: Request) {
 
       return { conversationId, title: title ?? deriveTitle(parsed.data.question) };
     });
+
+    // Telemetría del panel "qué pregunta la gente". Va después de persistir la
+    // conversación y nunca lanza: si el registro falla, la consulta se responde
+    // igual. CpuMessage guarda el hilo para el usuario; esto mide la demanda.
+    await logCpuQuery({ question: parsed.data.question, answer, citations, documents });
 
     const jsonResponse = NextResponse.json({
       conversationId: persisted.conversationId,
