@@ -29,8 +29,11 @@ const nextConfig: NextConfig = {
     ],
     "/api/assistant": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
     "/api/cpu": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
-    "/api/hearings": ["node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**"],
-    "/api/hearings/[id]": [
+    // Todo el modulo de audiencias vive en /api/hearings (antes estaba partido
+    // en la coleccion y /[id]; se unieron por el tope de 12 funciones). Esta
+    // funcion es la mas cargada del proyecto: onnx para indexar + Chromium para
+    // el resumen ejecutivo. Por eso ffmpeg sigue afuera, en /api/hearings/audio.
+    "/api/hearings/[[...segments]]": [
       "node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**",
       // El resumen ejecutivo se exporta con @sparticuz/chromium en Vercel.
       // Sus .br se resuelven en runtime y el tracer de Next no los detecta.
@@ -53,11 +56,45 @@ const nextConfig: NextConfig = {
     // Vercel ejecuta Linux x64. El paquete onnxruntime también instala binarios
     // de macOS, Windows y Linux ARM64; si quedan en esta función, junto con
     // Chromium exceden con facilidad el tamaño permitido del bundle.
-    "/api/hearings/[id]": [
+    "/api/hearings/[[...segments]]": [
       "node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
       "node_modules/onnxruntime-node/bin/napi-v6/win32/**",
       "node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**"
     ]
+  },
+  async rewrites() {
+    /*
+     * Por que hay rewrites: el plan Hobby de Vercel admite 12 funciones
+     * serverless por deploy y cada route.ts cuenta una. Se llego a 18 y el
+     * deploy empezo a fallar con "No more than 12 Serverless Functions", asi que
+     * los modulos se fusionaron. Estas dos reescrituras mantienen vivas las URLs
+     * de siempre, sin tocar ni un fetch del cliente.
+     *
+     * OJO con lo que un rewrite NO puede hacer: el query que se inyecta en el
+     * `destination` NO le llega al route handler (probado en dev, 2026-08-13).
+     * Por eso las rutas /api/<modulo>/<id> se resolvieron con catch-all opcional
+     * ([[...segments]]) y no reescribiendo a `?id=`. Aca solo quedan casos que
+     * NO dependen de inyectar nada: el query original del cliente si se preserva.
+     */
+    return {
+      beforeFiles: [],
+      afterFiles: [
+        // El mapa entra por la ruta del codigo vigente: las dos son lectura de
+        // datos urbanos, ninguna trae dependencias pesadas y sus `action` no se
+        // pisan (layers/features contra articulos/search/links). El cliente
+        // sigue llamando /api/map?action=... y ese action viaja en la request.
+        { source: "/api/map", destination: "/api/normativa" },
+        /*
+         * El callback de Cidituc. Su handler YA estaba expuesto en /api/auth, asi
+         * que su route.ts era una segunda puerta al mismo codigo. Se reescribe en
+         * vez de cambiar CIDITUC_CALLBACK_URL: la URL que el Derivador tiene
+         * registrada del lado de Cidituc sigue siendo exactamente la misma.
+         * Destino con SEGMENTO y no con `?action=` a proposito (ver arriba).
+         */
+        { source: "/auth/cidituc/callback", destination: "/api/auth/cidituc-callback" }
+      ],
+      fallback: []
+    };
   },
   async redirects() {
     // El modulo Proyectos se reconvirtio en la Fabrica de Normas.
