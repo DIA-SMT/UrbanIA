@@ -3,10 +3,50 @@ import type { AnswerSource, RagRetrieval } from "@/lib/ai/rag";
 
 /**
  * Registro de consultas a Migue en AiQuery. Es telemetría, no funcionalidad:
- * jamás puede romper una respuesta del chat, por eso nunca lanza. La lectura
- * de estos datos (panel "qué pregunta la gente") vendrá después; mientras
- * tanto, cada día que pasa acumula evidencia de qué le preocupa a la gente.
+ * jamás puede romper una respuesta del chat, por eso nunca lanza.
+ *
+ * Entran las dos vías por las que se le pregunta a Migue: el chat flotante
+ * (`logAssistantQuery`) y la consulta del Código (`logCpuQuery`). Van a la misma
+ * tabla a propósito, con `module` para distinguirlas: la pregunta "qué le cuesta
+ * responder" no se contesta mirando cada canal por separado. Se lee en
+ * /admin/configuracion/migue.
+ *
+ * AiQuery NO guarda userId, y es deliberado: alcanza para medir demanda y no
+ * construye un registro de qué preguntó cada vecino identificado.
  */
+
+type LoggedSource = { chunkId: string | null; title: string | null; reference: string | null };
+
+/**
+ * Escritura común. Privada: quien registra una consulta debería pasar por una de
+ * las dos funciones de abajo, que son las que saben calcular `answered` con la
+ * evidencia propia de su canal.
+ */
+async function writeAiQuery(entry: {
+  question: string;
+  answer: string;
+  sources: LoggedSource[];
+  answered: boolean;
+  normative: boolean;
+  mode: string;
+  module: string;
+}): Promise<void> {
+  try {
+    await prisma.aiQuery.create({
+      data: {
+        question: entry.question.slice(0, 2000),
+        answer: entry.answer.slice(0, 4000),
+        sources: entry.sources,
+        answered: entry.answered,
+        normative: entry.normative,
+        mode: entry.mode,
+        module: entry.module
+      }
+    });
+  } catch (error) {
+    console.warn("No se pudo registrar la consulta de Migue.", error instanceof Error ? error.message : error);
+  }
+}
 
 // Patrones con los que Migue reconoce que no tiene respaldo ("no encontré
 // información suficiente", "no se encontró información específica", "no tengo
@@ -48,23 +88,62 @@ export async function logAssistantQuery(entry: {
   const answered =
     !entry.normative || (entry.retrieval.hasEvidence && entry.source !== null && !answerLooksUnanswered(entry.answer));
 
-  try {
-    await prisma.aiQuery.create({
-      data: {
-        question: entry.question.slice(0, 2000),
-        answer: entry.answer.slice(0, 4000),
-        sources: entry.retrieval.sources.map((source) => ({
-          chunkId: source.chunkId,
-          title: source.title,
-          reference: source.reference ?? null
-        })),
-        answered,
-        normative: entry.normative,
-        mode: entry.mode,
-        module: entry.module
-      }
-    });
-  } catch (error) {
-    console.warn("No se pudo registrar la consulta de Migue.", error instanceof Error ? error.message : error);
+  await writeAiQuery({
+    question: entry.question,
+    answer: entry.answer,
+    sources: entry.retrieval.sources.map((source) => ({
+      chunkId: source.chunkId,
+      title: source.title,
+      reference: source.reference ?? null
+    })),
+    answered,
+    normative: entry.normative,
+    mode: entry.mode,
+    module: entry.module
+  });
+}
+
+/**
+ * Consulta del Código (pantalla Consulta CPU). Toda consulta de este canal es
+ * normativa por definición: se pregunta sobre el Código y nada más.
+ *
+ * La señal de hueco es la misma idea que en el chat, con la evidencia que este
+ * canal produce: si la respuesta no citó NI un artículo NI un documento, Migue no
+ * tuvo con qué respaldarse. Los patrones de texto quedan como refuerzo para
+ * respuestas que citan algo y aun así admiten no saber.
+ */
+export async function logCpuQuery(entry: {
+  question: string;
+  answer: string;
+  citations: { number: string; title: string }[];
+  documents: { label: string; source: string }[];
+}): Promise<void> {
+  if (!process.env.DATABASE_URL) {
+    return;
   }
+
+  const answered = (entry.citations.length > 0 || entry.documents.length > 0) && !answerLooksUnanswered(entry.answer);
+
+  await writeAiQuery({
+    question: entry.question,
+    answer: entry.answer,
+    // Artículos y documentos entran con la misma forma para que el ranking de
+    // fuentes más consultadas los cuente juntos.
+    sources: [
+      ...entry.citations.map((citation) => ({
+        chunkId: null,
+        title: citation.title,
+        reference: `Art. ${citation.number}`
+      })),
+      ...entry.documents.map((document) => ({
+        chunkId: null,
+        title: document.label,
+        reference: document.source
+      }))
+    ],
+    answered,
+    normative: true,
+    mode: "cpu",
+    module: "consulta-cpu"
+  });
 }

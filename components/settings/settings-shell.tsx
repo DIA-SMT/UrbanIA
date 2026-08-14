@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Inbox, KeyRound, Lock, ScrollText, ShieldCheck, UserCog } from "lucide-react";
+import { Inbox, KeyRound, Lock, MessageCircleQuestion, ScrollText, ShieldCheck, UserCog } from "lucide-react";
 
 const sections = [
   { label: "Usuarios", href: "/admin/configuracion/usuarios", icon: UserCog },
@@ -10,6 +10,7 @@ const sections = [
   { label: "Permisos", href: "/admin/configuracion/permisos", icon: KeyRound },
   { label: "Solicitudes", href: "/admin/configuracion/solicitudes", icon: Inbox },
   { label: "Seguridad", href: "/admin/configuracion/seguridad", icon: Lock },
+  { label: "Consultas a Migue", href: "/admin/configuracion/migue", icon: MessageCircleQuestion },
   { label: "Auditoría", href: "/admin/configuracion/auditoria", icon: ScrollText }
 ];
 
