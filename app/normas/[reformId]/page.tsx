@@ -1,8 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
-import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
-import { getReform, listAuthorNames, listReformDocuments } from "@/lib/projects/data";
+import { canViewInternal, getSessionActor, hasPermission } from "@/lib/auth/api";
+import { getReform, listReformDocuments } from "@/lib/projects/data";
 import { NormsBoard } from "@/components/normas/norms-board";
+import { SessionActorProvider } from "@/components/normas/session-actor";
 
 export const dynamic = "force-dynamic";
 
@@ -11,23 +12,26 @@ export default async function ReformPage({ params }: { params: Promise<{ reformI
 
   if (!process.env.DATABASE_URL) notFound();
 
-  const session = await getSessionUser();
-  if (!session) redirect("/ingresar");
+  // getSessionActor y no getSessionUser: el tablero muestra con que cuenta se
+  // esta votando, y el voto propio se marca comparando su userId.
+  const actor = await getSessionActor();
+  if (!actor) redirect("/ingresar");
   // Pantalla interna: el rol Consulta la lee, los ciudadanos no entran.
-  if (!canViewInternal(session)) redirect("/");
+  if (!canViewInternal(actor)) redirect("/");
 
-  const [reform, knownAuthors, documents] = await Promise.all([
+  const [reform, documents] = await Promise.all([
     getReform(reformId).catch(() => null),
-    listAuthorNames().catch(() => []),
     listReformDocuments(reformId).catch(() => [])
   ]);
   if (!reform) notFound();
 
-  const canEdit = session ? hasPermission(session, "norms.edit") : false;
+  const canEdit = hasPermission(actor, "norms.edit");
 
   return (
     <AppShell>
-      <NormsBoard reform={reform} canEdit={canEdit} knownAuthors={knownAuthors} documents={documents} />
+      <SessionActorProvider actor={{ userId: actor.userId, name: actor.name }}>
+        <NormsBoard reform={reform} canEdit={canEdit} documents={documents} />
+      </SessionActorProvider>
     </AppShell>
   );
 }

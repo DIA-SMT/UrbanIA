@@ -1,7 +1,6 @@
 "use client";
 
 import type { MunicipalArea, ProjectStatus } from "@prisma/client";
-import { AuthorPicker } from "@/components/normas/author-picker";
 import { FieldLabel, SelectField, TextField } from "@/components/projects/form/form-ui";
 import { materiaLabels, normStatusLabels, normVisibleStatuses } from "@/lib/projects/shared";
 
@@ -12,61 +11,47 @@ export function IdentificationBlock({
   status,
   areas,
   authorName,
-  accountName,
-  knownAuthors,
+  isNew,
   disabled,
   onTitleChange,
   onArticleNumberChange,
   onStatusChange,
-  onToggleArea,
-  onAuthorNameChange
+  onToggleArea
 }: {
   title: string;
   articleNumber: string;
   status: ProjectStatus;
   areas: MunicipalArea[];
-  authorName: string;
-  accountName: string | null;
-  /** Gente que ya firmo una norma o devolucion, para elegirse sin reescribir. */
-  knownAuthors: string[];
+  /**
+   * Quien firma. Es informativo y no se edita: en una norma existente es su
+   * autor, y en una nueva la cuenta de la sesion, que es con la que el servidor
+   * la va a sellar al guardarla.
+   */
+  authorName: string | null;
+  isNew: boolean;
   disabled: boolean;
   onTitleChange: (value: string) => void;
   onArticleNumberChange: (value: string) => void;
   onStatusChange: (value: ProjectStatus) => void;
   onToggleArea: (area: MunicipalArea) => void;
-  onAuthorNameChange: (value: string) => void;
 }) {
   // Si la fila trae un estado de obra heredado, se muestra igual para no ocultarlo.
   const statusOptions = normVisibleStatuses.includes(status) ? normVisibleStatuses : [...normVisibleStatuses, status];
 
   return (
     <div className="grid gap-3">
-      {/* Primero el autor: la cuenta es institucional y compartida, asi que sin este
-          dato todas las normas de una direccion quedan firmadas igual. */}
+      {/* El autor va primero pero ya no se carga: sale de la cuenta con la que se
+          inicio sesion. Antes era un campo editable porque las direcciones
+          compartian una cuenta institucional y el nombre era el unico dato que
+          distinguia a la persona. */}
       <div className="rounded-md border border-white/8 bg-white/[0.02] p-3">
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="grid gap-1.5">
-            <FieldLabel>Autor de la norma *</FieldLabel>
-            <AuthorPicker
-              value={authorName}
-              knownNames={knownAuthors}
-              disabled={disabled}
-              placeholder="Nombre y apellido de quien redacta"
-              onChange={onAuthorNameChange}
-            />
-          </label>
-          {accountName ? (
-            <p className="pb-3 text-[11px] leading-5 text-slate-500">
-              Cuenta: <span className="font-semibold text-slate-400">{accountName}</span>
-            </p>
-          ) : null}
-        </div>
-        {/* El aviso de obligatorio es para quien edita; en modo lectura solo mete ruido. */}
+        <FieldLabel>Autor de la norma</FieldLabel>
+        <p className="mt-1.5 text-sm font-bold text-slate-100">{authorName ?? "Sin autor registrado"}</p>
         {!disabled ? (
-          <p className={`mt-2 text-[11px] leading-5 ${authorName.trim() ? "text-slate-500" : "text-amber-200/80"}`}>
-            {authorName.trim()
-              ? "La norma queda firmada con este nombre, además de la cuenta."
-              : "Obligatorio: la norma no se guarda hasta que cargues quién la redacta."}
+          <p className="mt-2 text-[11px] leading-5 text-slate-500">
+            {isNew
+              ? "Queda firmada con tu cuenta al guardarla."
+              : "La firma es de quien la creó y no cambia al editarla."}
           </p>
         ) : null}
       </div>

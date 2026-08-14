@@ -1,47 +1,40 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 
 
-const removeSchema = z.object({ voterName: z.string().trim().min(1).max(120) });
-
 /**
  * Borra una devolucion. Solo quien la firmo.
  *
- * La comparacion es por NOMBRE declarado y no por cuenta ni por rol: la cuenta
- * institucional es compartida (y ademas es ADMIN), asi que tanto "mismo userId"
- * como "es ADMIN" equivalen a que cualquiera borre lo de cualquiera. Con el
- * modelo declarativo esto tampoco es infalsificable, pero exige elegir
- * activamente el nombre del otro para borrar lo suyo, que ya no es un descuido.
+ * La comparacion es por userId contra la sesion. Antes era por nombre declarado
+ * porque la cuenta institucional era compartida y "mismo userId" equivalia a que
+ * cualquiera de la direccion borrara lo de cualquiera; con una cuenta por persona
+ * el userId vuelve a ser la comparacion correcta, y ademas deja de ser
+ * falsificable desde el cliente.
+ *
+ * Las devoluciones con userId en null (la cuenta se borro, ver el SetNull del
+ * modelo) no las borra nadie por esta via: quedan como registro historico.
  */
-export async function handleOpinionDelete(request: Request, id: string, opinionId: string) {
+export async function handleOpinionDelete(_request: Request, id: string, opinionId: string) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Base de datos no disponible" }, { status: 503 });
   }
 
   const session = await getSessionUser();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (!hasPermission(session, "projects.edit")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });  const parsed = removeSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Datos inválidos", detail: "Elegí tu nombre para borrar tu devolución." },
-      { status: 400 }
-    );
-  }
-
+  if (!hasPermission(session, "projects.edit")) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   try {
     // findFirst con projectId acota el borrado a la norma de la URL: sin eso, un
     // opinionId de otra norma se borraria igual.
     const opinion = await prisma.normOpinion.findFirst({
       where: { id: opinionId, projectId: id },
-      select: { authorName: true }
+      select: { authorName: true, userId: true }
     });
 
     if (!opinion) {
       return NextResponse.json({ error: "Devolución inexistente" }, { status: 404 });
     }
-    if (opinion.authorName !== parsed.data.voterName) {
+    if (!opinion.userId || opinion.userId !== session.userId) {
       return NextResponse.json(
         { error: "Sin permisos", detail: `Solo ${opinion.authorName} puede borrar esta devolución.` },
         { status: 403 }

@@ -8,7 +8,7 @@ import { Anchor, ArrowLeft, ArrowRight, ChevronDown, FileDiff, FileDown, FileSta
 import { EmptyState } from "@/components/ui/empty-state";
 import { AuthorLine, FilterBar, FilterChip, FilterGroup, MetricStrip } from "@/components/ui/board-ui";
 import { SupportControls } from "@/components/normas/support-controls";
-import { ActiveVoterBar } from "@/components/normas/active-voter";
+import { SessionActorBar } from "@/components/normas/session-actor";
 import { ReformDocuments } from "@/components/normas/reform-documents";
 import {
   conflictLevelLabels,
@@ -31,13 +31,10 @@ type MateriaFilter = MunicipalArea | "ALL";
 export function NormsBoard({
   reform,
   canEdit,
-  knownAuthors = [],
   documents = []
 }: {
   reform: ReformDetail;
   canEdit: boolean;
-  /** Alimenta el selector de identidad: sin nombre elegido no se puede votar. */
-  knownAuthors?: string[];
   /** PDFs aportados a la reforma, hayan producido normas o no. */
   documents?: ReformDocumentView[];
 }) {
@@ -154,7 +151,7 @@ export function NormsBoard({
         </div>
       </section>
 
-      {canEdit ? <ActiveVoterBar knownAuthors={knownAuthors} /> : null}
+      {canEdit ? <SessionActorBar /> : null}
 
       <FilterBar>
         <FilterGroup label="Estado">

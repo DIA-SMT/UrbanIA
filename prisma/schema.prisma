@@ -1187,16 +1187,15 @@ model NormOpinion {
 model NormSupport {
   id        String   @id @default(cuid())
   projectId String
-  /// Cuenta desde la que se emitio el voto. Ya NO identifica al votante: varias
-  /// personas comparten la cuenta institucional de su direccion.
+  /// Quien vota. Cidituc es el unico acceso y da una cuenta por persona, asi que
+  /// el userId ES la identidad del voto: un voto por persona y por norma. El
+  /// servidor lo toma de la sesion; el navegador no declara a nombre de quien
+  /// vota, que es lo que antes hacia el conteo falsificable.
   userId    String
-  /// PROVISORIO. Quien vota, declarado en pantalla. Es lo que hace que dos
-  /// personas de la misma direccion puedan votar la misma norma.
-  ///
-  /// No es verificable: cualquiera con la cuenta abierta puede votar eligiendo
-  /// otro nombre. El conteo sirve como termometro de trabajo interno, no como
-  /// votacion formal, y no deberia citarse como tal. La solucion real es una
-  /// cuenta por persona, y cuando exista este campo se reemplaza por userId.
+  /// Sello del nombre al momento de votar, solo para mostrar quien voto sin
+  /// tener que ir a buscar cada cuenta. Ya NO identifica: si un admin corrige el
+  /// nombre desde Configuracion, el voto sigue siendo el mismo porque cuelga del
+  /// userId.
   voterName String
   /// +1 = a favor, -1 = en contra. La API valida el par; Postgres no tiene
   /// enum para esto y un CHECK complicaria el upsert.
@@ -1206,8 +1205,8 @@ model NormSupport {
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  /// Un voto por nombre y norma: cambiar de opinion actualiza el mismo registro.
-  @@unique([projectId, voterName])
+  /// Un voto por persona y norma: cambiar de opinion actualiza el mismo registro.
+  @@unique([projectId, userId])
   @@index([projectId])
 }
 

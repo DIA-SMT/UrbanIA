@@ -1,9 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
-import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
-import { prisma } from "@/lib/db/prisma";
-import { getNorm, getReform, listAuthorNames } from "@/lib/projects/data";
+import { canViewInternal, getSessionActor, hasPermission } from "@/lib/auth/api";
+import { getNorm, getReform } from "@/lib/projects/data";
 import { NormEditor } from "@/components/normas/form/norm-editor";
+import { SessionActorProvider } from "@/components/normas/session-actor";
 
 export const dynamic = "force-dynamic";
 
@@ -17,34 +17,32 @@ export default async function NormaPage({ params }: { params: Promise<{ reformId
 
   if (!process.env.DATABASE_URL) notFound();
 
-  const session = await getSessionUser();
-  if (!session) redirect("/ingresar");
+  // getSessionActor y no getSessionUser: la pantalla necesita el nombre de la
+  // cuenta para mostrar con quien se esta votando y firmando.
+  const actor = await getSessionActor();
+  if (!actor) redirect("/ingresar");
   // Pantalla interna: el rol Consulta la lee, los ciudadanos no entran.
-  if (!canViewInternal(session)) redirect("/");
+  if (!canViewInternal(actor)) redirect("/");
 
-  const [reform, norm, account, knownAuthors] = await Promise.all([
+  const [reform, norm] = await Promise.all([
     getReform(reformId).catch(() => null),
-    getNorm(normId).catch(() => null),
-    session
-      ? prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } }).catch(() => null)
-      : Promise.resolve(null),
-    listAuthorNames().catch(() => [])
+    getNorm(normId).catch(() => null)
   ]);
   if (!reform || !norm || norm.reformId !== reform.id) notFound();
 
-  const canEdit = session ? hasPermission(session, "projects.edit") : false;
-  const canDelete = session ? hasPermission(session, "projects.delete") : false;
+  const canEdit = hasPermission(actor, "projects.edit");
+  const canDelete = hasPermission(actor, "projects.delete");
 
   return (
     <AppShell>
-      <NormEditor
-        reform={{ id: reform.id, code: reform.code, title: reform.title }}
-        norm={norm}
-        canEdit={canEdit}
-        canDelete={canDelete}
-        accountName={account?.name ?? null}
-        knownAuthors={knownAuthors}
-      />
+      <SessionActorProvider actor={{ userId: actor.userId, name: actor.name }}>
+        <NormEditor
+          reform={{ id: reform.id, code: reform.code, title: reform.title }}
+          norm={norm}
+          canEdit={canEdit}
+          canDelete={canDelete}
+        />
+      </SessionActorProvider>
     </AppShell>
   );
 }

@@ -6,6 +6,8 @@ import type { UserRole } from "@prisma/client";
 import { readSessionToken, sessionCookieName } from "@/lib/auth/session";
 import { resolveRolePermissions } from "@/lib/auth/permissions-store";
 import type { Permission } from "@/lib/auth/permissions";
+import { prisma } from "@/lib/db/prisma";
+import { fullName } from "@/lib/settings/shared";
 
 export type SessionUser = {
   userId: string;
@@ -25,6 +27,36 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     role: session.role,
     permissions: await resolveRolePermissions(session.role)
   };
+});
+
+export type SessionActor = SessionUser & {
+  /** Nombre de la cuenta, para sellar lo que la persona vota o firma. */
+  name: string;
+};
+
+/**
+ * La sesión más el nombre de la cuenta.
+ *
+ * Aparte de `getSessionUser` porque cuesta una consulta: solo lo piden las
+ * pantallas y las rutas que atribuyen algo a una persona (el voto de una norma,
+ * una devolución, la autoría). El resto sigue resolviendo permisos sin tocar la
+ * base. `cache` lo deja en una sola consulta por request aunque lo llamen varios.
+ *
+ * Devuelve null también cuando la cuenta ya no existe: un userId apuntando a una
+ * cuenta borrada tiene que cortar el flujo con un 401 entendible, y no explotar
+ * por clave foránea recién al momento de escribir.
+ */
+export const getSessionActor = cache(async (): Promise<SessionActor | null> => {
+  const session = await getSessionUser();
+  if (!session || !process.env.DATABASE_URL) return null;
+
+  const account = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { name: true, lastName: true }
+  });
+  if (!account) return null;
+
+  return { ...session, name: fullName(account) };
 });
 
 /**

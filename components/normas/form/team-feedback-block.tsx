@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, MessageSquarePlus, Send, Trash2 } from "lucide-react";
-import { ActiveVoterBar, useActiveVoter } from "@/components/normas/active-voter";
+import { SessionActorBar, useSessionActor } from "@/components/normas/session-actor";
 import { SupportControls, type SupportSummary } from "@/components/normas/support-controls";
 
 /**
@@ -29,20 +29,14 @@ function formatDateTime(iso: string) {
 export function TeamFeedbackBlock({
   normId,
   canEdit,
-  initialSupport,
-  accountName = null,
-  knownAuthors = []
+  initialSupport
 }: {
   normId: string;
   canEdit: boolean;
   initialSupport: SupportSummary;
-  /** Cuenta institucional, solo informativa: la firma es obligatoria igual. */
-  accountName?: string | null;
-  /** Gente que ya firmo algo, para elegirse en vez de reescribir el nombre. */
-  knownAuthors?: string[];
 }) {
   const router = useRouter();
-  const { voter } = useActiveVoter();
+  const actor = useSessionActor();
   const [support, setSupport] = useState<SupportSummary>(initialSupport);
 
   const [opinions, setOpinions] = useState<Opinion[]>([]);
@@ -70,16 +64,16 @@ export function TeamFeedbackBlock({
 
   async function publish() {
     const text = body.trim();
-    // Firma y voto son la misma identidad: la que esta elegida arriba.
-    const signedBy = voter.trim();
-    if (!text || !signedBy || posting) return;
+    // Firma y voto son la misma identidad: la de la sesion. El nombre no viaja en
+    // el request, lo sella el servidor.
+    if (!text || !actor || posting) return;
     setPosting(true);
     setError("");
     try {
       const response = await fetch(`/api/projects/${normId}?action=opinions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: text, authorName: signedBy })
+        body: JSON.stringify({ body: text })
       });
       const payload = await response.json();
       if (!response.ok) {
@@ -99,14 +93,12 @@ export function TeamFeedbackBlock({
   }
 
   async function remove(opinionId: string) {
-    if (!voter) return;
+    if (!actor) return;
     try {
-      // El servidor compara la identidad declarada contra la firma de la
+      // El servidor compara el userId de la sesion contra el autor de la
       // devolucion: solo su autor puede borrarla.
       const response = await fetch(`/api/projects/${normId}?opinionId=${opinionId}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ voterName: voter })
+        method: "DELETE"
       });
       if (response.ok) {
         setOpinions((current) => current.filter((opinion) => opinion.id !== opinionId));
@@ -117,11 +109,11 @@ export function TeamFeedbackBlock({
     }
   }
 
-  const myValue = voter ? support.voters.find((entry) => entry.voterName === voter)?.value ?? null : null;
+  const myValue = actor ? support.voters.find((entry) => entry.userId === actor.userId)?.value ?? null : null;
 
   return (
     <div className="space-y-4">
-      {canEdit ? <ActiveVoterBar knownAuthors={knownAuthors} /> : null}
+      {canEdit ? <SessionActorBar /> : null}
 
       <div className="flex flex-wrap items-center gap-3 rounded-md border border-white/8 bg-white/[0.02] px-3 py-2.5">
         <SupportControls normId={normId} initial={initialSupport} canVote={canEdit} onChange={setSupport} />
@@ -145,8 +137,10 @@ export function TeamFeedbackBlock({
         ) : opinions.length ? (
           opinions.map((opinion) => {
             // Es la devolucion de quien esta trabajando: se destaca para que se
-            // reconozca la propia dentro del hilo.
-            const mine = Boolean(voter) && opinion.authorName === voter;
+            // reconozca la propia dentro del hilo. Por userId y no por nombre:
+            // dos personas pueden llamarse igual, y el nombre sellado puede
+            // quedar viejo si la cuenta se corrigio despues.
+            const mine = Boolean(actor) && opinion.userId === actor?.userId;
             return (
               <article key={opinion.id} className="group flex gap-3">
                 <Avatar name={opinion.authorName} highlighted={mine} />
@@ -204,20 +198,19 @@ export function TeamFeedbackBlock({
           {error ? <p className="text-xs font-semibold text-amber-200">{error}</p> : null}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-[11px] text-slate-500">
-              {voter ? (
+              {actor ? (
                 <>
-                  Firmás como <span className="font-semibold text-slate-300">{voter}</span>
-                  {accountName ? ` · ${accountName}` : ""}
+                  Firmás como <span className="font-semibold text-slate-300">{actor.name}</span>
                 </>
               ) : (
-                <span className="text-amber-200/80">Elegí tu nombre arriba para publicar.</span>
+                <span className="text-amber-200/80">Iniciá sesión para publicar.</span>
               )}
             </p>
             <button
               type="button"
               onClick={publish}
-              disabled={!body.trim() || !voter.trim() || posting}
-              title={!voter.trim() ? "Elegí tu nombre arriba para publicar" : undefined}
+              disabled={!body.trim() || !actor || posting}
+              title={!actor ? "Iniciá sesión para publicar" : undefined}
               className="urban-button inline-flex items-center gap-2 rounded-md bg-civic-blue px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
             >
               {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
