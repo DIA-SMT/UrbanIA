@@ -226,6 +226,53 @@ html.dark select option {
   text-shadow: 0 1px 2px rgba(2, 6, 23, 0.25);
 }
 
+/* Retrato de Migue como medallon, para presentarlo fuera del boton flotante
+   (hoy: el estado vacio de la consulta CPU).
+
+   Comparte la receta del launcher y por el mismo motivo: migue-cara.png es RGB
+   SIN canal alfa, asi que su fondo claro viaja con la imagen. El circulo con
+   overflow hidden lo encierra; apoyar el PNG directo sobre un fondo oscuro deja
+   un bloque blanco. El halo reemplaza la mancha de color que antes daba el
+   cuadrado celeste del icono, para que el centro de la pantalla no pierda peso. */
+.migue-medallion-halo {
+  display: grid;
+  place-items: center;
+  width: 5.25rem;
+  height: 5.25rem;
+  border-radius: 9999px;
+  background: #e8f2fe;
+}
+
+.dark .migue-medallion-halo {
+  background: rgba(31, 137, 246, 0.14);
+}
+
+.migue-medallion {
+  position: relative;
+  width: 4rem;
+  height: 4rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  /* Respaldo mientras la imagen carga: iguala el fondo del retrato para que no
+     se vea un circulo de otro color. */
+  background: #f2f4f7;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.92),
+    0 2px 8px rgba(2, 6, 23, 0.22);
+}
+
+.migue-medallion-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Mismo encuadre que el launcher: zoom leve hacia la cara para recortar el
+     aire de arriba y los hombros. */
+  transform: scale(1.08);
+  transform-origin: 50% 34%;
+}
+
 /* Marca de frase dudosa del dictado: resaltador clasico, letra negra sobre
    amarillo SOLIDO, identica en tema claro y oscuro (el amarillo con negro
    contrasta sobre cualquier fondo). Click para quitarla: cursor + hover. */
