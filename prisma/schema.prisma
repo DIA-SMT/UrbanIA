@@ -578,11 +578,24 @@ model AiQuery {
   sources   Json     @default("[]")
   answered  Boolean  @default(true)
   normative Boolean  @default(false)
+  /// El mensaje no era una consulta: un saludo, una prueba, tecleo al azar.
+  ///
+  /// Campo propio y NO inferido de `normative = false`, que mezcla la basura con
+  /// preguntas legítimas ajenas a la normativa (cómo se usa la plataforma, por
+  /// ejemplo). La separación existe porque estas filas se excluyen de la tasa de
+  /// huecos de conocimiento —una consulta "bot" no es un hueco— y porque el
+  /// dashboard de super Migue va a comparar instancias entre sí: dos tasas solo
+  /// son comparables si ambas descartan el ruido con el mismo criterio.
+  ///
+  /// Se guardan igual, no se descartan de la base: un pico de mensajes así es
+  /// información (alguien probando, un patrón de abuso, un campo que confunde).
+  discarded Boolean  @default(false)
   mode      String?
   module    String?
   createdAt DateTime @default(now())
 
   @@index([answered, createdAt])
+  @@index([discarded, createdAt])
 }
 
 model KnowledgeSource {

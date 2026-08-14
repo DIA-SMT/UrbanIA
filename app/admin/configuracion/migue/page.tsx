@@ -65,7 +65,10 @@ export default async function MigueStatsPage({ searchParams }: PageProps) {
         ))}
       </nav>
 
-      {stats.total === 0 ? (
+      {/* El vacío se muestra solo si NO hubo nada: si en la ventana solo entraron
+          mensajes descartados, el panel se dibuja igual para que ese número se vea
+          en vez de quedar tapado por un "sin consultas". */}
+      {stats.total === 0 && stats.discarded === 0 ? (
         <section className="surface-panel grid place-items-center px-6 py-16 text-center">
           <span className="grid h-12 w-12 place-items-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-white/[0.06]">
             <MessageCircleQuestion className="h-6 w-6" />
@@ -79,7 +82,11 @@ export default async function MigueStatsPage({ searchParams }: PageProps) {
       ) : (
         <div className="grid gap-4">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Consultas" value={stats.total.toLocaleString("es-AR")} hint={`${answered.toLocaleString("es-AR")} con respaldo`} />
+            <StatCard
+              label="Consultas reales"
+              value={stats.total.toLocaleString("es-AR")}
+              hint={`${answered.toLocaleString("es-AR")} con respaldo · ${stats.normative.toLocaleString("es-AR")} sobre normativa`}
+            />
             <StatCard
               label="Sin respuesta"
               value={`${stats.unansweredRate}%`}
@@ -87,9 +94,9 @@ export default async function MigueStatsPage({ searchParams }: PageProps) {
               tone={stats.unansweredRate >= 25 ? "warn" : "plain"}
             />
             <StatCard
-              label="Sobre normativa"
-              value={stats.normative.toLocaleString("es-AR")}
-              hint={stats.total ? `${Math.round((stats.normative / stats.total) * 100)}% del total` : "—"}
+              label="Descartadas"
+              value={stats.discarded.toLocaleString("es-AR")}
+              hint="saludos, pruebas, tecleo al azar"
             />
             <StatCard
               label="Valoraciones"

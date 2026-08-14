@@ -365,7 +365,13 @@ export async function handleCpuQuery(request: Request) {
     // Telemetría del panel "qué pregunta la gente". Va después de persistir la
     // conversación y nunca lanza: si el registro falla, la consulta se responde
     // igual. CpuMessage guarda el hilo para el usuario; esto mide la demanda.
-    await logCpuQuery({ question: parsed.data.question, answer, citations, documents });
+    await logCpuQuery({
+      question: parsed.data.question,
+      answer,
+      citations,
+      documents,
+      discarded: analysis.descartable
+    });
 
     const jsonResponse = NextResponse.json({
       conversationId: persisted.conversationId,

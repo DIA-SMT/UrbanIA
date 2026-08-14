@@ -26,9 +26,18 @@ export type FeedbackReason = { reason: string; count: number };
 
 export type MigueStats = {
   window: MigueStatsWindow;
+  /**
+   * Consultas reales: NO incluye las descartadas.
+   *
+   * Todas las métricas de demanda usan este universo. Una consulta "bot" no es
+   * demanda insatisfecha, y contarla movía la tasa de huecos lo suficiente para
+   * volverla inservible: con 12 consultas cargadas, una sola daba 42%.
+   */
   total: number;
+  /** Mensajes que no eran una consulta. Se muestran aparte, no se esconden. */
+  discarded: number;
   unanswered: number;
-  /** Porcentaje redondeado de consultas sin respaldo. 0 si no hubo consultas. */
+  /** Porcentaje redondeado sobre las consultas reales. 0 si no hubo ninguna. */
   unansweredRate: number;
   normative: number;
   daily: DailyVolume[];
@@ -49,18 +58,24 @@ function windowStart(days: MigueStatsWindow): Date {
 export async function getMigueStats(days: MigueStatsWindow = 30): Promise<MigueStats> {
   const since = windowStart(days);
 
+  // Universo de todas las lecturas de demanda: consultas reales, sin las
+  // descartadas. Se declara una vez y se reusa para que ninguna metrica quede
+  // contando un universo distinto al de las demas.
+  const reales = { createdAt: { gte: since }, discarded: false };
+
   // Todo en una sola tanda: la pantalla no puede dibujar nada hasta tener el
   // conjunto completo, asi que encadenarlas solo sumaria latencia.
-  const [total, unanswered, normative, daily, byModule, topSources, recentUnanswered, feedbackRows, reasons] =
+  const [total, discarded, unanswered, normative, daily, byModule, topSources, recentUnanswered, feedbackRows, reasons] =
     await Promise.all([
-      prisma.aiQuery.count({ where: { createdAt: { gte: since } } }),
-      prisma.aiQuery.count({ where: { createdAt: { gte: since }, answered: false } }),
-      prisma.aiQuery.count({ where: { createdAt: { gte: since }, normative: true } }),
+      prisma.aiQuery.count({ where: reales }),
+      prisma.aiQuery.count({ where: { createdAt: { gte: since }, discarded: true } }),
+      prisma.aiQuery.count({ where: { ...reales, answered: false } }),
+      prisma.aiQuery.count({ where: { ...reales, normative: true } }),
       dailyVolume(since),
       moduleVolume(since),
       topCitedSources(since),
       prisma.aiQuery.findMany({
-        where: { createdAt: { gte: since }, answered: false },
+        where: { ...reales, answered: false },
         orderBy: { createdAt: "desc" },
         take: 30,
         select: { id: true, question: true, module: true, createdAt: true }
@@ -76,6 +91,7 @@ export async function getMigueStats(days: MigueStatsWindow = 30): Promise<MigueS
   return {
     window: days,
     total,
+    discarded,
     unanswered,
     unansweredRate: total === 0 ? 0 : Math.round((unanswered / total) * 100),
     normative,
@@ -108,6 +124,7 @@ async function dailyVolume(since: Date): Promise<DailyVolume[]> {
            COUNT(*) FILTER (WHERE NOT "answered") AS unanswered
     FROM "AiQuery"
     WHERE "createdAt" >= ${since}
+      AND NOT "discarded"
     GROUP BY 1
     ORDER BY 1 ASC
   `);
@@ -124,13 +141,13 @@ async function moduleVolume(since: Date): Promise<ModuleVolume[]> {
   const [rows, unansweredRows] = await Promise.all([
     prisma.aiQuery.groupBy({
       by: ["module"],
-      where: { createdAt: { gte: since } },
+      where: { createdAt: { gte: since }, discarded: false },
       _count: { _all: true },
       orderBy: { _count: { module: "desc" } }
     }),
     prisma.aiQuery.groupBy({
       by: ["module"],
-      where: { createdAt: { gte: since }, answered: false },
+      where: { createdAt: { gte: since }, discarded: false, answered: false },
       _count: { _all: true }
     })
   ]);
@@ -164,6 +181,7 @@ async function topCitedSources(since: Date): Promise<TopSource[]> {
            CASE WHEN jsonb_typeof(q."sources"::jsonb) = 'array' THEN q."sources"::jsonb ELSE '[]'::jsonb END
          ) AS source
     WHERE q."createdAt" >= ${since}
+      AND NOT q."discarded"
       AND source->>'reference' IS NOT NULL
       AND source->>'reference' <> ''
     GROUP BY 1
