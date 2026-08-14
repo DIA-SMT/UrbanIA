@@ -32,7 +32,12 @@ export const PERMISSION_CATALOG = [
   { key: "debates.moderate", module: "Foro", label: "Moderar debates", description: "Ocultar argumentos con motivo; nada se borra." },
   { key: "maps.manage", module: "Mapas", label: "Administrar mapas", description: "Gestionar capas y datos del mapa territorial." },
   { key: "ai.execute", module: "Asistente IA", label: "Ejecutar IA interna", description: "Transcribir, analizar y diagnosticar con el modelo, sobre material no público." },
-  { key: "content.publish", module: "Publicación", label: "Publicar contenido", description: "Publicar contenido visible para la ciudadanía." },
+  // La etiqueta dice lo que el permiso controla HOY y no una ambición: se exige
+  // unicamente en el resumen ejecutivo de una audiencia (generar el PDF y
+  // publicarlo en el portal). Prometer "todo el contenido ciudadano" en una matriz
+  // editable es una trampa: se concede creyendo que da poco, o se quita creyendo
+  // que blinda todo lo publico. Si algun dia gobierna mas cosas, se amplia acá.
+  { key: "content.publish", module: "Publicación", label: "Publicar resúmenes de audiencias", description: "Generar el resumen de una audiencia con IA y publicarlo en el portal ciudadano." },
   { key: "users.manage", module: "Administración", label: "Administrar usuarios", description: "Vincular cuentas, cambiar roles, suspender y reactivar usuarios." },
   { key: "roles.manage", module: "Administración", label: "Administrar roles y permisos", description: "Definir qué permisos incluye cada rol." },
   { key: "settings.manage", module: "Administración", label: "Administrar configuraciones", description: "Modificar la configuración general del sistema." },
