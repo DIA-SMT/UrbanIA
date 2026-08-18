@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "tsx scripts/check-tracing-keys.ts && prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "next lint",
