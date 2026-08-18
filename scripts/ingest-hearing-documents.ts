@@ -45,15 +45,48 @@ async function main() {
     return;
   }
 
-  // Ya indexados: KnowledgeSource REPORT con externalId hearing-report:<docId>.
-  const indexed = new Set(
+  /*
+   * Ya indexados: KnowledgeSource REPORT con externalId hearing-report:<docId>.
+   *
+   * "Indexado" exige status READY Y que ningun fragmento haya quedado sin
+   * vector. Antes alcanzaba con que la fuente EXISTIERA, y eso dejaba una
+   * ingesta fallida rota para siempre: el documento de la Comision FAU quedo
+   * desde el 2026-07-31 con status ERROR y sus 27 fragmentos sin embedding
+   * --invisibles para la busqueda semantica-- y este backfill lo salteaba
+   * justamente por existir. Solo se recuperaba con --all, que reprocesa todo.
+   */
+  const sources = await prisma.knowledgeSource.findMany({
+    where: { kind: "REPORT", externalId: { startsWith: "hearing-report:" } },
+    select: {
+      externalId: true,
+      status: true,
+      _count: { select: { chunks: true } }
+    }
+  });
+  const withoutVector = new Set(
     (
-      await prisma.knowledgeSource.findMany({
-        where: { kind: "REPORT", externalId: { startsWith: "hearing-report:" } },
-        select: { externalId: true }
-      })
-    ).map((source) => source.externalId!.replace("hearing-report:", ""))
+      await prisma.$queryRaw<{ externalId: string }[]>`
+        SELECT DISTINCT s."externalId"
+        FROM "KnowledgeSource" s
+        JOIN "KnowledgeChunk" c ON c."sourceId" = s.id
+        WHERE s.kind = 'REPORT' AND c.embedding IS NULL
+      `
+    ).map((row) => row.externalId)
   );
+  const indexed = new Set(
+    sources
+      .filter(
+        (source) =>
+          source.status === "READY" &&
+          source._count.chunks > 0 &&
+          !withoutVector.has(source.externalId!)
+      )
+      .map((source) => source.externalId!.replace("hearing-report:", ""))
+  );
+  const broken = sources.length - indexed.size;
+  if (broken > 0) {
+    log(`${broken} fuente(s) quedaron incompletas en una corrida anterior: se reprocesan.`);
+  }
 
   let done = 0;
   let skipped = 0;
