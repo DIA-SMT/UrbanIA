@@ -136,6 +136,11 @@ async function storeKnowledgeSource(input: {
     }
   });
 
+  // Solo pasa a true una vez que se borraron los chunks viejos: a partir de ahi
+  // un fallo deja la fuente a medio escribir y hay que limpiarla (ver el catch).
+  // Antes de ese punto, lo que hay guardado es el indice ANTERIOR, que funciona.
+  let chunksReemplazados = false;
+
   try {
     const chunks = chunkReportText(text);
     if (!chunks.length) {
@@ -144,6 +149,7 @@ async function storeKnowledgeSource(input: {
 
     // Reindexado limpio: si la fuente se re-ingesta, se reemplazan sus chunks.
     await prisma.knowledgeChunk.deleteMany({ where: { sourceId: source.id } });
+    chunksReemplazados = true;
 
     for (let start = 0; start < chunks.length; start += 200) {
       const batch = chunks.slice(start, start + 200);
@@ -178,6 +184,25 @@ async function storeKnowledgeSource(input: {
 
     return { sourceId: source.id, chunks: stored.length };
   } catch (error) {
+    /*
+     * Los fragmentos se escriben ANTES de embeberlos, asi que un fallo en el
+     * embedding los dejaba guardados sin vector. Eso no es "medio indexado": la
+     * pata vectorial filtra por `embedding IS NOT NULL`, asi que esos fragmentos
+     * son invisibles para la busqueda semantica, pero la pata de texto SI los
+     * devuelve. El documento queda respondiendo distinto que todos los demas,
+     * sin que nada lo indique. Le paso al PPT de la Comision FAU: 27 fragmentos
+     * fantasma desde el 2026-07-31 hasta que una auditoria los encontro.
+     *
+     * Se limpian para que el estado sea honesto: la fuente queda en ERROR y sin
+     * fragmentos, que es lo que el backfill busca para reprocesarla.
+     */
+    if (chunksReemplazados) {
+      await prisma.knowledgeChunk
+        .deleteMany({ where: { sourceId: source.id } })
+        .catch((cleanupError) =>
+          console.error(`[conocimiento] No se pudieron limpiar los fragmentos de "${input.title}":`, cleanupError)
+        );
+    }
     await prisma.knowledgeSource.update({
       where: { id: source.id },
       data: { status: ProcessingStatus.ERROR }
