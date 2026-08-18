@@ -6,8 +6,11 @@ import { Download, Loader2, Paperclip, Trash2, Upload } from "lucide-react";
 import { uploadToBucket } from "@/components/shared/upload-to-bucket";
 import type { HearingDocumentView } from "@/lib/hearings/shared";
 
-// Debe coincidir con MAX_FILE_BYTES del handler de documentos.
-const MAX_FILE_BYTES = 15 * 1024 * 1024;
+// Debe coincidir con MAX_FILE_BYTES del handler de documentos Y con el limite
+// del bucket "audiencias" en Supabase (hay tres lugares y el bucket es el que
+// manda: si el suyo queda mas bajo, el PUT del navegador falla despues de haber
+// subido, con un error del storage que no dice nada util).
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
 function formatSize(bytes: number | null): string {
   if (bytes === null) return "";
@@ -44,12 +47,12 @@ export function HearingDocuments({
   /**
    * Subida directa al bucket en tres pasos (firmar → PUT → registrar): el
    * archivo nunca pasa por una función de Vercel, cuyo body se corta en
-   * ~4,5 MB; así los 15 MB prometidos son reales.
+   * ~4,5 MB; así los 50 MB prometidos son reales.
    */
   async function upload(file: File) {
     setError("");
     if (file.size > MAX_FILE_BYTES) {
-      setError(`"${file.name}" pesa ${formatSize(file.size)} y el límite es 15 MB.`);
+      setError(`"${file.name}" pesa ${formatSize(file.size)} y el límite es 50 MB.`);
       if (inputRef.current) inputRef.current.value = "";
       return;
     }
