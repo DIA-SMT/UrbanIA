@@ -8,20 +8,49 @@
  * scripts tsx de verificación.
  */
 
+/**
+ * El documento no entra en la caja imprimible. Es un problema de CONTENIDO, no
+ * del exportador, y se distingue con su propio tipo porque quien lo recibe tiene
+ * que hacer algo distinto: acortar el texto, no reintentar.
+ */
+export class PdfOverflowError extends Error {
+  constructor(readonly detail: string) {
+    super(`El documento excede el área imprimible: ${detail}`);
+    this.name = "PdfOverflowError";
+  }
+}
+
+/** Chromium no llegó a arrancar. Casi siempre es empaquetado, no el documento. */
+export class PdfBrowserError extends Error {
+  constructor(cause: unknown) {
+    super(`No se pudo iniciar el exportador de PDF: ${cause instanceof Error ? cause.message : String(cause)}`);
+    this.name = "PdfBrowserError";
+    this.cause = cause;
+  }
+}
+
 export async function renderHtmlToPdf(html: string): Promise<Buffer> {
   const puppeteer = await import("puppeteer-core");
 
-  const browser = process.env.VERCEL
-    ? await (async () => {
-        const chromium = (await import("@sparticuz/chromium")).default;
-        return puppeteer.launch({
-          args: await puppeteer.defaultArgs({ args: chromium.args, headless: "shell" }),
-          executablePath: await chromium.executablePath(),
-          headless: "shell",
-          timeout: 60_000
-        });
-      })()
-    : await puppeteer.launch({ channel: "chrome", headless: true, timeout: 60_000 });
+  let browser;
+  try {
+    browser = process.env.VERCEL
+      ? await (async () => {
+          const chromium = (await import("@sparticuz/chromium")).default;
+          return puppeteer.launch({
+            args: await puppeteer.defaultArgs({ args: chromium.args, headless: "shell" }),
+            executablePath: await chromium.executablePath(),
+            headless: "shell",
+            timeout: 60_000
+          });
+        })()
+      : await puppeteer.launch({ channel: "chrome", headless: true, timeout: 60_000 });
+  } catch (error) {
+    // Arrancar el navegador falla por causas de infraestructura --binario que no
+    // viajó a la función, /tmp lleno, memoria-- y no por el documento. Separarlo
+    // evita que un problema de despliegue se lea como un problema de contenido.
+    throw new PdfBrowserError(error);
+  }
 
   try {
     const page = await browser.newPage();
@@ -43,7 +72,7 @@ export async function renderHtmlToPdf(html: string): Promise<Buffer> {
         .filter((element) => element.hiddenHeight > 1 || element.hiddenWidth > 1)
     );
     if (overflow.length) {
-      throw new Error(`El documento excede el área imprimible: ${JSON.stringify(overflow)}`);
+      throw new PdfOverflowError(JSON.stringify(overflow));
     }
 
     const pdf = await page.pdf({

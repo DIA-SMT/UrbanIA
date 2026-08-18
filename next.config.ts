@@ -33,7 +33,18 @@ const nextConfig: NextConfig = {
     // en la coleccion y /[id]; se unieron por el tope de 12 funciones). Esta
     // funcion es la mas cargada del proyecto: onnx para indexar + Chromium para
     // el resumen ejecutivo. Por eso ffmpeg sigue afuera, en /api/hearings/audio.
-    "/api/hearings/[[...segments]]": [
+    //
+    // LOS CORCHETES VAN ESCAPADOS Y NO ES UN DETALLE. Next matchea estas claves
+    // con picomatch, asi que son GLOBS: sin escapar, "[[...segments]]" se lee
+    // como una clase de caracteres y la clave no matchea NUNCA con la ruta. No
+    // avisa: el build pasa, el deploy pasa, y la funcion sale sin los binarios.
+    // Fue exactamente lo que rompio el resumen ejecutivo en PDF entre el
+    // 2026-08-13 (cuando /[id] --que si matcheaba-- se fusiono en el catch-all)
+    // y el 2026-08-18. Con "\\[" picomatch toma el corchete como literal.
+    // La clave tiene que seguir sin matchear /api/hearings/audio: Chromium ahi,
+    // sumado a ffmpeg, arriesga el limite de tamano del bundle.
+    // Hay un chequeo que lo verifica en cada build: scripts/check-tracing-keys.ts.
+    "/api/hearings/\\[\\[...segments\\]\\]": [
       "node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**",
       // El resumen ejecutivo se exporta con @sparticuz/chromium en Vercel.
       // Sus .br se resuelven en runtime y el tracer de Next no los detecta.
@@ -56,7 +67,10 @@ const nextConfig: NextConfig = {
     // Vercel ejecuta Linux x64. El paquete onnxruntime también instala binarios
     // de macOS, Windows y Linux ARM64; si quedan en esta función, junto con
     // Chromium exceden con facilidad el tamaño permitido del bundle.
-    "/api/hearings/[[...segments]]": [
+    // Corchetes escapados por el mismo motivo que arriba: sin escapar, esta
+    // exclusión tampoco se aplicaba y la función viajaba con los binarios de las
+    // cuatro plataformas.
+    "/api/hearings/\\[\\[...segments\\]\\]": [
       "node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
       "node_modules/onnxruntime-node/bin/napi-v6/win32/**",
       "node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**"

@@ -10,7 +10,7 @@ import {
   uploadHearingDocument
 } from "@/lib/storage/supabase";
 import { extractPdfText, sanitizePdfText } from "@/lib/pdf/extract-text";
-import { renderHtmlToPdf } from "@/lib/pdf/render-pdf";
+import { PdfBrowserError, PdfOverflowError, renderHtmlToPdf } from "@/lib/pdf/render-pdf";
 import { generateSummary } from "@/lib/hearings/summary-generate";
 import { renderInstitutionalSummary, type SummaryPayload } from "@/lib/hearings/summary-document";
 import {
@@ -253,11 +253,35 @@ async function buildSummaryPdf(id: string): Promise<BuiltSummary> {
     return { ok: true, pdf, fileName };
   } catch (error) {
     console.error("No se pudo renderizar el PDF de la audiencia.", error);
+    // Tres fallas distintas viajaban con el mismo texto ("el servicio de
+    // exportación no respondió"), y una de ellas ni siquiera era del servicio.
+    // Con el mensaje indistinto, un binario que no viajó a la función se leyó
+    // durante días como una caída pasajera que se arreglaba reintentando.
+    if (error instanceof PdfOverflowError) {
+      return {
+        ok: false,
+        response: errorResponse(
+          "El resumen no entra en el documento",
+          "La IA redactó un texto más largo que el espacio imprimible. Volvé a generarlo: cada redacción sale distinta y suele entrar. Si vuelve a pasar, avisá al equipo administrador.",
+          422
+        )
+      };
+    }
+    if (error instanceof PdfBrowserError) {
+      return {
+        ok: false,
+        response: errorResponse(
+          "El exportador de PDF no está disponible",
+          "El documento fue redactado pero no se pudo convertir a PDF: el conversor no arrancó en el servidor. Reintentar no lo va a resolver — avisá al equipo administrador.",
+          503
+        )
+      };
+    }
     return {
       ok: false,
       response: errorResponse(
         "No se pudo generar el PDF",
-        "El documento fue redactado, pero el servicio de exportación no respondió. Probá de nuevo en unos minutos.",
+        "El documento fue redactado, pero falló la conversión a PDF. Probá de nuevo en unos minutos.",
         503
       )
     };
