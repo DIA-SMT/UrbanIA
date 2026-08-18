@@ -12,7 +12,13 @@ import { ingestHearingReport } from "@/lib/knowledge/ingest-hearing-report";
 const INGESTABLE_EXTENSIONS = [".pdf", ".txt"];
 
 
-const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
+/**
+ * 50 MB. Las presentaciones de las audiencias son PDF escaneados y pasan los
+ * 25 MB con facilidad; con 15 no entraban. El tope real lo pone el bucket
+ * "audiencias" en Supabase, que quedo en los mismos 50 MB (52.428.800 bytes):
+ * este numero solo sirve para rechazar antes y con un mensaje claro.
+ */
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = [".pdf", ".txt", ".doc", ".docx", ".odt", ".jpg", ".jpeg", ".png", ".webp", ".xls", ".xlsx", ".csv"];
 
 function validateName(fileName: string): NextResponse | null {
@@ -30,7 +36,7 @@ function tooHeavy(fileName: string, sizeBytes: number): NextResponse | null {
   if (sizeBytes > MAX_FILE_BYTES) {
     const sizeMb = `${(sizeBytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MB`;
     return NextResponse.json(
-      { error: "Archivo demasiado pesado", detail: `"${fileName}" pesa ${sizeMb} y el límite es 15 MB.` },
+      { error: "Archivo demasiado pesado", detail: `"${fileName}" pesa ${sizeMb} y el límite es 50 MB.` },
       { status: 413 }
     );
   }
