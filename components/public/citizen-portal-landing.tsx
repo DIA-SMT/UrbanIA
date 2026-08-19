@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, BookOpenCheck, Landmark, MessageSquare, Search, UserRound } from "lucide-react";
+import { ArrowRight, BookOpenCheck, Landmark, MessageSquare, MessageSquarePlus, Search, UserRound } from "lucide-react";
 import { MigueFloatingChat } from "@/components/assistant/migue-floating-chat";
 import { GuidedTour, useGuidedTour, type TourStep } from "@/components/help/guided-tour";
 import {
@@ -42,6 +42,11 @@ const PORTAL_TOUR: TourStep[] = [
     anchor: "migue",
     title: "Preguntale a Migue",
     body: "Migue es la inteligencia artificial de la ciudad. Escribile como hablás y te responde sobre el Código citando el artículo en que se apoya. Lo abrís con la burbuja de abajo a la derecha."
+  },
+  {
+    anchor: "sugerencias",
+    title: "Contanos cómo te fue",
+    body: "Si algo del portal no funcionó o se te ocurre cómo mejorarlo, dejalo escrito acá. Es sobre la herramienta, no sobre la ciudad, y lo lee el equipo que la desarrolla."
   },
   {
     anchor: "ayuda",
@@ -179,6 +184,43 @@ export function CitizenPortalLanding({ chapterCount, articleCount }: LandingProp
             cta="Ver las audiencias"
             isLight={isLight}
           />
+        </section>
+
+        {/* Recomendaciones sobre la herramienta. Va como seccion propia y no como
+            una cuarta EntryCard a proposito: las tres tarjetas de arriba son el
+            contenido de la ciudad (el Codigo, participar, las audiencias) y esto
+            habla del portal, que es otro plano. El formulario vive en
+            /sugerencias y no embebido aca por la misma razon que /presentar: la
+            landing es un hub (ver el comentario del componente). */}
+        <section
+          data-tour="sugerencias"
+          className={`mt-16 rounded-2xl border p-6 md:p-8 ${
+            isLight ? "border-slate-200/80 bg-white shadow-card" : "border-white/10 bg-[#0d1b2a]"
+          }`}
+        >
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-xl">
+              <div className={eyebrowClass(isLight)}>
+                <MessageSquarePlus className="h-3.5 w-3.5" />
+                Sobre el portal
+              </div>
+              <h2
+                className={`mt-3 font-display text-2xl font-extrabold tracking-[-0.02em] ${
+                  isLight ? "text-slate-900" : "text-white"
+                }`}
+              >
+                Ayudanos a mejorar UrbanIA
+              </h2>
+              <p className={`mt-3 text-sm leading-6 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                Esta herramienta la estamos construyendo. Contanos que te costo encontrar, que no funciono o que le
+                agregarias. Lo lee el equipo que la desarrolla; no se publica en el portal.
+              </p>
+            </div>
+            <Link href="/sugerencias" className={`${secondaryButtonClass(isLight)} shrink-0`}>
+              Dejar una recomendacion
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </section>
 
         <section

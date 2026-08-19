@@ -61,7 +61,7 @@ export function PortalHeader({
 }: {
   isLight: boolean;
   onToggleTheme: () => void;
-  active?: "inicio" | "codigo" | "presentar" | "audiencias" | "ayuda";
+  active?: "inicio" | "codigo" | "presentar" | "audiencias" | "ayuda" | "sugerencias";
   /** Si la pantalla tiene recorrido guiado, esto muestra "¿Como funciona?". */
   onStartTour?: () => void;
 }) {
@@ -327,6 +327,18 @@ export function PortalFooter({ isLight }: { isLight: boolean }) {
   return (
     <footer className={`mt-20 border-t py-8 text-center text-xs ${isLight ? "border-slate-200 text-slate-500" : "border-white/10 text-slate-500"}`}>
       Municipalidad de San Miguel de Tucuman &middot; UrbanIA &middot; Portal ciudadano
+      {/* El enlace vive en el pie y no en la navegacion de arriba: esa barra es
+          para el contenido de la ciudad (el Codigo, las audiencias) y sumarle un
+          sexto item la aprieta en telefono. En el pie es donde se busca este tipo
+          de enlace, y ademas queda alcanzable desde CUALQUIER pantalla del
+          portal, no solo desde la portada. */}
+      <span aria-hidden className="mx-1.5">&middot;</span>
+      <Link
+        href="/sugerencias"
+        className={`font-semibold underline-offset-4 hover:underline ${isLight ? "text-civic-blue-deep" : "text-sky-300"}`}
+      >
+        Sugerencias sobre el portal
+      </Link>
     </footer>
   );
 }
