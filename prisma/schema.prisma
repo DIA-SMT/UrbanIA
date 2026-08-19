@@ -57,6 +57,7 @@ model User {
   debateArguments DebateArgument[]        @relation("DebateArguments")
   argumentsHidden DebateArgument[]        @relation("ArgumentsHidden")
   debateSupports  DebateArgumentSupport[] @relation("DebateSupports")
+  appFeedback     AppFeedback[]
 
   @@index([role, status])
 }
@@ -518,6 +519,33 @@ model CitizenContribution {
   @@index([userId])
   @@index([axis])
   @@index([relatedTopic])
+}
+
+/// Lo que los vecinos opinan de UrbanIA como herramienta: qué les costó, qué les
+/// sirvió, qué le agregarían. NO se publica: lo lee el equipo municipal desde
+/// Configuración › Recomendaciones.
+///
+/// Separado de CitizenContribution a propósito, aunque el formulario se parezca:
+/// un aporte ciudadano entra al circuito de la reforma del Código (se le asigna
+/// un eje, se vincula a una propuesta, lo trabaja el área). Esto es otra cosa y
+/// mezclarlas ensuciaría las dos bandejas.
+model AppFeedback {
+  id        String            @id @default(cuid())
+  kind      AppFeedbackKind
+  text      String
+  /// Copia del nombre al momento de enviar: si la cuenta se borra, el equipo
+  /// sigue sabiendo de quién venía. Mismo criterio que CitizenContribution.
+  name      String
+  status    AppFeedbackStatus @default(NEW)
+  /// SetNull y no Cascade: si se borra la cuenta, la recomendación queda.
+  userId    String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  user      User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([kind])
 }
 
 model Comment {
@@ -1407,6 +1435,20 @@ enum CitizenContributionKind {
   PROPOSAL
   CLAIM
   CONTRIBUTION
+}
+
+/// Sugerencia sobre la HERRAMIENTA, no sobre la ciudad. Un reclamo por una calle
+/// rota es CitizenContribution; "el buscador del Código no encuentra nada" es esto.
+enum AppFeedbackKind {
+  SUGGESTION
+  PROBLEM
+  EXPERIENCE
+}
+
+enum AppFeedbackStatus {
+  NEW
+  REVIEWED
+  ARCHIVED
 }
 
 enum CitizenContributionStatus {

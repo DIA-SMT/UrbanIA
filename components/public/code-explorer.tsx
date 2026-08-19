@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BookOpenCheck, ChevronRight, FileText, Loader2, Search } from "lucide-react";
 import { MigueFloatingChat } from "@/components/assistant/migue-floating-chat";
+import { FeedbackNudge } from "@/components/public/feedback-nudge";
 import {
   PortalFooter,
   PortalHeader,
@@ -302,6 +303,14 @@ export function CodeExplorer({ chapters, documentTitle, ordinanceNumber, version
             </section>
           </>
         )}
+
+        {/* Buscar en el Codigo es donde mas se choca la gente con la
+            herramienta ("busque mi barrio y no aparecio nada"), asi que la
+            invitacion a opinar tambien vive aca y no solo alrededor del
+            formulario de aporte. */}
+        <div className="mt-12">
+          <FeedbackNudge isLight={isLight} variant="linea" />
+        </div>
 
         <PortalFooter isLight={isLight} />
       </div>

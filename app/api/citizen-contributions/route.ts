@@ -8,6 +8,7 @@ import { analyzeAggression } from "@/lib/ai/moderation-intent";
 import { UNCLASSIFIED_AXIS } from "@/lib/citizen/contributions";
 import { classifyContributionTopic } from "@/lib/ai/topic-classifier";
 import { handleContributionDelete, handleContributionPatch } from "@/lib/citizen/api/contribution";
+import { handleAppFeedbackCreate, handleAppFeedbackStatus } from "@/lib/citizen/api/app-feedback";
 
 /*
  * Editar y borrar UNA contribucion tambien entran por aca, con `?id=`, en vez
@@ -19,7 +20,20 @@ function contributionId(request: Request): string | null {
   return new URL(request.url).searchParams.get("id");
 }
 
+/**
+ * Por la misma razon entran aca las recomendaciones sobre la herramienta, con
+ * `?action=feedback`. Son otra cosa que un aporte ciudadano --una habla de la
+ * ciudad y la otra del portal-- pero comparten la puerta: cualquier vecino con
+ * cuenta, sin permiso del catalogo. Ver lib/citizen/api/app-feedback.ts.
+ */
+function action(request: Request): string | null {
+  return new URL(request.url).searchParams.get("action");
+}
+
 export async function PATCH(request: Request) {
+  if (action(request) === "feedback-status") {
+    return handleAppFeedbackStatus(request);
+  }
   const id = contributionId(request);
   if (!id) return NextResponse.json({ error: "Falta el id de la contribución" }, { status: 400 });
   return handleContributionPatch(request, id);
@@ -128,6 +142,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (action(request) === "feedback") {
+    return handleAppFeedbackCreate(request);
+  }
+
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "La base de datos no esta configurada." }, { status: 503 });
   }

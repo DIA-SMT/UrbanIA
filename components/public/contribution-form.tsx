@@ -5,6 +5,7 @@ import type { FormEvent, InputHTMLAttributes } from "react";
 import { useEffect, useState } from "react";
 import { BadgeCheck, CheckCircle2, LogIn, Paperclip, UserRound } from "lucide-react";
 import { MigueFloatingChat } from "@/components/assistant/migue-floating-chat";
+import { FeedbackNudge } from "@/components/public/feedback-nudge";
 import {
   PortalFooter,
   PortalHeader,
@@ -198,9 +199,18 @@ export function ContributionForm() {
                     </div>
                   ) : null}
                   {saveSuccess ? (
-                    <div className={isLight ? "mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900" : "mb-4 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm font-medium text-emerald-100"}>
-                      {saveSuccess}
-                    </div>
+                    <>
+                      <div className={isLight ? "mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900" : "mb-4 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm font-medium text-emerald-100"}>
+                        {saveSuccess}
+                      </div>
+                      {/* El mejor momento para preguntarle a alguien como le
+                          resulto la herramienta es justo despues de usarla, y
+                          ya termino lo suyo: no le interrumpe nada. Aparece
+                          SOLO al guardar, no mientras completa el formulario. */}
+                      <div className="mb-4">
+                        <FeedbackNudge isLight={isLight} variant="linea" />
+                      </div>
+                    </>
                   ) : null}
                   <button type="submit" disabled={isSaving} className={`${primaryButtonClass()} w-full disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto`}>
                     <CheckCircle2 className="h-4 w-4" />
@@ -229,6 +239,13 @@ export function ContributionForm() {
             </ol>
             <div className={isLight ? "mt-6 rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs leading-5 text-slate-600" : "mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs leading-5 text-slate-400"}>
               Escribilo con tus palabras: no hace falta que uses lenguaje tecnico ni que sepas que norma aplica. De eso se encarga el equipo municipal.
+            </div>
+            {/* La invitacion a opinar del portal va en la columna lateral y no
+                como un paso previo al formulario: presentar un aporte es la
+                funcion principal y no se le suma un clic para exponer algo
+                secundario. Habla de UrbanIA en general, no de esta pantalla. */}
+            <div className="mt-4">
+              <FeedbackNudge isLight={isLight} />
             </div>
           </aside>
         </div>
