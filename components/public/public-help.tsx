@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft, KeyRound } from "lucide-react";
 import { citizenTools } from "@/components/help/help-content";
-import { ToolGuideCard } from "@/components/help/tool-guide-card";
+import { ToolGuideDeck } from "@/components/help/tool-guide-deck";
 import { PortalFooter, PortalHeader, pageClass, usePortalTheme } from "@/components/public/portal-chrome";
 
 /**
@@ -45,10 +45,11 @@ export function PublicHelp() {
           </p>
         </header>
 
-        <section aria-label="Guías del portal ciudadano" className="mt-8 grid gap-4 md:grid-cols-2">
-          {citizenTools.map((tool) => (
-            <ToolGuideCard key={tool.name} tool={tool} />
-          ))}
+        <section aria-label="Guías del portal ciudadano" className="mt-8">
+          <p className={`mb-3 text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+            Tocá una herramienta para ver el paso a paso.
+          </p>
+          <ToolGuideDeck tools={citizenTools} />
         </section>
 
         <section
