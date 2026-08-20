@@ -100,7 +100,32 @@ export function LoginPage({ initialError, ciditucEnabled }: LoginPageProps) {
             </div>
           )}
 
-          <p className="mt-5 text-center text-xs leading-5 text-slate-500">
+          {/*
+            Salida para quien NO tiene cuenta de Ciudad Digital.
+            Hasta ahora el flujo moria acá: el Derivador al que mandamos a la
+            gente tiene el boton "Registrarse" COMENTADO y no expone la ruta de
+            registro, asi que alguien sin cuenta llegaba a un formulario de
+            ingreso sin ninguna salida. Con el portal cerrado detras de Cidituc
+            eso deja afuera a cualquier vecino nuevo.
+            El registro existe y funciona, pero en la OTRA aplicacion
+            (ciudaddigital.smt.gob.ar), y nada lo enlazaba desde acá.
+            Lo correcto seria que el boton vuelva en el Derivador; esto es lo que
+            se puede resolver desde este repositorio mientras tanto.
+          */}
+          <p className="mt-5 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-center text-xs leading-5 text-slate-600">
+            ¿Todavía no tenés cuenta de Ciudadano Digital?{" "}
+            <a
+              href="https://ciudaddigital.smt.gob.ar/#/registro"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-sky-800 underline-offset-2 hover:underline"
+            >
+              Creala acá
+            </a>
+            . Es gratis y te sirve para todos los servicios digitales del municipio.
+          </p>
+
+          <p className="mt-4 text-center text-xs leading-5 text-slate-500">
             UrbanIA nunca recibe ni almacena tu contraseña de Cidituc. Los roles y permisos se administran dentro del sistema municipal.
           </p>
 

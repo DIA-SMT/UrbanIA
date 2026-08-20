@@ -171,6 +171,7 @@ export const TERMS: LegalDocument = {
       heading: "Tu cuenta",
       body: [
         "El acceso a UrbanIA se realiza con tu cuenta de Ciudadano Digital (Cidituc). La cuenta es personal e intransferible y sos responsable del uso que se haga con ella.",
+      "Si todavía no tenés cuenta de Ciudadano Digital, podés crearla en ciudaddigital.smt.gob.ar. Es gratuita y sirve para todos los servicios digitales del municipio; UrbanIA no administra ese registro.",
         "En tu primer ingreso, UrbanIA crea automáticamente tu cuenta ciudadana. Los roles y permisos dentro de la plataforma los administra la Municipalidad.",
         "La Municipalidad puede suspender el acceso de una cuenta ante un uso que incumpla estos términos."
       ]
