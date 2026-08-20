@@ -111,10 +111,35 @@ const nextConfig: NextConfig = {
     };
   },
   async redirects() {
-    // El modulo Proyectos se reconvirtio en la Fabrica de Normas.
     return [
+      // El modulo Proyectos se reconvirtio en la Fabrica de Normas.
       { source: "/proyectos", destination: "/normas", permanent: false },
-      { source: "/proyectos/:path*", destination: "/normas", permanent: false }
+      { source: "/proyectos/:path*", destination: "/normas", permanent: false },
+      /*
+       * El dominio viejo de Vercel manda todo al dominio nuevo.
+       *
+       * UrbanIA se mudo a urbania.smt.gob.ar pero urban-ia-kappa.vercel.app
+       * seguia sirviendo la aplicacion COMPLETA, sin redirigir. Eso rompia el
+       * ingreso de una forma que no se arregla reintentando: quien entraba por
+       * el dominio viejo --un favorito, un link de WhatsApp, el autocompletado--
+       * dejaba la cookie del state en vercel.app, el Derivador lo devolvia a
+       * urbania.smt.gob.ar, y la cookie no viaja entre dominios distintos.
+       * Resultado: "la solicitud de acceso vencio o no coincide", siempre.
+       *
+       * Se redirige en vez de dar de baja el dominio para que los enlaces que ya
+       * circulan sigan funcionando, con su ruta: quien tenia guardado
+       * /audiencias-publicas llega a /audiencias-publicas.
+       *
+       * permanent:false a proposito. Un 308 queda cacheado en el navegador de
+       * forma casi irreversible, y si algun dia hay que volver a usar el dominio
+       * de Vercel --una prueba, un rollback-- nadie podria entrar.
+       */
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "urban-ia-kappa.vercel.app" }],
+        destination: "https://urbania.smt.gob.ar/:path*",
+        permanent: false
+      }
     ];
   },
   experimental: {
