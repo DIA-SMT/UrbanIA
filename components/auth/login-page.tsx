@@ -12,7 +12,15 @@ const errorMessages: Record<string, string> = {
   cidituc_unavailable: "Cidituc no está disponible o la integración no está configurada.",
   cidituc_invalid: "Cidituc no pudo validar la sesión. Volvé a intentarlo.",
   cidituc_inactive: "Tu cuenta de Cidituc no está validada o se encuentra deshabilitada.",
+  // Tres causas distintas, tres mensajes. Antes las tres decían "venció o no
+  // coincide", y con eso no se podía saber si el problema era del navegador o de
+  // Cidituc: alguien que fallaba SIEMPRE en el primer intento y entraba en el
+  // segundo no tenía forma de averiguar por qué.
   cidituc_state: "La solicitud de acceso venció o no coincide. Iniciá el proceso nuevamente.",
+  cidituc_state_missing:
+    "Cidituc no nos devolvió el identificador de la solicitud. Volvé a intentarlo; si se repite, avisá al equipo administrador.",
+  cidituc_state_expired:
+    "Pasaron más de 10 minutos desde que iniciaste el acceso, o el navegador descartó la solicitud. Iniciá el proceso nuevamente.",
   cidituc_conflict: "Los datos de Cidituc coinciden con más de una cuenta de UrbanIA. Comunicate con la administración.",
   cidituc_session_failed: "Validamos tu identidad, pero no pudimos crear la sesión de UrbanIA. Intentá nuevamente."
 };

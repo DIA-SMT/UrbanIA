@@ -82,8 +82,31 @@ export async function handleCiditucCallback(request: Request) {
   const store = await cookies();
   const expectedState = store.get(ciditucStateCookieName)?.value ?? "";
 
+  /*
+   * Las tres formas de fallar acá NO son la misma y no se arreglan igual:
+   *
+   * - Sin cookie: el navegador no la mandó o pasaron los 10 minutos. Es nuestro
+   *   lado, o el navegador de la persona.
+   * - Sin state en la URL: el Derivador no nos devolvió el identificador. Ese
+   *   valor viaja en el FRAGMENTO (`#/login?...state=`), que no llega a ningún
+   *   servidor: solo sobrevive si la aplicación de Cidituc lo conserva a través
+   *   de su propia pantalla de credenciales. Es el lado de ellos.
+   * - Distintos: hay dos solicitudes pisándose (dos pestañas, un reintento).
+   *
+   * Antes las tres devolvían el mismo código y el mismo texto, así que un
+   * usuario que fallaba siempre en el primer intento no dejaba ninguna pista de
+   * por qué. Se separan y además se registran.
+   */
   if (!expectedState || !returnedState || expectedState !== returnedState) {
-    const response = NextResponse.redirect(ingresarUrl(request, "cidituc_state"), 303);
+    const causa = !returnedState ? "cidituc_state_missing" : !expectedState ? "cidituc_state_expired" : "cidituc_state";
+    console.error("Acceso por Cidituc rechazado en la validación del state.", {
+      causa,
+      // Solo si están, nunca el valor: identifica el caso sin registrar el nonce.
+      cookiePresente: Boolean(expectedState),
+      statePresente: Boolean(returnedState),
+      tokenPresente: Boolean(token)
+    });
+    const response = NextResponse.redirect(ingresarUrl(request, causa), 303);
     clearFlowCookies(response);
     return response;
   }
