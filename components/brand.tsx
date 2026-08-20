@@ -14,7 +14,15 @@ export function Brand() {
         />
       </div>
       <div className="min-w-0">
-        <p className="text-xl font-black leading-none tracking-normal text-white">UrbanIA</p>
+        <p className="flex items-center gap-2 text-xl font-black leading-none tracking-normal text-white">
+          UrbanIA
+          {/* El distintivo va tambien adentro: el equipo municipal trabaja sobre
+              la misma plataforma en beta y necesita tenerlo presente igual que
+              el vecino, sobre todo antes de apoyar una decision en un dato. */}
+          <span className="rounded-md border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-amber-200">
+            Beta
+          </span>
+        </p>
         <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-sky-200/80">Municipalidad SMT</p>
       </div>
     </div>

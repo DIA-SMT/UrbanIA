@@ -47,9 +47,25 @@ export function LoginPage({ initialError, ciditucEnabled }: LoginPageProps) {
               className="h-12 w-12 object-contain"
             />
             <div>
-              <p className="text-xl font-black leading-none text-slate-950">UrbanIA</p>
+              <p className="flex items-center gap-2 text-xl font-black leading-none text-slate-950">
+                UrbanIA
+                <span className="rounded-md border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-amber-700">
+                  Beta
+                </span>
+              </p>
               <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-sky-700">Acceso municipal</p>
             </div>
+          </div>
+
+          {/* El aviso de beta va ANTES del boton, no en el pie ni en otra
+              pantalla: este es el momento en que alguien entrega su DNI, y tiene
+              que saber a que antes de hacerlo. */}
+          <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
+            <p className="font-black">UrbanIA está en versión beta</p>
+            <p className="mt-1">
+              Es una plataforma en construcción: puede tener errores, estar fuera de servicio sin aviso y cambiar
+              mientras avanza. Presentar un aporte acá no inicia un trámite ni un expediente.
+            </p>
           </div>
 
           <div className="mb-6 inline-flex items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-sky-800">
@@ -86,6 +102,18 @@ export function LoginPage({ initialError, ciditucEnabled }: LoginPageProps) {
 
           <p className="mt-5 text-center text-xs leading-5 text-slate-500">
             UrbanIA nunca recibe ni almacena tu contraseña de Cidituc. Los roles y permisos se administran dentro del sistema municipal.
+          </p>
+
+          <p className="mt-4 border-t border-slate-100 pt-4 text-center text-xs leading-5 text-slate-500">
+            Al ingresar aceptás los{" "}
+            <Link href="/terminos" className="font-bold text-sky-800 underline-offset-2 hover:underline">
+              Términos de Uso
+            </Link>{" "}
+            y la{" "}
+            <Link href="/privacidad" className="font-bold text-sky-800 underline-offset-2 hover:underline">
+              Política de Privacidad
+            </Link>
+            .
           </p>
         </section>
       </div>
