@@ -1,3 +1,4 @@
+import { AnswerBasis } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { askUrbanAssistant, hasOpenRouterConfig } from "@/lib/ai/openrouter";
@@ -110,21 +111,36 @@ function mergeRetrieval(retrieval: RagRetrieval, articleFragments: RagFragment[]
   };
 }
 
-function parseAssistantPayload(raw: string): { answer: string; cita: string } {
+/** Las cuatro palabras del contrato, mapeadas al enum que guarda la base. */
+const MOTIVOS: Record<string, AnswerBasis> = {
+  cito: AnswerBasis.CITED,
+  fuera_del_codigo: AnswerBasis.OUT_OF_SCOPE,
+  falta_dato: AnswerBasis.MISSING_INPUT,
+  no_encontre: AnswerBasis.NOT_FOUND
+};
+
+function parseAssistantPayload(raw: string): { answer: string; cita: string; basis: AnswerBasis | null } {
   try {
-    const parsed = JSON.parse(raw) as { answer?: unknown; cita?: unknown };
+    const parsed = JSON.parse(raw) as { answer?: unknown; cita?: unknown; motivo?: unknown };
 
     if (parsed && typeof parsed.answer === "string") {
+      const cita = typeof parsed.cita === "string" ? parsed.cita : "";
+      const declarado = typeof parsed.motivo === "string" ? MOTIVOS[parsed.motivo.trim().toLowerCase()] : undefined;
       return {
         answer: parsed.answer,
-        cita: typeof parsed.cita === "string" ? parsed.cita : ""
+        cita,
+        // La cita manda sobre el motivo declarado: si hay cita, se apoyó en un
+        // fragmento, diga lo que diga. Al revés no: con la cita vacía hay tres
+        // motivos posibles y solo el modelo sabe cuál. Sin motivo válido queda
+        // null, que es "no sé", y no NOT_FOUND, que acusaría un hueco inventado.
+        basis: cita.trim() ? AnswerBasis.CITED : declarado ?? null
       };
     }
   } catch {
     // El modelo no devolvió JSON válido: usamos el texto crudo como respuesta.
   }
 
-  return { answer: raw, cita: "" };
+  return { answer: raw, cita: "", basis: null };
 }
 
 // 10 consultas por minuto por IP: suficiente para una conversación real, corta
@@ -273,7 +289,7 @@ export async function handleAssistantQuery(request: Request) {
       { json: true, model }
     );
 
-    const { answer, cita } = parseAssistantPayload(response.answer);
+    const { answer, cita, basis } = parseAssistantPayload(response.answer);
     const source = buildAnswerSource(retrieval, cita);
 
     // Telemetría para el futuro panel "qué pregunta la gente". La charla sobre
@@ -285,6 +301,7 @@ export async function handleAssistantQuery(request: Request) {
         answer,
         retrieval,
         source,
+        basis,
         normative: analysis.normativa,
         discarded: analysis.descartable,
         mode: assistantContext.mode,

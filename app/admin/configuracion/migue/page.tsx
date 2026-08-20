@@ -81,17 +81,27 @@ export default async function MigueStatsPage({ searchParams }: PageProps) {
         </section>
       ) : (
         <div className="grid gap-4">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <StatCard
               label="Consultas reales"
               value={stats.total.toLocaleString("es-AR")}
               hint={`${answered.toLocaleString("es-AR")} con respaldo · ${stats.normative.toLocaleString("es-AR")} sobre normativa`}
             />
             <StatCard
-              label="Sin respuesta"
+              label="Falta cargar"
               value={`${stats.unansweredRate}%`}
-              hint={`${stats.unanswered.toLocaleString("es-AR")} sin poder citar nada`}
+              hint={`${stats.unanswered.toLocaleString("es-AR")} que el Código sí regula y Migue no encontró`}
               tone={stats.unansweredRate >= 25 ? "warn" : "plain"}
+            />
+            <StatCard
+              label="Fuera del Código"
+              value={stats.outOfScope.toLocaleString("es-AR")}
+              hint="lo que la gente espera que el CPU regule y no regula"
+            />
+            <StatCard
+              label="Faltó un dato"
+              value={stats.missingInput.toLocaleString("es-AR")}
+              hint="Migue pidió el distrito para poder responder"
             />
             <StatCard
               label="Descartadas"
@@ -209,10 +219,11 @@ export default async function MigueStatsPage({ searchParams }: PageProps) {
           </section>
 
           <section className="surface-panel p-4">
-            <h3 className="text-sm font-black text-slate-900 dark:text-white">Consultas que no pudo responder</h3>
+            <h3 className="text-sm font-black text-slate-900 dark:text-white">Consultas sobre temas que faltan cargar</h3>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Preguntas sobre normativa donde Migue no encontró con qué respaldarse. Leerlas es la forma más rápida de
-              descubrir qué falta cargar.
+              Preguntas que el Código sí regula y que Migue no pudo respaldar con ningún fragmento. Acá NO entran las que
+              contestó bien sin citar —cuando avisó que el tema está fuera del Código, o cuando pidió el distrito para
+              poder responder—, que se cuentan arriba por separado.
             </p>
             {stats.recentUnanswered.length === 0 ? (
               <p className="mt-3 text-xs leading-5 text-slate-400 dark:text-slate-500">

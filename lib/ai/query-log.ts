@@ -1,3 +1,4 @@
+import { AnswerBasis } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import type { AnswerSource, RagRetrieval } from "@/lib/ai/rag";
 
@@ -29,6 +30,7 @@ async function writeAiQuery(entry: {
   answered: boolean;
   normative: boolean;
   discarded: boolean;
+  answerBasis?: AnswerBasis | null;
   mode: string;
   module: string;
 }): Promise<void> {
@@ -41,6 +43,7 @@ async function writeAiQuery(entry: {
         answered: entry.answered,
         normative: entry.normative,
         discarded: entry.discarded,
+        answerBasis: entry.answerBasis ?? null,
         mode: entry.mode,
         module: entry.module
       }
@@ -77,6 +80,8 @@ export async function logAssistantQuery(entry: {
   normative: boolean;
   /** El mensaje no era una consulta (ver `descartable` del clasificador). */
   discarded: boolean;
+  /** Por qué citó o no citó, declarado por el propio modelo. Null si no lo informó. */
+  basis: AnswerBasis | null;
   mode: string;
   module: string;
 }): Promise<void> {
@@ -84,13 +89,28 @@ export async function logAssistantQuery(entry: {
     return;
   }
 
-  // Un hueco de conocimiento es una consulta normativa que quedó sin respaldo.
-  // La señal principal es estructural, no textual: si Migue no citó nada
-  // (source null, porque su JSON vino con cita vacía), no tuvo evidencia con la
-  // que respaldarse — sin importar con qué palabras lo haya dicho. Los patrones
-  // de texto quedan como refuerzo para respuestas contradictorias.
-  const answered =
-    !entry.normative || (entry.retrieval.hasEvidence && entry.source !== null && !answerLooksUnanswered(entry.answer));
+  /*
+   * Un hueco de conocimiento es una consulta que Migue DEBERÍA haber podido
+   * respaldar y no pudo.
+   *
+   * Hasta el 2026-08-19 esto se deducía de la cita vacía, y estaba mal: el
+   * prompt le ORDENA dejar la cita vacía cuando solo descarta ("el Codigo no
+   * regula esto"), así que una respuesta correcta entraba al panel como si
+   * faltara cargar algo. Sobre 11 consultas reales, 10 figuraban sin respaldo y
+   * ninguna era un hueco de verdad: pedían el distrito o avisaban que el tema
+   * está fuera del Código.
+   *
+   * Ahora lo declara el modelo, que es el único que sabe por qué no citó, y solo
+   * NOT_FOUND cuenta como hueco.
+   */
+  const answered = !entry.normative
+    ? true
+    : entry.basis !== null
+      ? entry.basis !== AnswerBasis.NOT_FOUND
+      : // Sin motivo declarado (respuesta que no vino en JSON, o filas viejas) se
+        // vuelve al criterio estructural anterior. Sobreestima los huecos, pero
+        // inventar un motivo ensuciaría la única métrica que dice qué cargar.
+        entry.retrieval.hasEvidence && entry.source !== null && !answerLooksUnanswered(entry.answer);
 
   await writeAiQuery({
     question: entry.question,
@@ -103,6 +123,7 @@ export async function logAssistantQuery(entry: {
     answered,
     normative: entry.normative,
     discarded: entry.discarded,
+    answerBasis: entry.basis,
     mode: entry.mode,
     module: entry.module
   });

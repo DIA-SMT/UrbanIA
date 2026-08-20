@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Prisma } from "@prisma/client";
+import { AnswerBasis, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 
 /**
@@ -44,6 +44,15 @@ export type MigueStats = {
   byModule: ModuleVolume[];
   topSources: TopSource[];
   recentUnanswered: UnansweredQuery[];
+  /**
+   * Las que NO son huecos pero antes se contaban como tales. Se muestran aparte
+   * porque cada una responde una pregunta distinta del equipo: "fuera del
+   * Código" dice qué espera la gente que el CPU regule y no regula --insumo
+   * directo para la reforma--, y "falta un dato" dice cuántas consultas se
+   * traban por no saber el distrito.
+   */
+  outOfScope: number;
+  missingInput: number;
   feedback: { up: number; down: number; reasons: FeedbackReason[] };
 };
 
@@ -65,12 +74,26 @@ export async function getMigueStats(days: MigueStatsWindow = 30): Promise<MigueS
 
   // Todo en una sola tanda: la pantalla no puede dibujar nada hasta tener el
   // conjunto completo, asi que encadenarlas solo sumaria latencia.
-  const [total, discarded, unanswered, normative, daily, byModule, topSources, recentUnanswered, feedbackRows, reasons] =
-    await Promise.all([
+  const [
+    total,
+    discarded,
+    unanswered,
+    normative,
+    outOfScope,
+    missingInput,
+    daily,
+    byModule,
+    topSources,
+    recentUnanswered,
+    feedbackRows,
+    reasons
+  ] = await Promise.all([
       prisma.aiQuery.count({ where: reales }),
       prisma.aiQuery.count({ where: { createdAt: { gte: since }, discarded: true } }),
       prisma.aiQuery.count({ where: { ...reales, answered: false } }),
       prisma.aiQuery.count({ where: { ...reales, normative: true } }),
+      prisma.aiQuery.count({ where: { ...reales, answerBasis: AnswerBasis.OUT_OF_SCOPE } }),
+      prisma.aiQuery.count({ where: { ...reales, answerBasis: AnswerBasis.MISSING_INPUT } }),
       dailyVolume(since),
       moduleVolume(since),
       topCitedSources(since),
@@ -99,6 +122,8 @@ export async function getMigueStats(days: MigueStatsWindow = 30): Promise<MigueS
     byModule,
     topSources,
     recentUnanswered,
+    outOfScope,
+    missingInput,
     feedback: {
       up: feedbackRows.find((row) => row.rating === "up")?._count._all ?? 0,
       down: feedbackRows.find((row) => row.rating === "down")?._count._all ?? 0,

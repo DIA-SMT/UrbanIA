@@ -618,6 +618,15 @@ model AiQuery {
   /// Se guardan igual, no se descartan de la base: un pico de mensajes así es
   /// información (alguien probando, un patrón de abuso, un campo que confunde).
   discarded Boolean  @default(false)
+  /// En qué se apoyó la respuesta. Existe porque "no citó" y "no supo" NO son lo
+  /// mismo, y hasta el 2026-08-19 se contaban igual: el prompt le ordena a Migue
+  /// dejar la cita vacía cuando solo descarta ("el Código no regula esto"), y la
+  /// métrica leía esa cita vacía como un hueco de conocimiento. Una respuesta
+  /// correcta figuraba como fracaso.
+  ///
+  /// Solo NOT_FOUND es un hueco. Null en las filas anteriores al campo y en el
+  /// canal de Consulta CPU, que todavía no lo informa.
+  answerBasis AnswerBasis?
   mode      String?
   module    String?
   createdAt DateTime @default(now())
@@ -1435,6 +1444,19 @@ enum CitizenContributionKind {
   PROPOSAL
   CLAIM
   CONTRIBUTION
+}
+
+/// Por qué la respuesta de Migue citó o no citó una fuente. Distingue las tres
+/// razones que antes se confundían en una sola señal (la cita vacía).
+enum AnswerBasis {
+  /// Se apoyó en un fragmento y lo citó.
+  CITED
+  /// El Código no regula el tema. Es una respuesta correcta y completa.
+  OUT_OF_SCOPE
+  /// Falta un dato del vecino para poder responder (típico: qué distrito).
+  MISSING_INPUT
+  /// Debería haber encontrado con qué respaldarse y no encontró. El único hueco real.
+  NOT_FOUND
 }
 
 /// Sugerencia sobre la HERRAMIENTA, no sobre la ciudad. Un reclamo por una calle
