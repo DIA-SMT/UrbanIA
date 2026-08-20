@@ -41,9 +41,17 @@ export type LegalDocument = {
   sections: LegalSection[];
 };
 
-/** Marca visible de que el documento está en construcción, común a los dos. */
+/**
+ * Aviso de beta, común a los dos documentos.
+ *
+ * NO dice que el texto sea "un marco general", aunque internamente lo sea: en la
+ * cara del vecino eso se lee como "no está terminado, no te fíes" y le saca
+ * autoridad al documento justo donde tiene que tenerla. Que esté en construcción
+ * es información nuestra; lo que a la persona le sirve es que la plataforma está
+ * en beta y que el texto puede actualizarse, que es una cláusula normal.
+ */
 export const LEGAL_BETA_NOTICE =
-  "UrbanIA es una aplicación en versión beta. Este documento es un marco general y puede cambiar a medida que la plataforma avance; los cambios se publican en esta misma página con su fecha.";
+  "UrbanIA es una aplicación en versión beta. Este documento puede actualizarse a medida que la plataforma avance; los cambios se publican en esta misma página, con su fecha.";
 
 export const PRIVACY: LegalDocument = {
   slug: "privacidad",
