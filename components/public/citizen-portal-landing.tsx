@@ -1,7 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, BookOpenCheck, Landmark, MessageSquare, MessageSquarePlus, Search, UserRound } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpenCheck,
+  Landmark,
+  LifeBuoy,
+  Lock,
+  MessageSquare,
+  MessageSquarePlus,
+  Search,
+  UserRound
+} from "lucide-react";
 import { MigueFloatingChat } from "@/components/assistant/migue-floating-chat";
 import { GuidedTour, useGuidedTour, type TourStep } from "@/components/help/guided-tour";
 import {
@@ -63,6 +73,13 @@ type LandingProps = {
   /** Del CPU real, no hardcodeado: se muestran en la card de consulta. */
   chapterCount: number;
   articleCount: number;
+  /**
+   * Con sesión abierta las tarjetas llevan a su sección; sin sesión llevan a
+   * Cidituc y avisan que hace falta cuenta. Se muestran igual --no se
+   * esconden-- porque son lo que explica de qué va la plataforma: una portada
+   * que no cuenta qué hay adentro no convence a nadie de crearse una cuenta.
+   */
+  hasSession: boolean;
 };
 
 /**
@@ -71,7 +88,7 @@ type LandingProps = {
  * y el vecino veía todo junto sin saber por dónde empezar. Cada camino ahora tiene
  * su pantalla: /codigo y /presentar.
  */
-export function CitizenPortalLanding({ chapterCount, articleCount }: LandingProps) {
+export function CitizenPortalLanding({ chapterCount, articleCount, hasSession }: LandingProps) {
   const { isLight, toggleTheme } = usePortalTheme();
   const tour = useGuidedTour("portal");
 
@@ -139,49 +156,73 @@ export function CitizenPortalLanding({ chapterCount, articleCount }: LandingProp
             Consulta la normativa urbana de la ciudad y presenta tus propuestas o reclamos para mejorar tu barrio.
           </p>
 
-          <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link href="/codigo" className={primaryButtonClass()}>
-              <Search className="h-4 w-4" />
-              Explorar el codigo
-            </Link>
-            <Link href="/presentar" className={secondaryButtonClass(isLight)}>
-              <UserRound className="h-4 w-4" />
-              Presentar un aporte
-            </Link>
-          </div>
+          {/* Sin sesión el llamado es uno solo y va a Cidituc: dos botones que
+              terminan los dos en la misma puerta confunden más de lo que ayudan. */}
+          {hasSession ? (
+            <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link href="/codigo" className={primaryButtonClass()}>
+                <Search className="h-4 w-4" />
+                Explorar el codigo
+              </Link>
+              <Link href="/presentar" className={secondaryButtonClass(isLight)}>
+                <UserRound className="h-4 w-4" />
+                Presentar un aporte
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-9 flex flex-col items-center gap-3">
+              <div className="flex flex-col justify-center gap-3 sm:flex-row">
+                <Link href="/ingresar" className={primaryButtonClass()}>
+                  <UserRound className="h-4 w-4" />
+                  Ingresar con Cidituc
+                </Link>
+                <Link href="/ayuda" className={secondaryButtonClass(isLight)}>
+                  <LifeBuoy className="h-4 w-4" />
+                  Ver qué se puede hacer
+                </Link>
+              </div>
+              <p className={`max-w-md text-xs leading-5 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                Se entra con Ciudadano Digital, la cuenta única de la Municipalidad. Si nunca entraste, tu cuenta se
+                crea sola en el primer acceso.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
       <div className="mx-auto max-w-6xl px-5">
         <section className="relative z-10 -mt-12 grid gap-4 md:grid-cols-2">
           <EntryCard
-            href="/codigo"
+            href={hasSession ? "/codigo" : "/ingresar"}
             dataTour="codigo"
             icon={BookOpenCheck}
             eyebrow="Consultar"
             title="El Codigo de Planeamiento"
             detail={`${chapterCount} capitulos y ${articleCount} articulos: zonificacion, usos del suelo, alturas y retiros. Buscá un tema y lee el texto completo.`}
-            cta="Explorar el codigo"
+            cta={hasSession ? "Explorar el codigo" : "Ingresar para consultarlo"}
+            locked={!hasSession}
             isLight={isLight}
           />
           <EntryCard
-            href="/presentar"
+            href={hasSession ? "/presentar" : "/ingresar"}
             dataTour="presentar"
             icon={UserRound}
             eyebrow="Participar"
             title="Presentar propuesta o reclamo"
-            detail="Contanos con tus palabras que te gustaria que la ciudad regule, cambie o mejore. Necesitas una cuenta de vecino."
-            cta="Dejar mi aporte"
+            detail="Contanos con tus palabras que te gustaria que la ciudad regule, cambie o mejore."
+            cta={hasSession ? "Dejar mi aporte" : "Ingresar para participar"}
+            locked={!hasSession}
             isLight={isLight}
           />
           <EntryCard
-            href="/audiencias-publicas"
+            href={hasSession ? "/audiencias-publicas" : "/ingresar"}
             dataTour="audiencias"
             icon={Landmark}
             eyebrow="Seguir"
             title="Audiencias publicas"
             detail="Cuando se debaten las normas de la ciudad, la audiencia queda registrada: fecha, lugar, temas tratados y las conclusiones a las que se llego."
-            cta="Ver las audiencias"
+            cta={hasSession ? "Ver las audiencias" : "Ingresar para verlas"}
+            locked={!hasSession}
             isLight={isLight}
           />
         </section>
@@ -192,6 +233,9 @@ export function CitizenPortalLanding({ chapterCount, articleCount }: LandingProp
             habla del portal, que es otro plano. El formulario vive en
             /sugerencias y no embebido aca por la misma razon que /presentar: la
             landing es un hub (ver el comentario del componente). */}
+        {/* Pedirle una recomendación sobre la herramienta a alguien que todavía
+            no la pudo usar no tiene sentido: la sección aparece con sesión. */}
+        {hasSession ? (
         <section
           data-tour="sugerencias"
           className={`mt-16 rounded-2xl border p-6 md:p-8 ${
@@ -222,6 +266,7 @@ export function CitizenPortalLanding({ chapterCount, articleCount }: LandingProp
             </Link>
           </div>
         </section>
+        ) : null}
 
         <section
           data-tour="migue"
@@ -240,18 +285,25 @@ export function CitizenPortalLanding({ chapterCount, articleCount }: LandingProp
                 Escribile como hablas. Te responde sobre el Codigo citando el articulo en el que se apoya, asi podes verificarlo vos mismo.
               </p>
             </div>
-            <p className={`shrink-0 text-xs leading-5 ${isLight ? "text-slate-500" : "text-slate-500"}`}>
-              Abrilo con el boton
-              <br />
-              de abajo a la derecha
-            </p>
+            {hasSession ? (
+              <p className={`shrink-0 text-xs leading-5 ${isLight ? "text-slate-500" : "text-slate-500"}`}>
+                Abrilo con el boton
+                <br />
+                de abajo a la derecha
+              </p>
+            ) : (
+              <Link href="/ingresar" className={`${secondaryButtonClass(isLight)} shrink-0`}>
+                <UserRound className="h-4 w-4" />
+                Ingresar para preguntarle
+              </Link>
+            )}
           </div>
         </section>
 
         <PortalFooter isLight={isLight} />
       </div>
 
-      <MigueFloatingChat appearance={isLight ? "light" : "dark"} />
+      <MigueFloatingChat appearance={isLight ? "light" : "dark"} requiresSession={!hasSession} />
       <GuidedTour steps={PORTAL_TOUR} open={tour.open} onClose={tour.close} isLight={isLight} />
     </main>
   );
@@ -265,6 +317,7 @@ function EntryCard({
   title,
   detail,
   cta,
+  locked,
   isLight
 }: {
   href: string;
@@ -275,6 +328,8 @@ function EntryCard({
   title: string;
   detail: string;
   cta: string;
+  /** Sin sesión: la tarjeta se ve igual pero avisa y lleva a Cidituc. */
+  locked?: boolean;
   isLight: boolean;
 }) {
   return (
@@ -290,9 +345,21 @@ function EntryCard({
       <div className={isLight ? "grid h-11 w-11 place-items-center rounded-xl bg-sky-50 text-civic-blue-deep" : "grid h-11 w-11 place-items-center rounded-xl bg-sky-300/10 text-sky-200"}>
         <Icon className="h-5 w-5" />
       </div>
-      <p className={`mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-        {eyebrow}
-      </p>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+          {eyebrow}
+        </p>
+        {locked ? (
+          <span
+            className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${
+              isLight ? "border-slate-200 bg-slate-50 text-slate-500" : "border-white/10 bg-white/[0.04] text-slate-400"
+            }`}
+          >
+            <Lock className="h-2.5 w-2.5" />
+            Requiere cuenta
+          </span>
+        ) : null}
+      </div>
       <h2 className={`mt-1.5 font-display text-xl font-extrabold tracking-[-0.02em] ${isLight ? "text-slate-900" : "text-white"}`}>
         {title}
       </h2>

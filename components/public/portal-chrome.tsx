@@ -82,8 +82,20 @@ export function PortalHeader({
             className="h-10 w-10 object-contain"
           />
           <div className="min-w-0">
-            <p className={`font-display text-base font-extrabold leading-none tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
+            <p className={`flex items-center gap-2 font-display text-base font-extrabold leading-none tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
               UrbanIA
+              {/* Distintivo permanente, no un cartel que se cierra y no vuelve:
+                  la plataforma esta en beta y quien la usa tiene que poder verlo
+                  en cualquier momento, no solo en la primera visita. */}
+              <span
+                className={`rounded-md border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${
+                  isLight
+                    ? "border-amber-300 bg-amber-50 text-amber-700"
+                    : "border-amber-300/30 bg-amber-300/10 text-amber-200"
+                }`}
+              >
+                Beta
+              </span>
             </p>
             <p className={`mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
               Portal ciudadano
@@ -332,13 +344,26 @@ export function PortalFooter({ isLight }: { isLight: boolean }) {
           sexto item la aprieta en telefono. En el pie es donde se busca este tipo
           de enlace, y ademas queda alcanzable desde CUALQUIER pantalla del
           portal, no solo desde la portada. */}
-      <span aria-hidden className="mx-1.5">&middot;</span>
-      <Link
-        href="/sugerencias"
-        className={`font-semibold underline-offset-4 hover:underline ${isLight ? "text-civic-blue-deep" : "text-sky-300"}`}
-      >
-        Sugerencias sobre el portal
-      </Link>
+      <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
+        <Link
+          href="/sugerencias"
+          className={`font-semibold underline-offset-4 hover:underline ${isLight ? "text-civic-blue-deep" : "text-sky-300"}`}
+        >
+          Sugerencias sobre el portal
+        </Link>
+        <Link
+          href="/privacidad"
+          className={`font-semibold underline-offset-4 hover:underline ${isLight ? "text-civic-blue-deep" : "text-sky-300"}`}
+        >
+          Política de Privacidad
+        </Link>
+        <Link
+          href="/terminos"
+          className={`font-semibold underline-offset-4 hover:underline ${isLight ? "text-civic-blue-deep" : "text-sky-300"}`}
+        >
+          Términos de Uso
+        </Link>
+      </div>
     </footer>
   );
 }

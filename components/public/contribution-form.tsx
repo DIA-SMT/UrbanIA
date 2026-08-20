@@ -253,7 +253,7 @@ export function ContributionForm() {
         <PortalFooter isLight={isLight} />
       </div>
 
-      <MigueFloatingChat appearance={isLight ? "light" : "dark"} />
+      <MigueFloatingChat appearance={isLight ? "light" : "dark"} requiresSession={currentUser === null} />
     </main>
   );
 }
