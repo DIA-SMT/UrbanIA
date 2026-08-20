@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 // useLayoutEffect en cliente, useEffect en server (evita el warning de SSR).
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -124,6 +125,12 @@ type MigueFloatingChatProps = {
    * decide el servidor segun la sesion, no esta prop.
    */
   canDraftContribution?: boolean;
+  /**
+   * Sin sesión: la burbuja se abre pero muestra la invitación a ingresar en vez
+   * del chat. Es solo la pantalla; quien de verdad rechaza la consulta sin
+   * sesión es el servidor, en /api/assistant.
+   */
+  requiresSession?: boolean;
 };
 
 const DRAFT_CONTRIBUTION_PROMPT =
@@ -135,7 +142,11 @@ const starterPrompts = [
   "Que datos necesito para analizar documentos aportados?"
 ];
 
-export function MigueFloatingChat({ appearance = "dark", canDraftContribution = false }: MigueFloatingChatProps) {
+export function MigueFloatingChat({
+  appearance = "dark",
+  canDraftContribution = false,
+  requiresSession = false
+}: MigueFloatingChatProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [draftQuestion, setDraftQuestion] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -576,6 +587,26 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
             </button>
           </div>
 
+          {/* Sin sesion la burbuja se ve igual y se abre igual, pero en vez del
+              chat muestra la invitacion. Esconderla del todo dejaria a Migue
+              invisible para quien todavia no tiene cuenta, y es una de las
+              razones por las que alguien se crearia una. */}
+          {requiresSession ? (
+            <div className="p-5 text-center">
+              <p className="text-sm font-black text-slate-900 dark:text-white">Ingresá para preguntarle a Migue</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                Migue responde sobre el Código de Planeamiento citando el artículo en el que se apoya. Para usarlo
+                necesitás ingresar con Ciudadano Digital; la cuenta se crea sola en el primer acceso.
+              </p>
+              <Link
+                href="/ingresar"
+                className="urban-button mt-4 inline-flex items-center gap-2 rounded-xl bg-[#1f89f6] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#0066ff]"
+              >
+                Ingresar con Cidituc
+              </Link>
+            </div>
+          ) : (
+          <>
           <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
             <div className="rounded-xl border border-sky-100 bg-sky-50 p-3 dark:border-sky-400/20 dark:bg-sky-400/10">
               <p className="text-sm font-black text-sky-900 dark:text-sky-100">Hola, soy Migue.</p>
@@ -725,6 +756,8 @@ export function MigueFloatingChat({ appearance = "dark", canDraftContribution = 
               </button>
             </form>
           </div>
+          </>
+          )}
         </section>
       ) : null}
 

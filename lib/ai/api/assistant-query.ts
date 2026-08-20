@@ -4,6 +4,7 @@ import { z } from "zod";
 import { askUrbanAssistant, hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import { buildMigueSystemPrompt, buildMigueUserPrompt, normalizeMigueContext } from "@/lib/ai/migue";
 import { resolveAssistantAccess } from "@/lib/ai/assistant-access";
+import { getSessionUser } from "@/lib/auth/api";
 import { CHAT_BLOCK_MESSAGE, moderateChatMessage } from "@/lib/moderation";
 import { analyzeAggression } from "@/lib/ai/moderation-intent";
 import { analyzeMigueQuestion } from "@/lib/ai/migue-intent";
@@ -156,6 +157,23 @@ export async function handleAssistantQuery(request: Request) {
         detail: "Hiciste muchas consultas seguidas. Esperá un momento y volvé a intentar."
       },
       { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } }
+    );
+  }
+
+  /*
+   * Migue pasa a exigir cuenta. El control va ACA, antes de leer el body y antes
+   * de cualquier llamada paga: la pantalla que muestra la invitacion en vez del
+   * chat es una cortesia, no una defensa --el endpoint es publico y cualquiera
+   * puede pegarle con curl--. Y cada consulta cuesta plata.
+   */
+  const sesion = await getSessionUser();
+  if (!sesion) {
+    return NextResponse.json(
+      {
+        error: "Ingresá para consultar",
+        detail: "Para preguntarle a Migue necesitás ingresar con Ciudadano Digital."
+      },
+      { status: 401 }
     );
   }
 

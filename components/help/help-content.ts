@@ -37,8 +37,9 @@ export const citizenTools: ToolGuide[] = [
     name: "Código de Planeamiento",
     href: "/codigo",
     oneLiner: "El Código de Planeamiento Urbano completo, capítulo por capítulo.",
+    access: { tone: "info", label: "Requiere cuenta ciudadana (se crea gratis al ingresar)" },
     paraQue:
-      "Acá está el texto oficial de la ordenanza que regula qué se puede construir y cómo se usa el suelo en San Miguel de Tucumán. Podés leerlo cuando quieras, sin crear ninguna cuenta.",
+      "Acá está el texto oficial de la ordenanza que regula qué se puede construir y cómo se usa el suelo en San Miguel de Tucumán. Se consulta con tu cuenta de Ciudadano Digital, que se crea sola en el primer ingreso.",
     pasos: [
       "Entrá a la sección Código desde el portal.",
       "Elegí un capítulo para ver los artículos que contiene.",
@@ -54,6 +55,7 @@ export const citizenTools: ToolGuide[] = [
     name: "Migue, el asistente de la ciudad",
     href: null,
     oneLiner: "La burbuja de chat que te acompaña en todo el portal.",
+    access: { tone: "info", label: "Requiere cuenta ciudadana (se crea gratis al ingresar)" },
     paraQue:
       "Migue es la inteligencia artificial de UrbanIA. Le podés preguntar en tus palabras qué dice el Código sobre un tema y te responde citando las fuentes, para que puedas verificar de dónde sale cada dato.",
     pasos: [
@@ -72,7 +74,7 @@ export const citizenTools: ToolGuide[] = [
     name: "Presentar propuesta o reclamo",
     href: "/presentar",
     oneLiner: "El formulario para que tu idea o tu reclamo entren al sistema municipal.",
-    access: { tone: "info", label: "Requiere cuenta ciudadana (se crea gratis en Ingresar)" },
+    access: { tone: "info", label: "Requiere cuenta ciudadana (se crea gratis al ingresar)" },
     paraQue:
       "Lo que cargás acá no se pierde en un mail: queda registrado con tu nombre y tu zona, entra al sistema interno del municipio y el equipo lo revisa. Es la vía para pedir que la ciudad regule, cambie o mejore algo.",
     pasos: [
@@ -94,6 +96,7 @@ export const citizenTools: ToolGuide[] = [
     href: "/audiencias-publicas",
     ctaLabel: "Ver el registro",
     oneLiner: "El registro público de las audiencias sobre el nuevo Código.",
+    access: { tone: "info", label: "Requiere cuenta ciudadana (se crea gratis al ingresar)" },
     paraQue:
       "Cada audiencia pública queda registrada acá: cuándo fue, dónde, de qué se habló y a qué se llegó. Es la memoria pública del debate sobre las normas de la ciudad.",
     pasos: [
