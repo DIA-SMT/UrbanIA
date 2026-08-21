@@ -54,26 +54,12 @@ export function LegalDisclaimer() {
       // Navegador con almacenamiento bloqueado: se pregunta de nuevo, que es el
       // comportamiento seguro. Molesta, pero no rompe.
     }
-    if (aceptado === LEGAL_VERSION) {
-      setEstado("oculto");
-      return;
-    }
-
-    // Solo se le pide aceptar a quien entró: a alguien que está mirando la
-    // portada sin cuenta no se le tapa la pantalla con un aviso legal.
-    let vigente = true;
-    fetch("/api/auth?action=me", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((data: { user?: { name: string } | null }) => {
-        if (vigente) setEstado(data.user ? "visible" : "oculto");
-      })
-      .catch(() => {
-        if (vigente) setEstado("oculto");
-      });
-
-    return () => {
-      vigente = false;
-    };
+    // El aviso es para TODO EL MUNDO, con sesión o sin ella: lo que dice --que
+    // está en beta, que un aporte no inicia un trámite, que Migue puede
+    // equivocarse-- le sirve igual a quien todavía está decidiendo si crearse una
+    // cuenta. Antes se consultaba la sesión primero; ahora no se consulta nada:
+    // el aviso aparece o no según localStorage, sin una sola petición.
+    setEstado(aceptado === LEGAL_VERSION ? "oculto" : "visible");
   }, [pathname]);
 
   function aceptar() {
@@ -84,13 +70,6 @@ export function LegalDisclaimer() {
       // navegador no tiene almacenamiento sería peor que volver a preguntar.
     }
     setEstado("oculto");
-  }
-
-  async function rechazar() {
-    // Rechazar cierra la sesión. Dejarlo entrar sin aceptar convertiría el aviso
-    // en decorativo, y un modal sin salida es una trampa.
-    await fetch("/api/auth?action=logout", { method: "POST" }).catch(() => undefined);
-    window.location.href = "/";
   }
 
   if (estado !== "visible" || typeof document === "undefined") return null;
@@ -144,14 +123,17 @@ export function LegalDisclaimer() {
         </div>
 
         <div className="shrink-0 border-t border-slate-200 bg-slate-50/70 px-6 py-4">
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="button"
-              onClick={rechazar}
-              className="rounded-lg px-3 py-2 text-[13px] font-bold text-slate-500 transition hover:text-slate-900"
-            >
-              Salir sin aceptar
-            </button>
+          {/*
+            Un solo boton, sin "rechazar".
+            Antes habia uno que cerraba la sesion y volvia a la portada. Con el
+            aviso mostrandose tambien SIN sesion eso quedaba en un bucle: no hay
+            sesion que cerrar, se vuelve a la misma pantalla y el aviso reaparece.
+            Y no hay un "no acepto y sigo igual" que tenga sentido: esto no es un
+            consentimiento opcional, es lo que hay que saber para usar la
+            herramienta. Quien no quiera aceptarlo cierra la pestana, que es la
+            salida real y no hace falta un boton para eso.
+          */}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
             <button
               type="button"
               onClick={aceptar}
