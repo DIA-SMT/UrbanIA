@@ -127,9 +127,22 @@ function renderDataCards(data?: { valor: string; descripcion: string }[]): strin
 }
 
 function renderSummarySection(section: SummarySection, index: number): string {
+  /*
+   * Hasta 4 parrafos de 800 caracteres, contra los 2 de 560 de antes.
+   *
+   * Esos topes eran el tercer recorte encadenado del resumen, y el mas dificil
+   * de ver: el modelo escribia 2.400 caracteres por seccion y al papel llegaban
+   * 1.120. La mitad del texto se descartaba DESPUES de haberlo pagado, sin
+   * ningun aviso.
+   *
+   * 4 x 800 = 3.200 como maximo. Una pagina de continuacion tiene 235 mm utiles
+   * a 10,2 pt con interlineado 1,55, o sea unas 42 lineas de ~103 caracteres:
+   * cerca de 4.300, menos el titulo, los margenes entre parrafos y los bloques
+   * de destacados y datos. El guard de exportacion queda igual como red.
+   */
   const paragraphs = section.parrafos
-    .slice(0, 2)
-    .map((paragraph) => `<p>${escapeHtml(clampText(paragraph, 560))}</p>`)
+    .slice(0, 4)
+    .map((paragraph) => `<p>${escapeHtml(clampText(paragraph, 800))}</p>`)
     .join("");
   const highlight = section.destacados?.[0]
     ? `<blockquote>${escapeHtml(clampText(section.destacados[0], 240))}</blockquote>`
@@ -218,10 +231,10 @@ function renderSectionsPage(
   startIndex: number,
   total: number
 ): string {
-  const sections = payload.secciones
-    .slice(startIndex, startIndex + 2)
-    .map((section, offset) => renderSummarySection(section, startIndex + offset))
-    .join("");
+  // Una seccion por pagina: con el presupuesto nuevo (~2.600 caracteres) dos ya
+  // no entran en los 235 mm utiles del cuerpo, y el guard de exportacion tiraria
+  // "el documento excede el area imprimible".
+  const sections = renderSummarySection(payload.secciones[startIndex], startIndex);
 
   return [
     `<section class="pdf-page continuation-page page-${page}">`,
@@ -376,11 +389,25 @@ export function renderInstitutionalSummary(
   options: InstitutionalSummaryOptions,
   mode: { print?: boolean } = {}
 ): string {
-  const total = 4;
+  /*
+   * Paginacion dinamica: portada + una pagina por seccion + cierre.
+   *
+   * Antes era `const total = 4` con las secciones repartidas de dos en dos, asi
+   * que el documento no podia crecer aunque el material diera para mas. Con
+   * cuatro secciones el resultado son las mismas 6 paginas de siempre menos dos;
+   * con diez, doce paginas.
+   *
+   * El encabezado de cada pagina lleva el titulo de SU seccion y no un rotulo
+   * fijo ("Hallazgos principales" / "Implicancias para la gestion"): con un
+   * numero variable de secciones, dos rotulos no alcanzan, y el titulo real le
+   * dice al lector donde esta parado.
+   */
+  const total = payload.secciones.length + 2;
   const pages = [
     renderPageOne(payload, options, total),
-    renderSectionsPage(payload, options, 2, "Hallazgos principales", 0, total),
-    renderSectionsPage(payload, options, 3, "Implicancias para la gestión", 2, total),
+    ...payload.secciones.map((section, indice) =>
+      renderSectionsPage(payload, options, indice + 2, section.titulo, indice, total)
+    ),
     renderClosingPage(payload, options, total)
   ].join("");
 
