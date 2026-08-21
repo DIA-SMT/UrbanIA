@@ -12,6 +12,7 @@ import {
 import { extractPdfText, sanitizePdfText } from "@/lib/pdf/extract-text";
 import { PdfBrowserError, PdfOverflowError, renderHtmlToPdf } from "@/lib/pdf/render-pdf";
 import { generateSummary } from "@/lib/hearings/summary-generate";
+import { digestTranscript } from "@/lib/hearings/transcript-digest";
 import { renderInstitutionalSummary, type SummaryPayload } from "@/lib/hearings/summary-document";
 import {
   getCitySmtWhiteLogoDataUri,
@@ -27,9 +28,6 @@ import {
  * de "documento de trabajo" lo deja explícito.
  */
 
-// La transcripción entera de una audiencia larga no entra ni hace falta:
-// 60k caracteres cubren ~2 horas de exposición hablada.
-const MAX_TRANSCRIPT_CHARS = 60_000;
 // Documentos ENTEROS: con 12k, un PPT institucional de 27 páginas entraba al
 // 43% y el resumen salía pobre y general (comparado contra el resumen de la
 // Comisión FAU hecho a mano, 2026-08-03).
@@ -143,17 +141,17 @@ async function buildSummaryPdf(id: string): Promise<BuiltSummary> {
     return { ok: false, response: errorResponse("Audiencia no encontrada", "El enlace no corresponde a una audiencia del registro.", 404) };
   }
 
-  const fullTranscript = hearing.transcriptSegments
-    .map((segment) => `${segment.speakerLabel ? `${segment.speakerLabel}: ` : ""}${segment.content}`)
-    .join("\n");
-  const transcriptWasTruncated = fullTranscript.length > MAX_TRANSCRIPT_CHARS;
-  const transcript = transcriptWasTruncated
-    ? [
-        fullTranscript.slice(0, MAX_TRANSCRIPT_CHARS / 2),
-        "[TRAMO INTERMEDIO OMITIDO POR EXTENSIÓN; EL RESUMEN ANALIZA EL INICIO Y EL CIERRE]",
-        fullTranscript.slice(-MAX_TRANSCRIPT_CHARS / 2)
-      ].join("\n\n")
-    : fullTranscript;
+  /*
+   * La transcripción entra COMPLETA, por tramos si hace falta.
+   *
+   * Antes se recortaba: los primeros 30.000 caracteres, un marcador que decía
+   * "[TRAMO INTERMEDIO OMITIDO POR EXTENSIÓN]" y los últimos 30.000. Medido
+   * sobre las audiencias reales, eso descartaba el medio de 4 de 7 --entre el
+   * 17% y el 38% del contenido-- y el documento salía con membrete municipal
+   * igual. Ver lib/hearings/transcript-digest.ts.
+   */
+  const digesto = await digestTranscript(hearing.transcriptSegments);
+  const transcript = digesto.material;
 
   const excerpts = await documentExcerpts(id);
 
@@ -184,7 +182,11 @@ async function buildSummaryPdf(id: string): Promise<BuiltSummary> {
       : null,
     hearing.analysis?.summary ? `ANÁLISIS PREVIO DEL EQUIPO:\n${hearing.analysis.summary}` : null,
     hearing.analysis?.topics.length ? `TEMAS DETECTADOS: ${hearing.analysis.topics.join("; ")}` : null,
-    transcript.trim() ? `TRANSCRIPCIÓN (puede estar recortada):\n${transcript}` : null,
+    // Sin etiqueta propia: el digesto ya trae su encabezado, que dice si viaja
+    // completa o resumida en tramos. Ponerle "(puede estar recortada)" arriba,
+    // como antes, le avisaba al redactor de una limitación que ya no existe y lo
+    // volvía cauto sin motivo.
+    transcript.trim() ? transcript : null,
     ...excerpts.map((excerpt) => excerpt.material)
   ]
     .filter(Boolean)
@@ -202,11 +204,17 @@ async function buildSummaryPdf(id: string): Promise<BuiltSummary> {
 
   const options = { hearingTitle: hearing.title, when, docCode: `AUD-${id.slice(-6).toUpperCase()}` };
   const monthYear = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" }).format(new Date());
+  // El pie del documento declara sobre qué se redactó. Dice la verdad de cada
+  // caso: completa, completa por tramos, o con tramos que no se pudieron
+  // procesar. Antes decía "parcial: inicio y cierre", que era honesto pero
+  // describía una limitación que ya no existe.
   const sourceSummary = [
     transcript.trim()
-      ? transcriptWasTruncated
-        ? "Transcripción parcial: inicio y cierre"
-        : "Transcripción completa"
+      ? digesto.tramosPerdidos > 0
+        ? `Transcripción en ${digesto.tramos} tramos (${digesto.tramosPerdidos} sin procesar)`
+        : digesto.tramos > 0
+          ? `Transcripción completa, analizada en ${digesto.tramos} tramos`
+          : "Transcripción completa"
       : null,
     excerpts.length
       ? `${excerpts.length} ${excerpts.length === 1 ? "documento" : "documentos"}: ${excerpts
