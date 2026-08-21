@@ -18,25 +18,61 @@ Marcar con `[x]` a medida que se resuelvan.
   *Necesita una definición del municipio: responsable, finalidad y plazo de
   conservación. La pantalla se puede dejar armada esperando el texto.*
 
-- [ ] **2. Verificar que `AUTH_SECRET` esté cargado en Vercel.** En
-  `lib/auth/session.ts:67` el secreto de firma cae a `OPENROUTER_API_KEY` y
-  después al literal `"urbania-local-dev-secret"`. Si no está seteado, cualquiera
-  que lea el repositorio puede fabricarse una sesión de administrador. **No se
-  puede verificar desde el código: hay que mirarlo en el panel de Vercel.**
-  Relacionado: el token no lleva vencimiento (la cookie caduca a las 8 h, el
-  token firmado vale para siempre si se filtra).
+- [ ] **2. Cargar `AUTH_SECRET` en Vercel.** En `lib/auth/session.ts:67` el
+  secreto que firma las sesiones cae a `OPENROUTER_API_KEY` y después al literal
+  `"urbania-local-dev-secret"`.
+
+  Al 2026-08-21 se planteó que probablemente no esté seteada. Los dos escenarios,
+  y por qué en los dos hay que ponerla:
+
+  - **Si `OPENROUTER_API_KEY` sí está** (tiene que estarlo: Migue responde en
+    producción), entonces las sesiones se firman con la clave de la API de IA. No
+    es forjable por quien lea el repositorio, pero: rotar esa clave desloguea a
+    todos sin que nadie relacione una cosa con la otra, y el secreto de sesión
+    pasa a ser un valor que además viaja como bearer token a un tercero.
+  - **Si tampoco está**, el secreto es la cadena que está escrita en el
+    repositorio y cualquiera que la lea puede fabricarse una sesión de
+    administrador.
+
+  No se puede distinguir desde afuera: con firma inválida o con usuario
+  inexistente la aplicación responde igual, así que probarlo requeriría forjar una
+  sesión de administrador real contra producción. Hay que mirarlo en el panel.
+
+  El arreglo es el mismo en los dos casos y son dos minutos: definir `AUTH_SECRET`
+  con un valor aleatorio. **Efecto:** al cambiar el secreto se invalidan las
+  sesiones abiertas y todos vuelven a ingresar una vez.
+
+  Relacionado: el token no lleva vencimiento (la cookie caduca a las 8 h, el token
+  firmado vale para siempre si se filtra).
 
 - [ ] **3. Las audiencias se publican solas.** `lib/hearings/public-data.ts:44`
   lista todo lo que tenga `kind: "PUBLIC_HEARING"`, sin filtro de publicación. Lo
-  que el equipo crea aparece al instante en el sitio público. Al 19/08 estaba
-  listada "x Audiencia CPU", una prueba.
+  que el equipo crea aparece al instante en el sitio público.
 
-- [ ] **4. El portal público no tiene foco visible.** `:focus-visible` existe
-  solo en la matriz de permisos del admin. Quien navega con teclado no ve dónde
-  está. WCAG 2.1 AA, criterio 2.4.7.
+  **Re-verificado el 2026-08-21, porque se planteó que solo se publican al
+  publicar el resumen. No es así.** `components/public/public-hearings.tsx` filtra
+  únicamente por `status` (próximas contra pasadas); `summaryUrl` se usa en la
+  línea 134 y solo decide si aparece el enlace al PDF DENTRO de una audiencia que
+  ya está listada. Publicar el resumen agrega el PDF, no la audiencia.
 
-- [ ] **5. El 404 está en inglés.** No hay `app/not-found.tsx`; Next sirve
-  "404: This page could not be found." Verificado en producción.
+  Estado ese día: 9 audiencias visibles, 8 con resumen publicado, y "x Audiencia
+  CPU" listada públicamente SIN resumen.
+
+- [x] ~~**4. El portal público no tiene foco visible.**~~ **DESCARTADO el
+  2026-08-21: la afirmación era falsa.** Se había deducido de que no hubiera
+  clases `focus-visible:`, que es el test equivocado. Midiendo el elemento
+  enfocado de verdad al tabular: 8/8 en la portada, 8/8 en la ayuda y 6/7 en la
+  pantalla de ingreso muestran el anillo del navegador (`outline: auto 1px`),
+  porque no hay ningún `outline: none` global que lo suprima. Cumple el criterio
+  2.4.7 de WCAG 2.1 AA, que solo exige que el foco SEA visible.
+  Queda como mejora, no como bloqueante: el anillo es el del navegador y no uno
+  diseñado, fino sobre el tema oscuro, y hay un elemento en /ingresar que no lo
+  muestra. Un indicador propio también cumpliría 2.4.11 (Focus Appearance).
+
+- [x] ~~**5. El 404 está en inglés.**~~ **DECISIÓN DEL USUARIO 2026-08-21: se
+  deja como está.** Queda anotado lo que no es cuestión de idioma: la pantalla de
+  Next no tiene encabezado ni enlace de vuelta al portal, así que es un callejón
+  sin salida. Si algún día molesta, es un `app/not-found.tsx` de veinte líneas.
 
 ## Importantes — primera semana
 
