@@ -45,7 +45,8 @@ type Outline = {
   enSintesis: string;
 };
 
-const OUTLINE_CONTRACT = [
+function outlineContract(objetivo: number): string {
+  return [
   "Tu tarea AHORA es SOLO el esqueleto del documento (la redacción viene después, sección por sección).",
   "Respondé SOLO con un objeto JSON válido con esta forma exacta:",
   `{"titulo": "...", "bajada": "...", "deQueSeTrata": "...", "expositor": "...", "destinatario": "...", "estructura": "I. ... · II. ...", "secciones": [{"titulo": "...", "foco": "qué debe cubrir esta sección y con qué datos concretos del material"}], "lineasDeAccion": ["..."], "enSintesis": "..."}`,
@@ -54,17 +55,28 @@ const OUTLINE_CONTRACT = [
   "- deQueSeTrata: un único párrafo de 3 a 4 oraciones breves. Explicá el propósito de la audiencia, el problema tratado y qué información deja para la decisión municipal.",
   "- expositor: nombre y rol sólo si constan en el material; si no, indicá 'No identificado en el material'.",
   "- destinatario: el área, autoridad o ámbito al que se dirige lo expuesto; si no consta, indicá 'Equipo municipal responsable'.",
-  "- secciones: EXACTAMENTE 4, cubriendo el material sin superposiciones. El 'foco' debe nombrar datos, cifras y referencias concretas disponibles para esa sección.",
+  `- secciones: EXACTAMENTE ${objetivo}, cubriendo el material sin superposiciones. El 'foco' debe nombrar datos, cifras y referencias concretas disponibles para esa sección.`,
+  "- Una sección por eje temático realmente tratado en la audiencia. Si se discutieron alturas, usos del suelo, movilidad, espacio público y patrimonio, cada uno merece la suya: no las agrupes en 'varios temas'.",
+  "- Recorré el material COMPLETO al repartir las secciones. Cuando el material viene en tramos numerados, los del medio tienen que estar representados igual que el primero y el último.",
   "- lineasDeAccion: entre 3 y 5 medidas o decisiones que surjan expresamente del material. No conviertas una opinión general en una recomendación inventada.",
   "- enSintesis: cierre de 2 o 3 oraciones, sin viñetas, que reúna el hallazgo central y su consecuencia para la gestión. No agregues información nueva.",
   DENSITY_RULES
-].join("\n");
+  ].join("\n");
+}
 
 const SECTION_CONTRACT = [
   "Respondé SOLO con un objeto JSON válido con esta forma exacta:",
-  `{"titulo": "...", "parrafos": ["...", "..."], "destacados": ["..."], "datos": [{"valor": "65 %", "descripcion": "..."}]}`,
-  "- parrafos: EXACTAMENTE 2. Cada uno debe tener entre 2 y 4 oraciones cortas y el bloque completo no debe superar 950 caracteres.",
-  "- El primer párrafo explica la evidencia o planteo. El segundo explica su consecuencia concreta para la ciudadanía o la gestión municipal.",
+  `{"titulo": "...", "parrafos": ["...", "...", "..."], "destacados": ["..."], "datos": [{"valor": "65 %", "descripcion": "..."}]}`,
+  /*
+   * Antes eran EXACTAMENTE 2 parrafos y 950 caracteres. Con eso el cuerpo entero
+   * del documento media ~3.800 caracteres, para audiencias de hasta 97.000: el
+   * resumen se leia pobre porque no habia lugar para lo que se habia dicho. Cada
+   * seccion pasa a ocupar una pagina propia, asi que el presupuesto sube a ~2.600.
+   */
+  "- parrafos: entre 3 y 4. Cada uno de 3 a 5 oraciones, y el bloque completo entre 1.800 y 2.600 caracteres. Es una pagina entera del documento: si escribís 900 caracteres, la página queda medio vacía.",
+  "- El primero presenta el planteo con sus datos. Los del medio desarrollan la evidencia, quién lo sostuvo y qué se discutió. El último explica la consecuencia concreta para la ciudadanía o la gestión municipal.",
+  "- Nombrá a quien planteó cada cosa cuando el material lo identifique, y citá las cifras, calles, barrios, artículos y ordenanzas tal como aparecen. Es lo que distingue un resumen útil de una generalidad.",
+  "- No rellenes. Si el material de esta sección no alcanza para 1.800 caracteres, escribí lo que haya con precisión y cerrá: es mejor una sección corta y concreta que tres párrafos de vaguedades.",
   "- datos: hasta 2 cifras potentes del bloque (valor corto + descripción de una línea). Usalos sólo cuando el material ofrezca un valor exacto.",
   "- destacados: como máximo 1 frase textual breve o hallazgo formulado con fuerza. Omitilo si no existe evidencia suficiente.",
   "- Los campos destacados y datos son opcionales. No agregues subsecciones ni tablas.",
@@ -103,7 +115,7 @@ function textList(value: unknown, max = Number.POSITIVE_INFINITY): string[] {
     .slice(0, max);
 }
 
-function normalizeOutline(value: unknown): { outline: Outline | null; issue: string } {
+function normalizeOutline(value: unknown, objetivo: number): { outline: Outline | null; issue: string } {
   if (!value || typeof value !== "object") return { outline: null, issue: "el esqueleto no es un objeto" };
   const source = value as Record<string, unknown>;
   const rawSections = Array.isArray(source.secciones) ? source.secciones : [];
@@ -119,8 +131,18 @@ function normalizeOutline(value: unknown): { outline: Outline | null; issue: str
     })
     .filter((section): section is OutlineSection => section !== null);
 
-  if (sections.length !== 4) {
-    return { outline: null, issue: `se recibieron ${sections.length} secciones válidas en lugar de 4` };
+  /*
+   * Se acepta un margen en vez de exigir el numero exacto: si el material no da
+   * para el objetivo, una seccion menos es mejor que forzar una de relleno, y
+   * descartar el esqueleto entero por eso hacia fallar el documento completo.
+   * Menos de la mitad del objetivo si es un fallo real de formato.
+   */
+  const minimo = Math.max(3, objetivo - 2);
+  if (sections.length < minimo) {
+    return {
+      outline: null,
+      issue: `se recibieron ${sections.length} secciones válidas y se esperaban ${objetivo} (mínimo aceptable ${minimo})`
+    };
   }
 
   const lineasDeAccion = textList(source.lineasDeAccion, 5);
@@ -153,7 +175,7 @@ function normalizeOutline(value: unknown): { outline: Outline | null; issue: str
   };
 }
 
-async function generateOutline(material: string, model: string): Promise<Outline> {
+async function generateOutline(material: string, model: string, objetivo: number): Promise<Outline> {
   let lastIssue = "respuesta vacía";
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -161,15 +183,17 @@ async function generateOutline(material: string, model: string): Promise<Outline
       const correction =
         attempt === 0
           ? ""
-          : `\n\nCORRECCIÓN OBLIGATORIA: el intento anterior fue inválido porque ${lastIssue}. Devolvé nuevamente el objeto completo, con exactamente 4 secciones.`;
+          : `\n\nCORRECCIÓN OBLIGATORIA: el intento anterior fue inválido porque ${lastIssue}. Devolvé nuevamente el objeto completo, con ${objetivo} secciones.`;
       const response = await askUrbanAssistant(
         [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: `${material}\n\n${OUTLINE_CONTRACT}${correction}` }
+          { role: "user", content: `${material}\n\n${outlineContract(objetivo)}${correction}` }
         ],
-        { json: true, maxTokens: 1800, temperature: 0.2, model }
+        // Mas secciones necesitan mas tokens de esqueleto: con 1800 el JSON de
+        // diez secciones se cortaba al medio y el intento se descartaba entero.
+        { json: true, maxTokens: 3200, temperature: 0.2, model }
       );
-      const normalized = normalizeOutline(parseJson<unknown>(response.answer));
+      const normalized = normalizeOutline(parseJson<unknown>(response.answer), objetivo);
       if (normalized.outline) return normalized.outline;
       lastIssue = normalized.issue;
     } catch (error) {
@@ -188,9 +212,21 @@ function normalizeSection(value: unknown, fallbackTitle: string): SummarySection
   const paragraphs = textList(source.parrafos);
   if (!paragraphs.length) return null;
 
-  // No descartamos contenido si el modelo devuelve más de dos párrafos: los
-  // restantes se consolidan en el segundo bloque, respetando el límite visual.
-  const parrafos = paragraphs.length <= 2 ? paragraphs : [paragraphs[0], paragraphs.slice(1).join(" ")];
+  /*
+   * Hasta 4 parrafos, y lo que pase se consolida en el ultimo para no descartar
+   * contenido.
+   *
+   * Antes el tope era 2 --escrito cuando el contrato pedia "EXACTAMENTE 2"-- y
+   * fusionaba el resto en el segundo bloque. Al subir el presupuesto a 3 o 4
+   * parrafos, esa fusion anulaba la instruccion en silencio: el modelo devolvia
+   * cuatro y el documento mostraba dos de ~1.200 caracteres cada uno, que es un
+   * muro de texto. Medido: 6 secciones, todas con 2 parrafos, pese a pedir 3 o 4.
+   */
+  const MAX_PARRAFOS = 4;
+  const parrafos =
+    paragraphs.length <= MAX_PARRAFOS
+      ? paragraphs
+      : [...paragraphs.slice(0, MAX_PARRAFOS - 1), paragraphs.slice(MAX_PARRAFOS - 1).join(" ")];
   const destacados = textList(source.destacados, 1);
   const datos = Array.isArray(source.datos)
     ? source.datos
@@ -279,13 +315,31 @@ async function generateSection(
 }
 
 /** Genera el resumen completo: esqueleto + secciones en paralelo. */
+/**
+ * Cuántas secciones pedirle al documento, según cuánto material haya.
+ *
+ * Antes eran 4 fijas, sin importar si la audiencia había durado veinte minutos o
+ * cuatro horas: el cuerpo del documento medía siempre ~3.800 caracteres. Ahora
+ * escala, con tope en 10 para no volver ilegible el resumen ni hacer un
+ * documento de veinte páginas que nadie lee.
+ */
+export function seccionesObjetivo(material: string): number {
+  const largo = material.length;
+  if (largo < 6_000) return 4;
+  if (largo < 12_000) return 5;
+  if (largo < 20_000) return 6;
+  if (largo < 30_000) return 8;
+  return 10;
+}
+
 export async function generateSummary(material: string, options: { model?: string } = {}): Promise<SummaryPayload> {
   const model = options.model || process.env.OPENROUTER_CPU_MODEL || "openai/gpt-4o";
+  const objetivo = seccionesObjetivo(material);
 
-  const outline = await generateOutline(material, model);
+  const outline = await generateOutline(material, model, objetivo);
 
-  // Dos secciones por tanda evitan una ráfaga de cuatro prompts extensos contra
-  // el proveedor. Cada sección conserva sus propios reintentos y diagnóstico.
+  // Dos secciones por tanda evitan una ráfaga de prompts extensos contra el
+  // proveedor. Cada sección conserva sus propios reintentos y diagnóstico.
   const sections: (SummarySection | null)[] = [];
   for (let offset = 0; offset < outline.secciones.length; offset += 2) {
     const batch = await Promise.all(
@@ -296,8 +350,16 @@ export async function generateSummary(material: string, options: { model?: strin
     sections.push(...batch);
   }
   const written = sections.filter((section): section is SummarySection => section !== null);
-  if (written.length !== 4) {
-    throw new Error(`El resumen quedó incompleto: se redactaron ${written.length} de 4 secciones`);
+  /*
+   * Se exige que TODAS las secciones del esqueleto se hayan redactado, no un
+   * numero fijo. Una seccion que falla y se descarta en silencio deja un hueco
+   * tematico en el documento sin que nadie lo note: si el esqueleto dijo que
+   * habia diez ejes, el documento tiene que cubrir los diez.
+   */
+  if (written.length !== outline.secciones.length) {
+    throw new Error(
+      `El resumen quedó incompleto: se redactaron ${written.length} de ${outline.secciones.length} secciones`
+    );
   }
 
   return {
