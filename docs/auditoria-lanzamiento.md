@@ -22,6 +22,20 @@ Marcar con `[x]` a medida que se resuelvan.
   secreto que firma las sesiones cae a `OPENROUTER_API_KEY` y después al literal
   `"urbania-local-dev-secret"`.
 
+  > **POSTERGADO POR DECISIÓN DEL EQUIPO (2026-08-21).** Se decidió no cargarla,
+  > con el criterio de que el ingreso por Cidituc es suficiente. Queda anotado
+  > que **no son la misma protección y no se sustituyen**: Cidituc valida quién
+  > es la persona *al ingresar*, y `AUTH_SECRET` es lo que impide FALSIFICAR la
+  > cookie de sesión. Quien obtenga el secreto no pasa por Cidituc: se fabrica
+  > una cookie de administrador y entra sin login.
+  >
+  > Por qué el ataque es viable sin que el sistema se entere: cualquier persona
+  > con cuenta tiene una cookie firmada propia, y con ella puede probar
+  > candidatos OFFLINE, en su máquina, sin límite de intentos ni registro del
+  > lado del servidor. No hay bloqueo por reintentos que ayude acá.
+  >
+  > Se deja el punto abierto a propósito para que la decisión sea revisable.
+
   Al 2026-08-21 se planteó que probablemente no esté seteada. Los dos escenarios,
   y por qué en los dos hay que ponerla:
 
