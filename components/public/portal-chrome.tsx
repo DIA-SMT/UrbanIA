@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronDown, CircleHelp, LogIn, LogOut, Moon, Sun, UserRound } from "lucide-react";
+import { LegalLink } from "@/components/public/legal-dialog";
 
 /**
  * Chrome y sistema visual del portal ciudadano, compartido por la landing, el
@@ -351,18 +352,23 @@ export function PortalFooter({ isLight }: { isLight: boolean }) {
         >
           Sugerencias sobre el portal
         </Link>
-        <Link
-          href="/privacidad"
+        {/* Se abren en un recuadro sobre la pantalla y no navegan a otra pagina:
+            leer la letra chica no deberia costar abandonar lo que se estaba
+            haciendo. Las paginas siguen existiendo y el recuadro enlaza a ellas. */}
+        <LegalLink
+          documento="privacidad"
+          isLight={isLight}
           className={`font-semibold underline-offset-4 hover:underline ${isLight ? "text-civic-blue-deep" : "text-sky-300"}`}
         >
           Política de Privacidad
-        </Link>
-        <Link
-          href="/terminos"
+        </LegalLink>
+        <LegalLink
+          documento="terminos"
+          isLight={isLight}
           className={`font-semibold underline-offset-4 hover:underline ${isLight ? "text-civic-blue-deep" : "text-sky-300"}`}
         >
           Términos de Uso
-        </Link>
+        </LegalLink>
       </div>
     </footer>
   );

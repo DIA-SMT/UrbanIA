@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { LegalLink } from "@/components/public/legal-dialog";
 import { ArrowLeft, Fingerprint, ShieldCheck } from "lucide-react";
 
 type LoginPageProps = {
@@ -131,13 +132,13 @@ export function LoginPage({ initialError, ciditucEnabled }: LoginPageProps) {
 
           <p className="mt-4 border-t border-slate-100 pt-4 text-center text-xs leading-5 text-slate-500">
             Al ingresar aceptás los{" "}
-            <Link href="/terminos" className="font-bold text-sky-800 underline-offset-2 hover:underline">
+            <LegalLink documento="terminos" className="font-bold text-sky-800 underline-offset-2 hover:underline">
               Términos de Uso
-            </Link>{" "}
+            </LegalLink>{" "}
             y la{" "}
-            <Link href="/privacidad" className="font-bold text-sky-800 underline-offset-2 hover:underline">
+            <LegalLink documento="privacidad" className="font-bold text-sky-800 underline-offset-2 hover:underline">
               Política de Privacidad
-            </Link>
+            </LegalLink>
             .
           </p>
         </section>
