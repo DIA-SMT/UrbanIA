@@ -38,9 +38,23 @@ Marcar con `[x]` a medida que se resuelvan.
   inexistente la aplicación responde igual, así que probarlo requeriría forjar una
   sesión de administrador real contra producción. Hay que mirarlo en el panel.
 
-  El arreglo es el mismo en los dos casos y son dos minutos: definir `AUTH_SECRET`
-  con un valor aleatorio. **Efecto:** al cambiar el secreto se invalidan las
-  sesiones abiertas y todos vuelven a ingresar una vez.
+  **Cómo se resuelve** (dos minutos). No se obtiene de ningún proveedor: se genera.
+
+  ```
+  node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+  ```
+
+  Ese valor va en Vercel → Settings → Environment Variables, como `AUTH_SECRET`,
+  en Production y Preview. No hace falta ponerlo en `.env.local`: en desarrollo
+  conviene que el secreto sea distinto, así un token generado localmente no sirve
+  contra producción.
+
+  **Efecto:** al definirlo se invalidan las sesiones abiertas y todos vuelven a
+  ingresar una vez. Después no se rota sin motivo, porque rotarlo desloguea a
+  todos otra vez.
+
+  El porqué quedó documentado en `.env.example`, que tenía la variable vacía y sin
+  ninguna explicación: probablemente sea la razón por la que nunca se cargó.
 
   Relacionado: el token no lleva vencimiento (la cookie caduca a las 8 h, el token
   firmado vale para siempre si se filtra).

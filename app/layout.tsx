@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
+import { LegalDisclaimer } from "@/components/public/legal-disclaimer";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
@@ -18,7 +19,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitializer }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/*
+          Va en el layout raíz para cubrir el portal Y el sistema interno con una
+          sola pieza. No hace que la página sea dinámica: el componente decide del
+          lado del cliente, y si ya se aceptó esta versión no consulta nada.
+        */}
+        <LegalDisclaimer />
+      </body>
     </html>
   );
 }
