@@ -22,6 +22,20 @@ Marcar con `[x]` a medida que se resuelvan.
   secreto que firma las sesiones cae a `OPENROUTER_API_KEY` y después al literal
   `"urbania-local-dev-secret"`.
 
+  > **POSTERGADO POR DECISIÓN DEL EQUIPO (2026-08-21).** Se decidió no cargarla,
+  > con el criterio de que el ingreso por Cidituc es suficiente. Queda anotado
+  > que **no son la misma protección y no se sustituyen**: Cidituc valida quién
+  > es la persona *al ingresar*, y `AUTH_SECRET` es lo que impide FALSIFICAR la
+  > cookie de sesión. Quien obtenga el secreto no pasa por Cidituc: se fabrica
+  > una cookie de administrador y entra sin login.
+  >
+  > Por qué el ataque es viable sin que el sistema se entere: cualquier persona
+  > con cuenta tiene una cookie firmada propia, y con ella puede probar
+  > candidatos OFFLINE, en su máquina, sin límite de intentos ni registro del
+  > lado del servidor. No hay bloqueo por reintentos que ayude acá.
+  >
+  > Se deja el punto abierto a propósito para que la decisión sea revisable.
+
   Al 2026-08-21 se planteó que probablemente no esté seteada. Los dos escenarios,
   y por qué en los dos hay que ponerla:
 
@@ -38,9 +52,23 @@ Marcar con `[x]` a medida que se resuelvan.
   inexistente la aplicación responde igual, así que probarlo requeriría forjar una
   sesión de administrador real contra producción. Hay que mirarlo en el panel.
 
-  El arreglo es el mismo en los dos casos y son dos minutos: definir `AUTH_SECRET`
-  con un valor aleatorio. **Efecto:** al cambiar el secreto se invalidan las
-  sesiones abiertas y todos vuelven a ingresar una vez.
+  **Cómo se resuelve** (dos minutos). No se obtiene de ningún proveedor: se genera.
+
+  ```
+  node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+  ```
+
+  Ese valor va en Vercel → Settings → Environment Variables, como `AUTH_SECRET`,
+  en Production y Preview. No hace falta ponerlo en `.env.local`: en desarrollo
+  conviene que el secreto sea distinto, así un token generado localmente no sirve
+  contra producción.
+
+  **Efecto:** al definirlo se invalidan las sesiones abiertas y todos vuelven a
+  ingresar una vez. Después no se rota sin motivo, porque rotarlo desloguea a
+  todos otra vez.
+
+  El porqué quedó documentado en `.env.example`, que tenía la variable vacía y sin
+  ninguna explicación: probablemente sea la razón por la que nunca se cargó.
 
   Relacionado: el token no lleva vencimiento (la cookie caduca a las 8 h, el token
   firmado vale para siempre si se filtra).
