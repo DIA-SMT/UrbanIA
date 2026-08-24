@@ -129,6 +129,38 @@ function asStringArray(value: Prisma.JsonValue | null): string[] {
 }
 
 /**
+ * Lee el cruce guardado en la columna Json, descartando lo que no tenga la forma
+ * esperada. Una columna Json no valida nada por si misma, y un analisis viejo o
+ * a medio guardar no puede romper el detalle de la audiencia.
+ */
+function parseCrossReferences(raw: unknown): HearingDocumentView["crossReferences"] {
+  if (!Array.isArray(raw)) return undefined;
+  const parsed = raw
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const item = entry as Record<string, unknown>;
+      const articles = Array.isArray(item.articles)
+        ? item.articles
+            .map((article) => {
+              if (!article || typeof article !== "object") return null;
+              const value = article as Record<string, unknown>;
+              const number = typeof value.number === "string" ? value.number : null;
+              const relationship = typeof value.relationship === "string" ? value.relationship : null;
+              if (!number || !relationship) return null;
+              return { number, relationship, why: typeof value.why === "string" ? value.why : "" };
+            })
+            .filter((article): article is { number: string; relationship: string; why: string } => Boolean(article))
+        : [];
+      if (!articles.length) return null;
+      return { proposalTitle: typeof item.proposalTitle === "string" ? item.proposalTitle : "", articles };
+    })
+    .filter((entry): entry is { proposalTitle: string; articles: Array<{ number: string; relationship: string; why: string }> } =>
+      Boolean(entry)
+    );
+  return parsed.length ? parsed : undefined;
+}
+
+/**
  * Audiencias publicas a las que se puede mover un documento.
  *
  * Se incluyen las cerradas a proposito: el material se presento en audiencias
@@ -190,7 +222,10 @@ async function listHearingMaterial(meetingId: string): Promise<HearingDocumentVi
       summary: document.summary,
       pageCount: document.pageCount,
       normCount: document.storagePath ? (countByPath.get(document.storagePath) ?? 0) : 0,
-      origin: "material" as const
+      origin: "material" as const,
+      // El cruce se guardo como Json: se valida la forma antes de exponerlo, que
+      // una columna Json puede tener cualquier cosa de analisis viejos.
+      crossReferences: parseCrossReferences(document.crossReferences)
     }));
 }
 

@@ -1201,6 +1201,11 @@ model ReformDocument {
   /// PROPUESTA_NORMATIVA | DIAGNOSTICO_TECNICO | PRESENTACION_INSTITUCIONAL |
   /// PONENCIA_ACADEMICA | OTRO
   documentKind String?
+  /// Cruce con el Codigo que devolvio el analisis: por cada propuesta, contra
+  /// que articulos impacta y con que relacion. Se guarda TODO el cruce (no solo
+  /// el de las propuestas aceptadas) porque tambien vale saber que toca un
+  /// documento cuyas propuestas todavia no se fabricaron.
+  crossReferences Json?
   /// Hash del archivo, para avisar que ese PDF ya se habia subido. Con 15
   /// archivos cargados de a uno, duplicar es facil.
   sha256       String?

@@ -259,6 +259,15 @@ export type HearingDocumentView = {
   normCount?: number;
   /** De donde sale la fila, para saber que se puede hacer con ella. */
   origin?: "expediente" | "material";
+  /**
+   * Cruce con el Código que devolvió el análisis: por cada propuesta detectada,
+   * contra qué artículos impacta. Ausente o vacío = no se cruzó, o el documento
+   * no propone nada que toque el Código.
+   */
+  crossReferences?: Array<{
+    proposalTitle: string;
+    articles: Array<{ number: string; relationship: string; why: string }>;
+  }>;
 };
 
 export type HearingActionItemView = {

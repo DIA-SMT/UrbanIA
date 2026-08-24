@@ -10,6 +10,7 @@ import { MunicipalArea } from "@prisma/client";
 import { askUrbanAssistant } from "@/lib/ai/openrouter";
 import { extractPdfText, sanitizePdfText } from "@/lib/pdf/extract-text";
 import { quoteAppearsIn } from "@/lib/text/normalize-quote";
+import { formatCodeIndex, type CodeArticleIndexEntry } from "@/lib/normas/code-index";
 
 export const MAX_PAGES = 120;
 export const MAX_CHARS = 40_000;
@@ -23,6 +24,29 @@ export const DOCUMENT_KINDS = [
   "PONENCIA_ACADEMICA",
   "OTRO"
 ] as const;
+
+/**
+ * Como impacta una propuesta sobre un articulo del Codigo.
+ *
+ * Es un subconjunto de NormativeRelationshipType: solo las relaciones que tienen
+ * sentido cuando lo que se compara es "esto que propone el documento" contra "lo
+ * que hoy dice el codigo". Quedan afuera APPLIES, SUPPORTS y REQUIRES_REVIEW,
+ * que describen otra cosa (una norma ya redactada aplicandose) y solo darian al
+ * modelo mas etiquetas para elegir mal.
+ *
+ * Que una propuesta NO toque ningun articulo es una respuesta valida y esperada:
+ * significa que agrega algo que el codigo no regula hoy.
+ */
+export const CROSS_RELATIONSHIPS = ["MODIFIES", "REPEALS", "REPLACES", "REFERENCES", "POTENTIAL_CONFLICT"] as const;
+export type CrossRelationship = (typeof CROSS_RELATIONSHIPS)[number];
+
+export const CROSS_RELATIONSHIP_LABELS: Record<CrossRelationship, string> = {
+  MODIFIES: "Modifica",
+  REPEALS: "Deroga",
+  REPLACES: "Reemplaza",
+  REFERENCES: "Se relaciona con",
+  POTENTIAL_CONFLICT: "Posible conflicto con"
+};
 
 /** Se lanza cuando el PDF no tiene capa de texto (escaneo o solo imagenes). */
 export class UnreadablePdfError extends Error {}
@@ -82,7 +106,40 @@ const proposalSchema = z.object({
   confidence: z.preprocess(
     (raw) => normalizeEnumValue(raw, ["ALTA", "MEDIA", "BAJA"] as const)?.toLowerCase() ?? "baja",
     z.enum(["alta", "media", "baja"])
-  )
+  ),
+  /*
+   * Contra que articulos del codigo impacta la propuesta.
+   *
+   * Se valida DOS veces: aca la forma, y despues contra el indice real del CPU
+   * (los numeros que no existen se descartan con aviso). Sin esa segunda
+   * validacion el modelo devuelve numeros plausibles e inventados, que es el
+   * peor resultado posible: alguien redactaria una modificacion contra un
+   * articulo que dice otra cosa.
+   */
+  articles: z.preprocess(
+    (raw) =>
+      Array.isArray(raw)
+        ? raw
+            .map((item) => {
+              if (!item || typeof item !== "object") return null;
+              const entry = item as Record<string, unknown>;
+              const relationship = normalizeEnumValue(entry.relationship, CROSS_RELATIONSHIPS);
+              const number = typeof entry.number === "string" ? entry.number.trim() : String(entry.number ?? "").trim();
+              if (!number || !relationship) return null;
+              return { number, relationship, why: typeof entry.why === "string" ? entry.why.trim() : "" };
+            })
+            .filter(Boolean)
+        : [],
+    z
+      .array(
+        z.object({
+          number: z.string().trim().min(1).max(20),
+          relationship: z.enum(CROSS_RELATIONSHIPS),
+          why: z.string().trim().max(600)
+        })
+      )
+      .max(8)
+  ).default([])
 });
 
 const analysisSchema = z.object({
@@ -153,8 +210,14 @@ export const SYSTEM_PROMPT = [
   "",
   "10. En `warnings` poné lo que la persona deberia saber: paginas ilegibles, tablas que no se entienden, secciones que parecen tener contenido pero salieron vacias (mapas, planos, graficos).",
   "",
+  "11. CRUCE CON EL CODIGO. Por cada propuesta, en `articles`, deci contra que articulos del Codigo impacta.",
+  "   - Elegi UNICAMENTE de la lista de articulos que te paso el usuario. NO inventes numeros: si el articulo que corresponderia no esta en la lista, no lo pongas.",
+  "   - `articles: []` es una respuesta VALIDA y frecuente: significa que la propuesta AGREGA algo que el codigo no regula hoy. No fuerces un cruce para llenar el campo.",
+  "   - `relationship`: MODIFIES (cambia lo que el articulo dice), REPEALS (lo deja sin efecto), REPLACES (lo sustituye por completo), REFERENCES (habla del mismo tema sin cambiarlo), POTENTIAL_CONFLICT (lo que propone choca con lo que el articulo manda).",
+  "   - `why`: una oracion sobre POR QUE ese articulo y no otro. Si no podes justificarlo, no incluyas el articulo.",
+  "",
   "Devolves EXCLUSIVAMENTE un objeto JSON valido con esta forma:",
-  '{"documentKind":"...","documentSummary":"...","organization":"..."|null,"authors":["..."],"proposals":[{"title":"...","summary":"...","areas":["..."],"sourcePages":[1],"evidenceQuote":"...","confidence":"alta|media|baja"}],"warnings":["..."]}'
+  '{"documentKind":"...","documentSummary":"...","organization":"..."|null,"authors":["..."],"proposals":[{"title":"...","summary":"...","areas":["..."],"sourcePages":[1],"evidenceQuote":"...","confidence":"alta|media|baja","articles":[{"number":"12","relationship":"MODIFIES","why":"..."}]}],"warnings":["..."]}'
 ].join("\n");
 
 /**
@@ -165,6 +228,11 @@ export const SYSTEM_PROMPT = [
 export async function analyzeReformDocument(input: {
   bytes: Uint8Array;
   reformTitle: string;
+  /**
+   * Indice del Codigo (numero + titulo de cada articulo). Sin esto el cruce se
+   * omite: es preferible no cruzar que cruzar contra articulos inventados.
+   */
+  codeIndex?: CodeArticleIndexEntry[];
 }): Promise<DocumentAnalysis> {
   const extracted = await extractPdfText(input.bytes, {
     maxPages: MAX_PAGES,
@@ -176,6 +244,7 @@ export async function analyzeReformDocument(input: {
   // las citas. Si el modelo viera un texto y la verificacion comparara contra
   // otro, toda cita valida se descartaria por una diferencia invisible.
   const documentText = sanitizePdfText(extracted.text);
+  const codeIndex = input.codeIndex ?? [];
 
   if (usefulLength(documentText) < MIN_USEFUL_CHARS) {
     throw new UnreadablePdfError(
@@ -191,11 +260,19 @@ export async function analyzeReformDocument(input: {
         content: [
           `Reforma: ${input.reformTitle}`,
           "",
+          codeIndex.length
+            ? [
+                "=== ARTICULOS DEL CODIGO DE PLANEAMIENTO VIGENTE ===",
+                "Son los UNICOS que podes citar en `articles`. Si el que corresponderia no esta, no cites ninguno.",
+                formatCodeIndex(codeIndex),
+                ""
+              ].join("\n")
+            : "",
           "=== TEXTO EXTRAIDO DEL DOCUMENTO ===",
           documentText,
           "",
           extracted.truncated ? "AVISO: el texto se recorto por longitud; puede faltar el final del documento." : "",
-          "Analiza el documento y devolve el JSON pedido."
+          codeIndex.length ? "Analiza el documento y devolve el JSON pedido, con el cruce contra los articulos de la lista." : "Analiza el documento y devolve el JSON pedido. Deja `articles` vacio: no recibiste el codigo.",
         ]
           .filter(Boolean)
           .join("\n")
@@ -226,10 +303,31 @@ export async function analyzeReformDocument(input: {
   // en el PDF se descarta. Es lo que impide que el modelo invente normas, y
   // es el mismo criterio que ya usa el diagnostico normativo.
   const warnings = [...validated.data.warnings];
-  const proposals = validated.data.proposals.filter((proposal) => {
+  const validProposals = validated.data.proposals.filter((proposal) => {
     if (quoteAppearsIn(documentText, proposal.evidenceQuote)) return true;
     warnings.push(`Se descartó una propuesta ("${proposal.title}") porque su cita no aparece textualmente en el PDF.`);
     return false;
+  });
+
+  /*
+   * Segunda validacion del cruce: el articulo tiene que EXISTIR en el codigo.
+   *
+   * Es el mismo criterio que la verificacion de citas, y por el mismo motivo:
+   * un numero de articulo inventado es peor que ningun cruce, porque induce a
+   * redactar una modificacion contra un texto que dice otra cosa. La propuesta
+   * NO se descarta --sigue siendo valida-- pero pierde el cruce que no se pudo
+   * comprobar, y queda dicho en warnings.
+   */
+  const validNumbers = new Set(codeIndex.map((entry) => entry.number));
+  const proposals = validProposals.map((proposal) => {
+    const articles = proposal.articles.filter((article) => {
+      if (validNumbers.has(article.number)) return true;
+      warnings.push(
+        `En "${proposal.title}" se descartó el cruce con el art. ${article.number}: no existe en el Código cargado.`
+      );
+      return false;
+    });
+    return { ...proposal, articles };
   });
 
   if (extracted.pages > extracted.readPages) {

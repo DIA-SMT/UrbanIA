@@ -10,6 +10,15 @@ import type { HearingDocumentView } from "@/lib/hearings/shared";
 /** Audiencia a la que se puede mover un documento. */
 export type MeetingOption = { id: string; title: string; occurredAt: string | null };
 
+/** Como se lee cada relacion del cruce con el Codigo. */
+const CROSS_LABELS: Record<string, string> = {
+  MODIFIES: "Modifica",
+  REPEALS: "Deroga",
+  REPLACES: "Reemplaza",
+  REFERENCES: "Se relaciona con",
+  POTENTIAL_CONFLICT: "Posible conflicto con"
+};
+
 /** Como clasifica la IA el material presentado (lib/normas/analyze-document). */
 const KIND_LABELS: Record<string, string> = {
   PROPUESTA_NORMATIVA: "Propuesta normativa",
@@ -240,6 +249,26 @@ export function HearingDocuments({
                   </p>
                   {document.summary ? (
                     <p className="mt-1.5 line-clamp-3 text-xs leading-5 text-slate-400">{document.summary}</p>
+                  ) : null}
+
+                  {/* Qué toca del Código: lo que el análisis cruzó contra los
+                      artículos reales. Es lo que permite ver, desde la
+                      audiencia, si lo que se presentó ahí modifica el Código. */}
+                  {document.crossReferences?.length ? (
+                    <div className="mt-2 rounded-md border border-sky-300/20 bg-sky-300/[0.06] px-2.5 py-2">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-sky-200">Qué toca del Código</p>
+                      <ul className="mt-1 space-y-1">
+                        {document.crossReferences.map((entry) => (
+                          <li key={entry.proposalTitle} className="text-[11px] leading-5 text-slate-300">
+                            <span className="font-bold">{entry.proposalTitle || "Propuesta"}</span>
+                            {": "}
+                            {entry.articles
+                              .map((article) => `${CROSS_LABELS[article.relationship] ?? article.relationship} el art. ${article.number}`)
+                              .join(" · ")}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : null}
 
                   {/* Corregir la audiencia: el documento se asigna a mano, asi

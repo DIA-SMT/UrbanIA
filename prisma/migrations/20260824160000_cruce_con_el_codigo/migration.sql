@@ -1,0 +1,11 @@
+-- El cruce con el Codigo que produjo el analisis del PDF.
+--
+-- Por cada propuesta detectada: contra que articulos impacta y con que relacion
+-- (MODIFIES, REPEALS, REPLACES, REFERENCES, POTENTIAL_CONFLICT). Se guarda el
+-- cruce COMPLETO y no solo el de las propuestas aceptadas: saber que articulos
+-- toca un documento sirve aunque todavia no se haya fabricado ninguna norma.
+--
+-- Json y no una tabla: es el resultado de UN analisis, se lee entero junto con el
+-- documento y no se consulta por partes. Cuando una propuesta se acepta y se
+-- convierte en norma, el ancla formal se crea aparte, en NormativeLink.
+ALTER TABLE "ReformDocument" ADD COLUMN "crossReferences" JSONB;
