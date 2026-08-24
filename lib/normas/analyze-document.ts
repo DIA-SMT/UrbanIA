@@ -107,40 +107,10 @@ const proposalSchema = z.object({
     (raw) => normalizeEnumValue(raw, ["ALTA", "MEDIA", "BAJA"] as const)?.toLowerCase() ?? "baja",
     z.enum(["alta", "media", "baja"])
   ),
-  /*
-   * Contra que articulos del codigo impacta la propuesta.
-   *
-   * Se valida DOS veces: aca la forma, y despues contra el indice real del CPU
-   * (los numeros que no existen se descartan con aviso). Sin esa segunda
-   * validacion el modelo devuelve numeros plausibles e inventados, que es el
-   * peor resultado posible: alguien redactaria una modificacion contra un
-   * articulo que dice otra cosa.
-   */
-  articles: z.preprocess(
-    (raw) =>
-      Array.isArray(raw)
-        ? raw
-            .map((item) => {
-              if (!item || typeof item !== "object") return null;
-              const entry = item as Record<string, unknown>;
-              const relationship = normalizeEnumValue(entry.relationship, CROSS_RELATIONSHIPS);
-              const number = typeof entry.number === "string" ? entry.number.trim() : String(entry.number ?? "").trim();
-              if (!number || !relationship) return null;
-              return { number, relationship, why: typeof entry.why === "string" ? entry.why.trim() : "" };
-            })
-            .filter(Boolean)
-        : [],
-    z
-      .array(
-        z.object({
-          number: z.string().trim().min(1).max(20),
-          relationship: z.enum(CROSS_RELATIONSHIPS),
-          why: z.string().trim().max(600)
-        })
-      )
-      .max(8)
-  ).default([])
 });
+
+/** Un articulo del Codigo que una propuesta toca. */
+export type ProposalCrossReference = { number: string; relationship: CrossRelationship; why: string };
 
 const analysisSchema = z.object({
   documentKind: z.preprocess((raw) => normalizeEnumValue(raw, DOCUMENT_KINDS) ?? "OTRO", z.enum(DOCUMENT_KINDS)),
@@ -151,7 +121,9 @@ const analysisSchema = z.object({
   warnings: z.array(z.string().trim().max(400)).max(20).default([])
 });
 
-export type DocumentAnalysis = z.infer<typeof analysisSchema> & {
+export type DocumentAnalysis = Omit<z.infer<typeof analysisSchema>, "proposals"> & {
+  /** Las propuestas, ya cruzadas contra el Codigo (articles vacio = no toca nada). */
+  proposals: Array<z.infer<typeof proposalSchema> & { articles: ProposalCrossReference[] }>;
   pageCount: number;
   model: string | null;
 };
@@ -210,15 +182,128 @@ export const SYSTEM_PROMPT = [
   "",
   "10. En `warnings` poné lo que la persona deberia saber: paginas ilegibles, tablas que no se entienden, secciones que parecen tener contenido pero salieron vacias (mapas, planos, graficos).",
   "",
-  "11. CRUCE CON EL CODIGO. Por cada propuesta, en `articles`, deci contra que articulos del Codigo impacta.",
-  "   - Elegi UNICAMENTE de la lista de articulos que te paso el usuario. NO inventes numeros: si el articulo que corresponderia no esta en la lista, no lo pongas.",
-  "   - `articles: []` es una respuesta VALIDA y frecuente: significa que la propuesta AGREGA algo que el codigo no regula hoy. No fuerces un cruce para llenar el campo.",
-  "   - `relationship`: MODIFIES (cambia lo que el articulo dice), REPEALS (lo deja sin efecto), REPLACES (lo sustituye por completo), REFERENCES (habla del mismo tema sin cambiarlo), POTENTIAL_CONFLICT (lo que propone choca con lo que el articulo manda).",
-  "   - `why`: una oracion sobre POR QUE ese articulo y no otro. Si no podes justificarlo, no incluyas el articulo.",
+  "Devolves EXCLUSIVAMENTE un objeto JSON valido con esta forma:",
+  '{"documentKind":"...","documentSummary":"...","organization":"..."|null,"authors":["..."],"proposals":[{"title":"...","summary":"...","areas":["..."],"sourcePages":[1],"evidenceQuote":"...","confidence":"alta|media|baja"}],"warnings":["..."]}'
+].join("\n");
+
+/*
+ * El cruce va en su PROPIA llamada, con su propio prompt.
+ *
+ * Estaba en la misma, y contaminaba la tarea principal: con los 52 articulos del
+ * Codigo a la vista, el modelo empezaba a medir los documentos contra un texto
+ * legal formal y dejaba de reconocer como propuestas las sugerencias escritas en
+ * lenguaje llano. Medido sobre "Propuesta Nuevo Codigo 2050" (CO.P.I.T.): sin
+ * indice detectaba 3 propuestas y lo clasificaba PROPUESTA_NORMATIVA; con
+ * indice, 0 propuestas y DIAGNOSTICO_TECNICO. El mismo PDF.
+ *
+ * Separadas, cada una hace una cosa: la primera lee el documento y encuentra
+ * propuestas; la segunda recibe SOLO esas propuestas (no el PDF) y las cruza
+ * contra el Codigo. Cuesta una llamada mas, pero la segunda es barata --manda
+ * titulos y resumenes, no el documento entero-- y sobre todo no toca la deteccion,
+ * que es la parte del sistema que no puede fallar.
+ */
+export const CROSS_SYSTEM_PROMPT = [
+  "Sos un asistente tecnico de la Municipalidad de San Miguel de Tucuman.",
+  "Recibis PROPUESTAS que ya fueron identificadas en un documento aportado a la reforma del Codigo de Planeamiento Urbano, y el INDICE del Codigo vigente.",
+  "Tu unica tarea es decir, por cada propuesta, contra que articulos del Codigo impacta.",
+  "",
+  "REGLAS:",
+  "",
+  "1. Elegi UNICAMENTE articulos del indice que te pasan. NO inventes numeros. Si el articulo que corresponderia no esta en el indice, no pongas ninguno.",
+  "",
+  "2. Devolver una lista VACIA para una propuesta es correcto y frecuente: significa que AGREGA algo que el codigo no regula hoy. No fuerces un cruce para llenar el campo.",
+  "",
+  "3. `relationship`, que relacion tiene la propuesta con ese articulo:",
+  "   - MODIFIES: cambia lo que el articulo dice.",
+  "   - REPEALS: lo deja sin efecto.",
+  "   - REPLACES: lo sustituye por completo.",
+  "   - REFERENCES: habla del mismo tema sin cambiarlo.",
+  "   - POTENTIAL_CONFLICT: lo que propone choca con lo que el articulo manda.",
+  "",
+  "4. `why`: una oracion sobre por que ESE articulo y no otro. Si no podes justificarlo, no lo incluyas.",
+  "",
+  "5. Respeta el orden: devolve un elemento por cada propuesta recibida, en el mismo orden, identificado por su `index`.",
   "",
   "Devolves EXCLUSIVAMENTE un objeto JSON valido con esta forma:",
-  '{"documentKind":"...","documentSummary":"...","organization":"..."|null,"authors":["..."],"proposals":[{"title":"...","summary":"...","areas":["..."],"sourcePages":[1],"evidenceQuote":"...","confidence":"alta|media|baja","articles":[{"number":"12","relationship":"MODIFIES","why":"..."}]}],"warnings":["..."]}'
+  '{"crossReferences":[{"index":0,"articles":[{"number":"12","relationship":"MODIFIES","why":"..."}]}]}'
 ].join("\n");
+
+const crossSchema = z.object({
+  crossReferences: z
+    .array(
+      z.object({
+        index: z.number().int().nonnegative(),
+        articles: z
+          .preprocess(
+            (raw) =>
+              Array.isArray(raw)
+                ? raw
+                    .map((item) => {
+                      if (!item || typeof item !== "object") return null;
+                      const entry = item as Record<string, unknown>;
+                      const relationship = normalizeEnumValue(entry.relationship, CROSS_RELATIONSHIPS);
+                      const number = typeof entry.number === "string" ? entry.number.trim() : String(entry.number ?? "").trim();
+                      if (!number || !relationship) return null;
+                      return { number, relationship, why: typeof entry.why === "string" ? entry.why.trim() : "" };
+                    })
+                    .filter(Boolean)
+                : [],
+            z.array(z.object({ number: z.string().trim().min(1).max(20), relationship: z.enum(CROSS_RELATIONSHIPS), why: z.string().trim().max(600) })).max(8)
+          )
+          .default([])
+      })
+    )
+    .max(20)
+    .default([])
+});
+
+/**
+ * Cruza propuestas YA detectadas contra el Codigo. Segunda llamada, aparte de la
+ * deteccion (ver CROSS_SYSTEM_PROMPT: mezclarlas rompia la deteccion).
+ *
+ * Recibe las propuestas, no el PDF: al modelo le alcanza con el titulo y el
+ * resumen para decidir que articulo toca, y asi la llamada es corta y barata.
+ *
+ * Devuelve un mapa indice-de-propuesta -> articulos, ya filtrados contra el
+ * indice real: un numero inventado es peor que ningun cruce.
+ */
+async function crossReferenceProposals(
+  proposals: Array<{ title: string; summary: string }>,
+  codeIndex: CodeArticleIndexEntry[]
+): Promise<Map<number, ProposalCrossReference[]>> {
+  const response = await askUrbanAssistant(
+    [
+      { role: "system", content: CROSS_SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: [
+          "=== ARTICULOS DEL CODIGO DE PLANEAMIENTO ===",
+          formatCodeIndex(codeIndex),
+          "",
+          "=== PROPUESTAS A CRUZAR ===",
+          proposals.map((proposal, index) => `[${index}] ${proposal.title}\n${proposal.summary}`).join("\n\n"),
+          "",
+          "Devolve el JSON pedido, con un elemento por propuesta."
+        ].join("\n")
+      }
+    ],
+    { model: process.env.OPENROUTER_CPU_MODEL || "openai/gpt-4o", json: true, temperature: 0.1, maxTokens: 2000 }
+  );
+
+  const parsed = crossSchema.safeParse(JSON.parse(response.answer));
+  if (!parsed.success) return new Map();
+
+  const validNumbers = new Set(codeIndex.map((entry) => entry.number));
+  const result = new Map<number, ProposalCrossReference[]>();
+  for (const entry of parsed.data.crossReferences) {
+    if (entry.index >= proposals.length) continue;
+    result.set(
+      entry.index,
+      entry.articles.filter((article) => validNumbers.has(article.number))
+    );
+  }
+  return result;
+}
 
 /**
  * Lee el PDF y le pide al modelo que identifique las propuestas.
@@ -260,19 +345,11 @@ export async function analyzeReformDocument(input: {
         content: [
           `Reforma: ${input.reformTitle}`,
           "",
-          codeIndex.length
-            ? [
-                "=== ARTICULOS DEL CODIGO DE PLANEAMIENTO VIGENTE ===",
-                "Son los UNICOS que podes citar en `articles`. Si el que corresponderia no esta, no cites ninguno.",
-                formatCodeIndex(codeIndex),
-                ""
-              ].join("\n")
-            : "",
           "=== TEXTO EXTRAIDO DEL DOCUMENTO ===",
           documentText,
           "",
           extracted.truncated ? "AVISO: el texto se recorto por longitud; puede faltar el final del documento." : "",
-          codeIndex.length ? "Analiza el documento y devolve el JSON pedido, con el cruce contra los articulos de la lista." : "Analiza el documento y devolve el JSON pedido. Deja `articles` vacio: no recibiste el codigo.",
+          "Analiza el documento y devolve el JSON pedido."
         ]
           .filter(Boolean)
           .join("\n")
@@ -310,25 +387,22 @@ export async function analyzeReformDocument(input: {
   });
 
   /*
-   * Segunda validacion del cruce: el articulo tiene que EXISTIR en el codigo.
+   * Segunda pasada: el cruce con el Codigo, en su propia llamada.
    *
-   * Es el mismo criterio que la verificacion de citas, y por el mismo motivo:
-   * un numero de articulo inventado es peor que ningun cruce, porque induce a
-   * redactar una modificacion contra un texto que dice otra cosa. La propuesta
-   * NO se descarta --sigue siendo valida-- pero pierde el cruce que no se pudo
-   * comprobar, y queda dicho en warnings.
+   * Solo si hay propuestas y hay indice. Si falla, el analisis NO falla: se
+   * devuelven las propuestas sin cruce y queda el aviso. Perder el cruce es
+   * molesto; perder las propuestas de un PDF de 24 paginas, no.
    */
-  const validNumbers = new Set(codeIndex.map((entry) => entry.number));
-  const proposals = validProposals.map((proposal) => {
-    const articles = proposal.articles.filter((article) => {
-      if (validNumbers.has(article.number)) return true;
-      warnings.push(
-        `En "${proposal.title}" se descartó el cruce con el art. ${article.number}: no existe en el Código cargado.`
-      );
-      return false;
-    });
-    return { ...proposal, articles };
-  });
+  let proposals = validProposals.map((proposal) => ({ ...proposal, articles: [] as ProposalCrossReference[] }));
+  if (codeIndex.length && proposals.length) {
+    try {
+      const cross = await crossReferenceProposals(proposals, codeIndex);
+      proposals = proposals.map((proposal, index) => ({ ...proposal, articles: cross.get(index) ?? [] }));
+    } catch (error) {
+      console.error("No se pudo cruzar contra el Codigo", error);
+      warnings.push("No se pudo cruzar las propuestas contra el Código. Las propuestas siguen siendo válidas.");
+    }
+  }
 
   if (extracted.pages > extracted.readPages) {
     warnings.push(`Se leyeron las primeras ${extracted.readPages} de ${extracted.pages} páginas.`);
