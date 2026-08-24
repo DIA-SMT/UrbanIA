@@ -378,4 +378,7 @@ export type ReformDocumentView = {
   uploadedAt: string;
   /** Cuantas normas salieron de este PDF. 0 = quedo solo como antecedente. */
   normCount: number;
+  /** Audiencia donde se presento. Null en los cargados antes de la regla. */
+  meetingId: string | null;
+  meetingTitle: string | null;
 };

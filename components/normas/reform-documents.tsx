@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, FileText, Loader2, Trash2 } from "lucide-react";
+import { CalendarClock, Check, ExternalLink, FileText, Loader2, Trash2, TriangleAlert } from "lucide-react";
+import { asignarAudienciaADocumento } from "@/lib/normas/actions";
 import type { ReformDocumentView } from "@/lib/projects/shared";
+
+export type MeetingOption = { id: string; title: string; occurredAt: string | null };
 
 const KIND_LABELS: Record<string, string> = {
   PROPUESTA_NORMATIVA: "Propuesta normativa",
@@ -28,15 +31,32 @@ function formatSize(bytes: number | null): string {
 export function ReformDocuments({
   reformId,
   documents,
+  meetings = [],
   canEdit
 }: {
   reformId: string;
   documents: ReformDocumentView[];
+  /** Audiencias a las que se puede asignar cada documento. */
+  meetings?: MeetingOption[];
   canEdit: boolean;
 }) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+  const sinAsignar = documents.filter((document) => !document.meetingId).length;
+
+  function asignar(document: ReformDocumentView, meetingId: string) {
+    setError("");
+    setSavingId(document.id);
+    startTransition(async () => {
+      const result = await asignarAudienciaADocumento(document.id, meetingId || null);
+      if (!result.ok) setError(result.error);
+      else router.refresh();
+      setSavingId(null);
+    });
+  }
 
   async function remove(document: ReformDocumentView) {
     if (!window.confirm(`¿Eliminar "${document.name}" de los antecedentes? Se borra el archivo de forma permanente.`)) return;
@@ -74,6 +94,22 @@ export function ReformDocuments({
         Documentos aportados a la reforma. Los que no produjeron normas se conservan igual: son parte del expediente de la audiencia.
       </p>
 
+      {/* Estos PDF se cargaron cuando el documento colgaba solo de la reforma,
+          asi que no tienen audiencia. No se puede resolver automaticamente: los
+          nombres dan pistas pero adivinar mal ensucia un expediente publico. */}
+      {canEdit && sinAsignar > 0 && meetings.length > 0 ? (
+        <div className="mb-3 rounded-md border border-amber-300/25 bg-amber-300/10 px-3 py-2">
+          <p className="inline-flex items-center gap-2 text-xs font-black text-amber-100">
+            <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
+            {sinAsignar} {sinAsignar === 1 ? "documento sin audiencia" : "documentos sin audiencia"}
+          </p>
+          <p className="mt-1 text-[11px] leading-5 text-amber-100/80">
+            Elegí en qué audiencia se presentó cada uno. Es lo que lo vuelve parte de ese expediente y permite ver el cruce con el Código
+            desde la audiencia.
+          </p>
+        </div>
+      ) : null}
+
       {error ? <p className="mb-2 text-xs font-bold text-amber-200">{error}</p> : null}
 
       <div className="grid gap-2">
@@ -103,6 +139,38 @@ export function ReformDocuments({
                 </p>
                 {document.summary ? (
                   <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-400">{document.summary}</p>
+                ) : null}
+
+                {/* La audiencia donde se presento. Con permiso de edicion es un
+                    select para poder corregirla; sin permiso, solo se lee. */}
+                {canEdit && meetings.length > 0 ? (
+                  <label className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold">
+                    <span className="inline-flex items-center gap-1 text-slate-500">
+                      <CalendarClock className="h-3 w-3" />
+                      Se presentó en
+                    </span>
+                    <select
+                      value={document.meetingId ?? ""}
+                      disabled={savingId === document.id}
+                      onChange={(event) => asignar(document, event.target.value)}
+                      className="min-w-0 max-w-full rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] font-bold text-slate-200 outline-none focus:border-sky-300/40 disabled:opacity-60"
+                    >
+                      <option value="">— Sin asignar —</option>
+                      {meetings.map((meeting) => (
+                        <option key={meeting.id} value={meeting.id}>
+                          {meeting.title}
+                          {meeting.occurredAt ? ` · ${new Date(meeting.occurredAt).toLocaleDateString("es-AR")}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {savingId === document.id ? <Loader2 className="h-3 w-3 animate-spin text-sky-200" /> : null}
+                    {savingId !== document.id && document.meetingId ? <Check className="h-3 w-3 text-emerald-300" /> : null}
+                  </label>
+                ) : document.meetingTitle ? (
+                  <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-slate-400">
+                    <CalendarClock className="h-3 w-3" />
+                    Se presentó en {document.meetingTitle}
+                  </p>
                 ) : null}
               </div>
               <div className="flex shrink-0 items-center gap-1">

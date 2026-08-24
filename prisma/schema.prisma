@@ -711,6 +711,8 @@ model Meeting {
   publicSummaryPath  String?
   publicSummaryAt    DateTime?
   /// Presente solo si kind=PUBLIC_HEARING.
+  /// Documentos presentados en esta audiencia que aportan a la reforma.
+  reformDocuments    ReformDocument[]
   hearingRecord      HearingRecord?
 
   @@index([reformId])
@@ -1181,6 +1183,12 @@ model NormativeReform {
 model ReformDocument {
   id           String   @id @default(cuid())
   reformId     String
+  /// Audiencia en la que se presentó este documento. Es el dueño real: un PDF
+  /// llega a la reforma PORQUE alguien lo expuso en una audiencia, así que el
+  /// expediente de esa audiencia es su lugar. Nullable por los que se cargaron
+  /// antes de esta regla, que hay que asignar a mano.
+  meetingId    String?
+  meeting      Meeting? @relation(fields: [meetingId], references: [id], onDelete: SetNull)
   name         String
   type         String
   url          String?
@@ -1201,6 +1209,7 @@ model ReformDocument {
   reform       NormativeReform @relation(fields: [reformId], references: [id], onDelete: Cascade)
 
   @@index([reformId])
+  @@index([meetingId])
   @@index([sha256])
 }
 

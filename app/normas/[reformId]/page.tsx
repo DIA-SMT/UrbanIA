@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
 import { canViewInternal, getSessionActor, hasPermission } from "@/lib/auth/api";
-import { getReform, listReformDocuments } from "@/lib/projects/data";
+import { getReform, listMeetingsForDocuments, listReformDocuments } from "@/lib/projects/data";
 import { NormsBoard } from "@/components/normas/norms-board";
 import { SessionActorProvider } from "@/components/normas/session-actor";
 
@@ -19,9 +19,11 @@ export default async function ReformPage({ params }: { params: Promise<{ reformI
   // Pantalla interna: el rol Consulta la lee, los ciudadanos no entran.
   if (!canViewInternal(actor)) redirect("/");
 
-  const [reform, documents] = await Promise.all([
+  const [reform, documents, meetings] = await Promise.all([
     getReform(reformId).catch(() => null),
-    listReformDocuments(reformId).catch(() => [])
+    listReformDocuments(reformId).catch(() => []),
+    // Para poder decir en que audiencia se presento cada documento.
+    listMeetingsForDocuments(reformId).catch(() => [])
   ]);
   if (!reform) notFound();
 
@@ -30,7 +32,7 @@ export default async function ReformPage({ params }: { params: Promise<{ reformI
   return (
     <AppShell>
       <SessionActorProvider actor={{ userId: actor.userId, name: actor.name }}>
-        <NormsBoard reform={reform} canEdit={canEdit} documents={documents} />
+        <NormsBoard reform={reform} canEdit={canEdit} documents={documents} meetings={meetings} />
       </SessionActorProvider>
     </AppShell>
   );

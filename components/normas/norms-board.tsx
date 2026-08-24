@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { AuthorLine, FilterBar, FilterChip, FilterGroup, MetricStrip } from "@/components/ui/board-ui";
 import { SupportControls } from "@/components/normas/support-controls";
 import { SessionActorBar } from "@/components/normas/session-actor";
-import { ReformDocuments } from "@/components/normas/reform-documents";
+import { ReformDocuments, type MeetingOption } from "@/components/normas/reform-documents";
 import {
   conflictLevelLabels,
   conflictLevelStyles,
@@ -31,12 +31,15 @@ type MateriaFilter = MunicipalArea | "ALL";
 export function NormsBoard({
   reform,
   canEdit,
-  documents = []
+  documents = [],
+  meetings = []
 }: {
   reform: ReformDetail;
   canEdit: boolean;
   /** PDFs aportados a la reforma, hayan producido normas o no. */
   documents?: ReformDocumentView[];
+  /** Audiencias donde pudo presentarse cada documento. */
+  meetings?: MeetingOption[];
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<StatusFilter>("ALL");
@@ -203,7 +206,7 @@ export function NormsBoard({
         )}
       </section>
 
-      <ReformDocuments reformId={reform.id} documents={documents} canEdit={canEdit} />
+      <ReformDocuments reformId={reform.id} documents={documents} meetings={meetings} canEdit={canEdit} />
     </div>
   );
 }
