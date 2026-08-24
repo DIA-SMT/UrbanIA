@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { HearingFields } from "@/components/hearings/live/hearing-fields";
 import { ConclusionsFields } from "@/components/hearings/conclusions-fields";
-import { HearingDocuments } from "@/components/hearings/hearing-documents";
+import { HearingDocuments, type MeetingOption } from "@/components/hearings/hearing-documents";
 import { AudioAnalysisPanel } from "@/components/hearings/audio-analysis-panel";
 import { GuidedTour, TourButton, useGuidedTour, type TourStep } from "@/components/help/guided-tour";
 import {
@@ -127,7 +127,8 @@ export function HearingDetail({
   canPublish = false,
   canUploadDocs = false,
   canDeleteDocs = false,
-  aiAvailable = false
+  aiAvailable = false,
+  meetings = []
 }: {
   hearing: HearingDetailData;
   /** hearings.edit: ficha, conclusiones, continuar en vivo. */
@@ -140,6 +141,8 @@ export function HearingDetail({
   canUploadDocs?: boolean;
   canDeleteDocs?: boolean;
   aiAvailable?: boolean;
+  /** Otras audiencias, para corregir a cuál pertenece un documento. */
+  meetings?: MeetingOption[];
 }) {
   const router = useRouter();
   // Se puede continuar dictando aunque sea tema libre (sin código nuevo).
@@ -877,7 +880,7 @@ export function HearingDetail({
       ) : null}
 
       <div data-tour="documentos">
-        <HearingDocuments hearingId={hearing.id} documents={hearing.documents} canUpload={canUploadDocs} canDelete={canDeleteDocs} />
+        <HearingDocuments hearingId={hearing.id} documents={hearing.documents} meetings={meetings} canUpload={canUploadDocs} canDelete={canDeleteDocs} />
       </div>
 
       {hasExtra ? (

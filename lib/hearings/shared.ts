@@ -243,6 +243,22 @@ export type HearingDocumentView = {
   mimeType: string | null;
   sizeBytes: number | null;
   uploadedAt: string | null;
+  /*
+   * Lo que sigue solo lo traen los documentos que pasaron por el analisis de la
+   * Fabrica de Normas (los que antes vivian como "antecedentes" de la reforma).
+   * Los del expediente formal --actas, convocatoria-- no tienen nada de esto, y
+   * por eso es opcional: la seccion los muestra juntos y cada uno ensena lo que
+   * tiene.
+   */
+  /** PROPUESTA_NORMATIVA | DIAGNOSTICO_TECNICO | PONENCIA_ACADEMICA | ... */
+  documentKind?: string | null;
+  /** Que dice el documento, en 2-4 oraciones (lo propuso la IA). */
+  summary?: string | null;
+  pageCount?: number | null;
+  /** Cuantas normas se fabricaron a partir de este PDF. */
+  normCount?: number;
+  /** De donde sale la fila, para saber que se puede hacer con ella. */
+  origin?: "expediente" | "material";
 };
 
 export type HearingActionItemView = {

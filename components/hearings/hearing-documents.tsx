@@ -1,10 +1,23 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Loader2, Paperclip, Trash2, Upload } from "lucide-react";
+import { CalendarClock, Download, Loader2, Paperclip, Trash2, Upload } from "lucide-react";
 import { uploadToBucket } from "@/components/shared/upload-to-bucket";
+import { asignarAudienciaADocumento } from "@/lib/normas/actions";
 import type { HearingDocumentView } from "@/lib/hearings/shared";
+
+/** Audiencia a la que se puede mover un documento. */
+export type MeetingOption = { id: string; title: string; occurredAt: string | null };
+
+/** Como clasifica la IA el material presentado (lib/normas/analyze-document). */
+const KIND_LABELS: Record<string, string> = {
+  PROPUESTA_NORMATIVA: "Propuesta normativa",
+  DIAGNOSTICO_TECNICO: "Diagnóstico técnico",
+  PRESENTACION_INSTITUCIONAL: "Presentación institucional",
+  PONENCIA_ACADEMICA: "Ponencia académica",
+  OTRO: "Otro"
+};
 
 // Debe coincidir con MAX_FILE_BYTES del handler de documentos Y con el limite
 // del bucket "audiencias" en Supabase (hay tres lugares y el bucket es el que
@@ -27,11 +40,14 @@ function formatSize(bytes: number | null): string {
 export function HearingDocuments({
   hearingId,
   documents,
+  meetings = [],
   canUpload,
   canDelete
 }: {
   hearingId: string;
   documents: HearingDocumentView[];
+  /** Otras audiencias, para poder corregir a cual pertenece un documento. */
+  meetings?: MeetingOption[];
   /** documents.upload */
   canUpload: boolean;
   /** documents.delete: el tacho es un permiso aparte del de subir. */
@@ -41,8 +57,23 @@ export function HearingDocuments({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [movingId, setMovingId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+
+  /** Manda el documento a otra audiencia (se asigna a mano, hay que poder corregir). */
+  function mover(document: HearingDocumentView, meetingId: string) {
+    if (meetingId === hearingId) return;
+    setError("");
+    setMovingId(document.id);
+    startTransition(async () => {
+      const result = await asignarAudienciaADocumento(document.id, meetingId);
+      if (!result.ok) setError(result.error);
+      else router.refresh();
+      setMovingId(null);
+    });
+  }
 
   /**
    * Subida directa al bucket en tres pasos (firmar → PUT → registrar): el
@@ -155,7 +186,8 @@ export function HearingDocuments({
             // grid (min-width: auto del item) y desborda la pagina, porque
             // `truncate` recorta lo visible pero no lo que el texto mide. Mismo
             // bug que ya mordio en los antecedentes de la reforma.
-            <div key={document.id} className="flex min-w-0 items-center justify-between gap-3 rounded-md border border-white/8 bg-white/[0.03] px-3 py-2">
+            <div key={document.id} className="min-w-0 rounded-md border border-white/8 bg-white/[0.03] px-3 py-2">
+              <div className="flex min-w-0 items-center justify-between gap-3">
               <a
                 href={document.url}
                 target="_blank"
@@ -188,6 +220,55 @@ export function HearingDocuments({
                   </button>
                 ) : null}
               </div>
+              </div>
+
+              {/* Lo que sigue solo lo tiene el material que paso por el analisis
+                  de la Fabrica: el expediente formal (actas) no trae nada de
+                  esto y la fila se queda en una linea, como antes. */}
+              {document.documentKind || document.summary || document.normCount ? (
+                <>
+                  <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-slate-400">
+                    {document.documentKind ? <span>{KIND_LABELS[document.documentKind] ?? document.documentKind}</span> : null}
+                    {document.pageCount ? <span>{document.pageCount} págs.</span> : null}
+                    {document.normCount ? (
+                      <span className="text-sky-200">
+                        {document.normCount} {document.normCount === 1 ? "norma fabricada" : "normas fabricadas"}
+                      </span>
+                    ) : (
+                      <span className="text-slate-500">Sin normas · antecedente</span>
+                    )}
+                  </p>
+                  {document.summary ? (
+                    <p className="mt-1.5 line-clamp-3 text-xs leading-5 text-slate-400">{document.summary}</p>
+                  ) : null}
+
+                  {/* Corregir la audiencia: el documento se asigna a mano, asi
+                      que tiene que poder moverse sin borrarlo y volver a
+                      subirlo. Solo para el material, no para el expediente. */}
+                  {canDelete && meetings.length > 0 && document.origin === "material" ? (
+                    <label className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold">
+                      <span className="inline-flex items-center gap-1 text-slate-500">
+                        <CalendarClock className="h-3 w-3" />
+                        Se presentó en
+                      </span>
+                      <select
+                        value={hearingId}
+                        disabled={movingId === document.id}
+                        onChange={(event) => mover(document, event.target.value)}
+                        className="min-w-0 max-w-full rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] font-bold text-slate-200 outline-none focus:border-sky-300/40 disabled:opacity-60"
+                      >
+                        {meetings.map((meeting) => (
+                          <option key={meeting.id} value={meeting.id}>
+                            {meeting.title}
+                            {meeting.occurredAt ? ` · ${new Date(meeting.occurredAt).toLocaleDateString("es-AR")}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {movingId === document.id ? <Loader2 className="h-3 w-3 animate-spin text-sky-200" /> : null}
+                    </label>
+                  ) : null}
+                </>
+              ) : null}
             </div>
           ))}
         </div>

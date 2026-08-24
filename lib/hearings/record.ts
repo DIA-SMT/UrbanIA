@@ -142,7 +142,10 @@ export function documentsFromRecord(documents: HearingDocument[]): HearingDocume
       storagePath: doc.storagePath ?? "",
       mimeType: doc.type || null,
       sizeBytes: doc.sizeBytes,
-      uploadedAt: doc.uploadedAt.toISOString()
+      uploadedAt: doc.uploadedAt.toISOString(),
+      // Expediente formal: actas, convocatoria, lo que acompana al acto. No pasa
+      // por el analisis de la Fabrica, asi que no trae resumen ni normas.
+      origin: "expediente" as const
     }));
 }
 

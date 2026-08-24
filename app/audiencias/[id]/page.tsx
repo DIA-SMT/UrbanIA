@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
 import { canViewInternal, getSessionUser, hasPermission } from "@/lib/auth/api";
 import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
-import { getHearing } from "@/lib/hearings/data";
+import { getHearing, listHearingsForDocuments } from "@/lib/hearings/data";
 import { HearingDetail } from "@/components/hearings/hearing-detail";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +20,10 @@ export default async function HearingDetailPage({ params }: { params: Promise<{ 
 
   const hearing = await getHearing(id).catch(() => null);
   if (!hearing) notFound();
+
+  // Las otras audiencias, para poder corregir a cual pertenece un documento: la
+  // asignacion la hace una persona y equivocarse tiene que ser reversible.
+  const meetings = await listHearingsForDocuments().catch(() => []);
 
   // Una bandera por permiso, no una sola para todo: esta pantalla dispara
   // operaciones de cuatro módulos distintos. Con un único `canEdit` quedaban
@@ -42,6 +46,7 @@ export default async function HearingDetailPage({ params }: { params: Promise<{ 
         canDelete={canDelete}
         canRunAi={canRunAi}
         canPublish={canPublish}
+        meetings={meetings}
         canUploadDocs={canUploadDocs}
         canDeleteDocs={canDeleteDocs}
         aiAvailable={hasOpenRouterConfig()}
