@@ -4,7 +4,11 @@ node_modules
 # cada build, asi que ensuciaba todos los commits y llego a dar un conflicto de
 # merge por si mismo.
 tsconfig.tsbuildinfo
+scripts/tsconfig.scripts.tsbuildinfo
 dist
+
+# Intermedios de los scripts de control visual (HTML antes del PDF, capturas).
+tmp/
 .env
 .env.local
 coverage

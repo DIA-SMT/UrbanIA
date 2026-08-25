@@ -267,7 +267,7 @@ const crossSchema = z.object({
  * Devuelve un mapa indice-de-propuesta -> articulos, ya filtrados contra el
  * indice real: un numero inventado es peor que ningun cruce.
  */
-async function crossReferenceProposals(
+export async function crossReferenceProposals(
   proposals: Array<{ title: string; summary: string }>,
   codeIndex: CodeArticleIndexEntry[]
 ): Promise<Map<number, ProposalCrossReference[]>> {

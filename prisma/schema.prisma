@@ -1201,6 +1201,10 @@ model ReformDocument {
   /// PROPUESTA_NORMATIVA | DIAGNOSTICO_TECNICO | PRESENTACION_INSTITUCIONAL |
   /// PONENCIA_ACADEMICA | OTRO
   documentKind String?
+  /// Quien presento el documento: el colegio, consejo, universidad u ONG. Es
+  /// el dato de "quien expuso" del resumen de la audiencia; lo detecta el
+  /// analisis y hasta ahora se descartaba al confirmar.
+  organization String?
   /// Cruce con el Codigo que devolvio el analisis: por cada propuesta, contra
   /// que articulos impacta y con que relacion. Se guarda TODO el cruce (no solo
   /// el de las propuestas aceptadas) porque tambien vale saber que toca un

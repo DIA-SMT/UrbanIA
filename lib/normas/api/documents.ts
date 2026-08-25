@@ -281,6 +281,11 @@ async function handleConfirm(body: unknown, id: string, userId: string) {
         pageCount: data.pageCount ?? null,
         summary: data.documentSummary ?? null,
         documentKind: data.documentKind ?? null,
+        // Quien expuso. El analisis ya lo detectaba y el cliente ya lo mandaba,
+        // pero solo se usaba para el texto de la nota de trazabilidad y despues
+        // se descartaba. Es el dato de "quienes expusieron" del resumen de la
+        // audiencia, asi que ahora queda guardado.
+        organization: data.organization ?? null,
         crossReferences: data.crossReferences.length ? data.crossReferences : undefined,
         sha256: data.sha256 ?? null,
         uploadedBy: session.userId
