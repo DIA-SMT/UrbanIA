@@ -4,7 +4,8 @@ import { MunicipalArea } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser, hasPermission } from "@/lib/auth/api";
 import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
-import { analyzeReformDocument, UnreadablePdfError, UnusableAnalysisError } from "@/lib/normas/analyze-document";
+import { analyzeReformDocument, CROSS_RELATIONSHIPS, UnreadablePdfError, UnusableAnalysisError } from "@/lib/normas/analyze-document";
+import { loadCodeIndex, resolveArticleIds } from "@/lib/normas/code-index";
 import { createNorm } from "@/lib/projects/data";
 import {
   createNormDocumentUploadUrl,
@@ -45,12 +46,21 @@ const analyzeSchema = z.object({
   storagePath: z.string().trim().min(1).max(400)
 });
 
+/** El cruce con el Codigo tal como lo devolvio el analisis. */
+const crossReferenceSchema = z.object({
+  number: z.string().trim().min(1).max(20),
+  relationship: z.enum(CROSS_RELATIONSHIPS),
+  why: z.string().trim().max(600).default("")
+});
+
 const acceptedProposalSchema = z.object({
   title: z.string().trim().min(1).max(200),
   summary: z.string().trim().min(1).max(8000),
   areas: z.array(z.nativeEnum(MunicipalArea)).max(9).default([]),
   sourcePages: z.array(z.number().int().positive()).max(40).default([]),
-  evidenceQuote: z.string().trim().max(1200).default("")
+  evidenceQuote: z.string().trim().max(1200).default(""),
+  /** Los articulos que esta propuesta toca: se anclan a la norma que se cree. */
+  articles: z.array(crossReferenceSchema).max(8).default([])
 });
 
 const confirmSchema = z.object({
@@ -66,7 +76,16 @@ const confirmSchema = z.object({
   organization: z.string().trim().max(200).nullish(),
   sha256: z.string().trim().max(80).nullish(),
   model: z.string().trim().max(120).nullish(),
-  acceptedProposals: z.array(acceptedProposalSchema).max(20).default([])
+  acceptedProposals: z.array(acceptedProposalSchema).max(20).default([]),
+  /**
+   * El cruce COMPLETO del documento, incluidas las propuestas que no se
+   * aceptaron: saber que articulos toca un PDF sirve aunque todavia no se haya
+   * fabricado ninguna norma.
+   */
+  crossReferences: z
+    .array(z.object({ proposalTitle: z.string().trim().max(200), articles: z.array(crossReferenceSchema).max(8) }))
+    .max(20)
+    .default([])
 });
 
 function formatSize(bytes: number): string {
@@ -202,7 +221,12 @@ async function handleAnalyze(body: unknown, reformId: string) {
     if (!reform) return NextResponse.json({ error: "Código nuevo no encontrado" }, { status: 404 });
 
     const bytes = await downloadNormDocument(parsed.data.storagePath);
-    return NextResponse.json(await analyzeReformDocument({ bytes, reformTitle: reform.title }));
+    // El indice del Codigo va al analisis para que el cruce se elija de una
+    // lista REAL. Si la tabla estuviera vacia, el analisis sigue y devuelve el
+    // cruce vacio: preferible a cruzar contra articulos inventados.
+    return NextResponse.json(
+      await analyzeReformDocument({ bytes, reformTitle: reform.title, codeIndex: await loadCodeIndex() })
+    );
   } catch (error) {
     // El PDF sin texto NO es un fallo del sistema: el archivo ya esta subido y
     // se puede guardar igual como antecedente.
@@ -257,6 +281,12 @@ async function handleConfirm(body: unknown, id: string, userId: string) {
         pageCount: data.pageCount ?? null,
         summary: data.documentSummary ?? null,
         documentKind: data.documentKind ?? null,
+        // Quien expuso. El analisis ya lo detectaba y el cliente ya lo mandaba,
+        // pero solo se usaba para el texto de la nota de trazabilidad y despues
+        // se descartaba. Es el dato de "quienes expusieron" del resumen de la
+        // audiencia, asi que ahora queda guardado.
+        organization: data.organization ?? null,
+        crossReferences: data.crossReferences.length ? data.crossReferences : undefined,
         sha256: data.sha256 ?? null,
         uploadedBy: session.userId
       }
@@ -305,6 +335,38 @@ async function handleConfirm(body: unknown, id: string, userId: string) {
           uploadedBy: session.userId
         }
       });
+
+      /*
+       * El ancla formal al Codigo. Esto es lo que convierte al cruce en algo
+       * util: la norma nueva queda ligada al articulo que modifica, con lo cual
+       * el diagnostico normativo y la vista de cambios pueden compararlos, y
+       * quien lea el articulo vigente ve que hay una reforma que lo toca.
+       *
+       * Los ids se resuelven contra la base --no se confia en el numero que
+       * mando el cliente-- y el unique de NormativeLink hace que reintentar sea
+       * inofensivo.
+       */
+      if (proposal.articles.length) {
+        const ids = await resolveArticleIds(proposal.articles.map((article) => article.number));
+        for (const article of proposal.articles) {
+          const articleId = ids.get(article.number);
+          if (!articleId) continue;
+          await prisma.normativeLink
+            .create({
+              data: {
+                sourceType: "project",
+                sourceId: norm.id,
+                articleId,
+                relationshipType: article.relationship,
+                notes: article.why || null,
+                createdBy: session.userId
+              }
+            })
+            .catch(() => {
+              // Ya existia (unique compuesto): el cruce ya esta asentado.
+            });
+        }
+      }
 
       norms.push({ id: norm.id, code: norm.code, title: norm.title });
     }

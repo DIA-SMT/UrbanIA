@@ -9,7 +9,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { AuthorLine, FilterBar, FilterChip, FilterGroup, MetricStrip } from "@/components/ui/board-ui";
 import { SupportControls } from "@/components/normas/support-controls";
 import { SessionActorBar } from "@/components/normas/session-actor";
-import { ReformDocuments } from "@/components/normas/reform-documents";
 import {
   conflictLevelLabels,
   conflictLevelStyles,
@@ -20,23 +19,26 @@ import {
   normVisibleStatuses,
   reformStatusLabels,
   type NormListItem,
-  type ReformDetail,
-  type ReformDocumentView
+  type ReformDetail
 } from "@/lib/projects/shared";
 
 type StatusFilter = ProjectStatus | "ALL";
 type MateriaFilter = MunicipalArea | "ALL";
 
-/** Interior de un codigo nuevo: sus normas, con filtros por estado y materia. */
+/*
+ * Interior de un codigo nuevo: sus normas, con filtros por estado y materia.
+ *
+ * Los PDF aportados NO se listan mas aca. Un documento llega a la reforma porque
+ * alguien lo expuso en una audiencia publica, asi que su lugar es el expediente
+ * de esa audiencia: se ve y se carga desde /audiencias/<id>. Lo que queda en la
+ * reforma son las normas, que es lo que la reforma produce.
+ */
 export function NormsBoard({
   reform,
-  canEdit,
-  documents = []
+  canEdit
 }: {
   reform: ReformDetail;
   canEdit: boolean;
-  /** PDFs aportados a la reforma, hayan producido normas o no. */
-  documents?: ReformDocumentView[];
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<StatusFilter>("ALL");
@@ -202,8 +204,6 @@ export function NormsBoard({
           />
         )}
       </section>
-
-      <ReformDocuments reformId={reform.id} documents={documents} canEdit={canEdit} />
     </div>
   );
 }

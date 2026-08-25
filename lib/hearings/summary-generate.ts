@@ -37,7 +37,7 @@ type Outline = {
   titulo: string;
   bajada: string;
   deQueSeTrata: string;
-  expositor: string;
+  expositores: string[];
   destinatario: string;
   estructura: string;
   secciones: OutlineSection[];
@@ -45,23 +45,44 @@ type Outline = {
   enSintesis: string;
 };
 
-function outlineContract(objetivo: number): string {
+/**
+ * Qué NO tiene que volver a escribir el modelo.
+ *
+ * Cuando la audiencia tiene documentos analizados, el resumen ya trae páginas
+ * con quiénes expusieron, qué propuso cada una y qué artículos del Código se
+ * tocan, armadas desde el expediente. Si nadie se lo dice, el modelo dedica sus
+ * secciones a re-enumerar eso mismo --con menos precisión y con riesgo de
+ * inventar-- y el debate de la sala queda sin contar.
+ */
+const REGISTERED_RULES = [
+  "IMPORTANTE — LO QUE YA ESTÁ ESCRITO:",
+  "Este documento YA incluye tres páginas armadas desde el expediente: quiénes expusieron, qué propuso cada organización (con su cita textual y los artículos que toca) y qué artículos del Código concentran las propuestas.",
+  "Tus secciones NO son para repetir esa enumeración. Son para contar lo que esas páginas no pueden: qué se discutió, qué argumentos se dieron, qué tensiones o desacuerdos aparecieron, qué preguntas quedaron abiertas y qué dijo quien habló sin presentar documento.",
+  "Podés apoyarte en las propuestas registradas cuando expliques un debate, pero nombrándolas al pasar, no listándolas."
+].join("\n");
+
+function outlineContract(objetivo: number, registrado: boolean): string {
   return [
   "Tu tarea AHORA es SOLO el esqueleto del documento (la redacción viene después, sección por sección).",
   "Respondé SOLO con un objeto JSON válido con esta forma exacta:",
-  `{"titulo": "...", "bajada": "...", "deQueSeTrata": "...", "expositor": "...", "destinatario": "...", "estructura": "I. ... · II. ...", "secciones": [{"titulo": "...", "foco": "qué debe cubrir esta sección y con qué datos concretos del material"}], "lineasDeAccion": ["..."], "enSintesis": "..."}`,
+  `{"titulo": "...", "bajada": "...", "deQueSeTrata": "...", "expositores": ["..."], "destinatario": "...", "estructura": "I. ... · II. ...", "secciones": [{"titulo": "...", "foco": "qué debe cubrir esta sección y con qué datos concretos del material"}], "lineasDeAccion": ["..."], "enSintesis": "..."}`,
   "- titulo: editorial, fiel al contenido central y de hasta 90 caracteres.",
   "- bajada: una sola oración de hasta 180 caracteres que permita entender el asunto y su relevancia pública.",
   "- deQueSeTrata: un único párrafo de 3 a 4 oraciones breves. Explicá el propósito de la audiencia, el problema tratado y qué información deja para la decisión municipal.",
-  "- expositor: nombre y rol sólo si constan en el material; si no, indicá 'No identificado en el material'.",
+  // Lista y no un nombre suelto: en estas audiencias exponen varias
+  // organizaciones, y pedir "el expositor" obligaba a elegir una.
+  "- expositores: las organizaciones, colegios, consejos, universidades o áreas que expusieron, tal como constan en el material. Sólo instituciones: NO incluyas nombres de personas. Si el material no identifica ninguna, devolvé una lista vacía.",
   "- destinatario: el área, autoridad o ámbito al que se dirige lo expuesto; si no consta, indicá 'Equipo municipal responsable'.",
   `- secciones: EXACTAMENTE ${objetivo}, cubriendo el material sin superposiciones. El 'foco' debe nombrar datos, cifras y referencias concretas disponibles para esa sección.`,
   "- Una sección por eje temático realmente tratado en la audiencia. Si se discutieron alturas, usos del suelo, movilidad, espacio público y patrimonio, cada uno merece la suya: no las agrupes en 'varios temas'.",
   "- Recorré el material COMPLETO al repartir las secciones. Cuando el material viene en tramos numerados, los del medio tienen que estar representados igual que el primero y el último.",
   "- lineasDeAccion: entre 3 y 5 medidas o decisiones que surjan expresamente del material. No conviertas una opinión general en una recomendación inventada.",
   "- enSintesis: cierre de 2 o 3 oraciones, sin viñetas, que reúna el hallazgo central y su consecuencia para la gestión. No agregues información nueva.",
+  registrado ? REGISTERED_RULES : "",
   DENSITY_RULES
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 const SECTION_CONTRACT = [
@@ -163,7 +184,7 @@ function normalizeOutline(value: unknown, objetivo: number): { outline: Outline 
       titulo,
       bajada,
       deQueSeTrata,
-      expositor: text(source.expositor) || "No identificado en el material",
+      expositores: textList(source.expositores, 12),
       destinatario: text(source.destinatario) || "Equipo municipal responsable",
       estructura:
         text(source.estructura) || sections.map((section, index) => `${roman[index]}. ${section.titulo}`).join(" · "),
@@ -175,7 +196,12 @@ function normalizeOutline(value: unknown, objetivo: number): { outline: Outline 
   };
 }
 
-async function generateOutline(material: string, model: string, objetivo: number): Promise<Outline> {
+async function generateOutline(
+  material: string,
+  model: string,
+  objetivo: number,
+  registrado: boolean
+): Promise<Outline> {
   let lastIssue = "respuesta vacía";
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -187,7 +213,7 @@ async function generateOutline(material: string, model: string, objetivo: number
       const response = await askUrbanAssistant(
         [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: `${material}\n\n${outlineContract(objetivo)}${correction}` }
+          { role: "user", content: `${material}\n\n${outlineContract(objetivo, registrado)}${correction}` }
         ],
         // Mas secciones necesitan mas tokens de esqueleto: con 1800 el JSON de
         // diez secciones se cortaba al medio y el intento se descartaba entero.
@@ -281,7 +307,10 @@ async function generateSection(
       const correction =
         attempt === 0
           ? ""
-          : `\n\nCORRECCIÓN OBLIGATORIA: el intento anterior fue inválido porque ${lastIssue}. Devolvé el objeto completo y exactamente 2 párrafos.`;
+          // Decía "exactamente 2 párrafos", de cuando el contrato pedía 2. Al
+          // subir el presupuesto a 3-4, la corrección contradecía al contrato y
+          // empujaba justo al resultado corto que se quería evitar.
+          : `\n\nCORRECCIÓN OBLIGATORIA: el intento anterior fue inválido porque ${lastIssue}. Devolvé el objeto completo, con entre 3 y 4 párrafos.`;
       const response = await askUrbanAssistant(
         [
           { role: "system", content: SYSTEM_PROMPT },
@@ -332,11 +361,14 @@ export function seccionesObjetivo(material: string): number {
   return 10;
 }
 
-export async function generateSummary(material: string, options: { model?: string } = {}): Promise<SummaryPayload> {
+export async function generateSummary(
+  material: string,
+  options: { model?: string; registrado?: boolean } = {}
+): Promise<SummaryPayload> {
   const model = options.model || process.env.OPENROUTER_CPU_MODEL || "openai/gpt-4o";
   const objetivo = seccionesObjetivo(material);
 
-  const outline = await generateOutline(material, model, objetivo);
+  const outline = await generateOutline(material, model, objetivo, options.registrado ?? false);
 
   // Dos secciones por tanda evitan una ráfaga de prompts extensos contra el
   // proveedor. Cada sección conserva sus propios reintentos y diagnóstico.
@@ -366,7 +398,7 @@ export async function generateSummary(material: string, options: { model?: strin
     titulo: outline.titulo,
     bajada: outline.bajada,
     deQueSeTrata: outline.deQueSeTrata,
-    expositor: outline.expositor,
+    expositores: outline.expositores,
     destinatario: outline.destinatario,
     estructura: outline.estructura,
     secciones: written,

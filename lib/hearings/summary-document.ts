@@ -1,7 +1,18 @@
 /**
- * Documento institucional de cuatro páginas para el resumen ejecutivo de una
- * audiencia. No importa módulos de servidor: recibe los logos ya embebidos y
- * también puede renderizarse desde scripts de control visual.
+ * Documento institucional para el resumen ejecutivo de una audiencia. No importa
+ * módulos de servidor: recibe los logos ya embebidos y también puede renderizarse
+ * desde scripts de control visual.
+ *
+ * El documento tiene dos mitades de distinto origen, y la diferencia importa:
+ *
+ *   - Lo REGISTRADO (quiénes expusieron, qué propuso cada una, qué artículos del
+ *     Código se tocan) sale del expediente: del análisis ya verificado de cada
+ *     PDF presentado. No lo redacta el modelo.
+ *   - Lo REDACTADO (de qué se trató, el debate de la sala, las líneas de acción,
+ *     el cierre) sí lo escribe el modelo sobre ese mismo material.
+ *
+ * Mantenerlas separadas es lo que permite poner nombres de organizaciones y
+ * citas textuales en un documento con membrete municipal.
  */
 
 export type SummaryBlock = {
@@ -16,16 +27,72 @@ export type SummarySection = SummaryBlock & {
   subsecciones?: SummaryBlock[];
 };
 
+/** Un artículo del Código alcanzado por una propuesta. */
+export type SummaryArticleRef = {
+  numero: string;
+  /** Qué regula el artículo, para no mostrar un número pelado. */
+  titulo: string;
+  /** "Modifica", "Deroga", "Posible conflicto con"… ya traducido. */
+  relacion: string;
+  porQue: string;
+};
+
+/** Quién expuso y qué trajo. */
+export type SummaryPresenter = {
+  organizacion: string;
+  documento: string;
+  /** Qué es el documento, en 2-4 oraciones. */
+  queTrajo: string;
+  /** PROPUESTA_NORMATIVA, DIAGNOSTICO_TECNICO… ya traducido, o null. */
+  tipo: string | null;
+  propuestas: number;
+};
+
+/** Una propuesta concreta, con la cita del PDF que la respalda. */
+export type SummaryProposal = {
+  organizacion: string;
+  documento: string;
+  titulo: string;
+  resumen: string;
+  cita: string;
+  paginas: number[];
+  articulos: SummaryArticleRef[];
+};
+
+/** Un artículo del Código y las propuestas que lo tocan. */
+export type SummaryArticleImpact = {
+  numero: string;
+  titulo: string;
+  propuestas: Array<{ organizacion: string; titulo: string; relacion: string }>;
+};
+
+/** Lo efectivamente presentado en la audiencia, ya verificado. */
+export type HearingSummaryMaterial = {
+  expositores: SummaryPresenter[];
+  propuestas: SummaryProposal[];
+  impacto: SummaryArticleImpact[];
+};
+
 export type SummaryPayload = {
   titulo: string;
   bajada: string;
   deQueSeTrata: string;
-  expositor: string;
+  /**
+   * Quiénes expusieron. Es una lista y no un nombre suelto porque en estas
+   * audiencias exponen varias organizaciones: el campo `expositor` en singular
+   * obligaba a elegir una y dejar afuera al resto.
+   */
+  expositores: string[];
   destinatario: string;
   estructura: string;
   secciones: SummarySection[];
   lineasDeAccion: string[];
   enSintesis: string;
+  /**
+   * Lo registrado. Opcional: una audiencia sin documentos presentados —o el
+   * script de control visual— produce el documento igual, sin estas páginas.
+   */
+  material?: HearingSummaryMaterial;
 };
 
 export type InstitutionalSummaryOptions = {
@@ -56,6 +123,11 @@ function clampText(value: string, maxLength: number): string {
   if (sentenceEnd >= Math.floor(maxLength * 0.55)) return clipped.slice(0, sentenceEnd + 1);
   const wordEnd = clipped.lastIndexOf(" ");
   return `${clipped.slice(0, Math.max(wordEnd, maxLength - 20)).trim()}...`;
+}
+
+/** Numeración de las partes del documento: 01, 02… y 10 sin cero adelante. */
+function sectionNumber(value: number): string {
+  return value < 10 ? `0${value}` : String(value);
 }
 
 function firstSentence(value: string): string {
@@ -126,7 +198,7 @@ function renderDataCards(data?: { valor: string; descripcion: string }[]): strin
     .join("")}</div>`;
 }
 
-function renderSummarySection(section: SummarySection, index: number): string {
+function renderSummarySection(section: SummarySection, numero: number): string {
   /*
    * Hasta 4 parrafos de 800 caracteres, contra los 2 de 560 de antes.
    *
@@ -150,7 +222,7 @@ function renderSummarySection(section: SummarySection, index: number): string {
 
   return [
     `<section class="summary-section">`,
-    renderSectionHeading(section.titulo, `0${index + 1}`),
+    renderSectionHeading(section.titulo, sectionNumber(numero)),
     paragraphs,
     renderDataCards(section.datos),
     highlight,
@@ -158,28 +230,49 @@ function renderSummarySection(section: SummarySection, index: number): string {
   ].join("");
 }
 
-function renderPageOne(payload: SummaryPayload, options: InstitutionalSummaryOptions, total: number): string {
+/** "Expositores" de la portada: dos nombres y el resto contados. */
+function presentersLabel(expositores: string[]): { valor: string; detalle: string } {
+  if (!expositores.length) return { valor: "No identificado en el material", detalle: "Identificación según el material" };
+  if (expositores.length === 1) return { valor: expositores[0], detalle: "Única organización expositora" };
+  const visibles = expositores.slice(0, 2).join(" · ");
+  const resto = expositores.length - 2;
+  return {
+    valor: resto > 0 ? `${visibles} +${resto}` : visibles,
+    detalle: `${expositores.length} organizaciones expusieron`
+  };
+}
+
+function renderPageOne(
+  payload: SummaryPayload,
+  options: InstitutionalSummaryOptions,
+  contenidos: Array<{ titulo: string; detalle: string }>,
+  total: number
+): string {
   const titleLength = Array.from(payload.titulo.trim()).length;
   const titleClass = titleLength > 72 ? " title-long" : titleLength > 52 ? " title-medium" : "";
-  const contentCards = payload.secciones
+  const contentCards = contenidos
     .slice(0, 4)
-    .map((section, index) => {
-      const detail = section.parrafos[0] ? firstSentence(section.parrafos[0]) : "Contenido verificado en el material de la audiencia.";
-      return [
+    .map((parte, index) =>
+      [
         `<article class="content-card accent-${index + 1}">`,
-        `<span>0${index + 1}</span>`,
-        `<div><h3>${escapeHtml(section.titulo)}</h3><p>${escapeHtml(detail)}</p></div>`,
+        `<span>${sectionNumber(index + 1)}</span>`,
+        `<div><h3>${escapeHtml(parte.titulo)}</h3><p>${escapeHtml(clampText(parte.detalle, 155))}</p></div>`,
         `</article>`
-      ].join("");
-    })
+      ].join("")
+    )
     .join("");
 
+  // El paso 2 nombra explícitamente que lo presentado NO lo redacta la IA. Es la
+  // diferencia que habilita a poner nombres de organizaciones y citas textuales
+  // en un documento con membrete municipal, y el lector tiene derecho a saberla.
   const steps = [
-    ["1", "Fuentes", "Reúne la transcripción y los documentos incorporados."],
-    ["2", "Evidencia", "Identifica hechos, cifras, referencias y posiciones expresas."],
-    ["3", "Síntesis", "Ordena los hallazgos por impacto ciudadano y municipal."],
+    ["1", "Fuentes", "Reúne la transcripción y los documentos presentados en la audiencia."],
+    ["2", "Registro", "Quiénes expusieron, sus propuestas y los artículos que tocan salen del expediente."],
+    ["3", "Síntesis", "La IA redacta el debate y las prioridades sobre ese material."],
     ["4", "Validación", "El equipo municipal revisa el borrador antes de circularlo."]
   ];
+
+  const expositores = presentersLabel(payload.expositores);
 
   return [
     `<section class="pdf-page cover-page">`,
@@ -200,7 +293,7 @@ function renderPageOne(payload: SummaryPayload, options: InstitutionalSummaryOpt
     `<p>${escapeHtml(clampText(payload.deQueSeTrata, 720))}</p>`,
     `<div class="context-grid">`,
     `<div><span>Audiencia</span><strong>${escapeHtml(clampText(options.hearingTitle, 80))}</strong><small>${escapeHtml(options.when)}</small></div>`,
-    `<div><span>Expositor</span><strong>${escapeHtml(clampText(payload.expositor, 80))}</strong><small>Identificación según el material</small></div>`,
+    `<div><span>Expositores</span><strong>${escapeHtml(clampText(expositores.valor, 80))}</strong><small>${escapeHtml(expositores.detalle)}</small></div>`,
     `<div><span>Destinatario</span><strong>${escapeHtml(clampText(payload.destinatario, 80))}</strong><small>Ámbito de decisión</small></div>`,
     `</div>`,
     `</section>`,
@@ -223,29 +316,237 @@ function renderPageOne(payload: SummaryPayload, options: InstitutionalSummaryOpt
   ].join("");
 }
 
-function renderSectionsPage(
-  payload: SummaryPayload,
+/** Una página de cuerpo: encabezado de continuación + contenido + pie. */
+function renderBodyPage(
+  title: string,
+  body: string,
   options: InstitutionalSummaryOptions,
   page: number,
-  title: string,
-  startIndex: number,
   total: number
 ): string {
-  // Una seccion por pagina: con el presupuesto nuevo (~2.600 caracteres) dos ya
-  // no entran en los 235 mm utiles del cuerpo, y el guard de exportacion tiraria
-  // "el documento excede el area imprimible".
-  const sections = renderSummarySection(payload.secciones[startIndex], startIndex);
-
   return [
     `<section class="pdf-page continuation-page page-${page}">`,
     renderContinuationHeader(title, options),
-    `<main class="continuation-body">${sections}</main>`,
+    `<main class="continuation-body">${body}</main>`,
     renderFooter(page, total, options),
     `</section>`
   ].join("");
 }
 
-function renderClosingPage(payload: SummaryPayload, options: InstitutionalSummaryOptions, total: number): string {
+/**
+ * Reparte una lista en páginas según cuánto ocupa cada elemento.
+ *
+ * Las páginas tienen alto fijo y `overflow: hidden`, y el exportador aborta si
+ * algo se sale (PdfOverflowError). Con contenido de largo variable --una
+ * organización puede traer una propuesta y otra ocho-- no alcanza con un número
+ * fijo de elementos por página: se estima el alto de cada uno en milímetros y se
+ * corta cuando se acaba el papel. Un elemento que por sí solo excede el
+ * presupuesto igual entra en su página, solo; para eso está el clamp de cada
+ * campo, que acota cuánto puede crecer.
+ *
+ * El reparto es PAREJO y no goloso. Con el tope duro a secas, la última página
+ * se quedaba con lo que sobró: en la prueba de control, una tabla de catorce
+ * filas daba una página al 99% y otra con una fila suelta, que se lee como un
+ * error de armado. Se calcula primero cuántas páginas hacen falta y después se
+ * reparte el total entre ellas.
+ */
+function paginate<T>(items: T[], presupuesto: number, alto: (item: T) => number): T[][] {
+  const costos = items.map(alto);
+  const total = costos.reduce((suma, costo) => suma + costo, 0);
+  const necesarias = Math.max(1, Math.ceil(total / presupuesto));
+  const objetivo = total / necesarias;
+
+  const paginas: T[][] = [];
+  let actual: T[] = [];
+  let usado = 0;
+  for (let indice = 0; indice < items.length; indice += 1) {
+    const costo = costos[indice];
+    // Mientras queden páginas por abrir se reparte contra el objetivo, pero
+    // midiendo el elemento por su MITAD: cortar apenas el objetivo se pasa
+    // desperdicia casi un elemento por página y termina necesitando más páginas
+    // que las calculadas, con lo cual el desbalance vuelve por otro lado.
+    const repartiendo = paginas.length + 1 < necesarias;
+    const cierra = usado + costo > presupuesto || (repartiendo && usado + costo / 2 > objetivo);
+    if (actual.length && cierra) {
+      paginas.push(actual);
+      actual = [];
+      usado = 0;
+    }
+    actual.push(items[indice]);
+    usado += costo;
+  }
+  if (actual.length) paginas.push(actual);
+  return paginas;
+}
+
+/*
+ * Alto útil del cuerpo de una página de continuación y lo que se lleva su
+ * encabezado (título de sección + párrafo de entrada). Medidos con
+ * `npm run pdf:sample:audiencia`, que renderiza el peor caso realista y hace
+ * pasar el guard de desborde del exportador.
+ */
+const CUERPO_MM = 235;
+const ENCABEZADO_MM = 26;
+/*
+ * El aire entre dos secciones registradas que comparten hoja: 7 mm de margen y
+ * 6 mm de espacio sobre la línea divisoria. Sin contarlo, dos secciones que
+ * "entraban" por 10 mm se pasaban de la caja imprimible y el exportador abortaba
+ * el resumen entero (pasó con la 2ª y la 6ª audiencia).
+ */
+const SEPARADOR_MM = 13;
+
+function renderRecordHeading(titulo: string, numero: number, intro: string, continuacion: boolean): string {
+  return [
+    renderSectionHeading(continuacion ? `${titulo} (continúa)` : titulo, sectionNumber(numero)),
+    intro && !continuacion ? `<p class="section-intro">${escapeHtml(intro)}</p>` : ""
+  ].join("");
+}
+
+/**
+ * True si el nombre de quien expuso salió del nombre del archivo.
+ *
+ * Cuando el análisis no identificó la organización se cae al nombre del archivo,
+ * que al menos dice de qué documento se trata. Pero entonces el encabezado y la
+ * referencia al archivo dicen lo mismo dos veces, y peor: un nombre de archivo
+ * puesto donde va una institución se lee como si fuera una institución. Cuando
+ * pasa, se aclara.
+ */
+function nombreDeArchivo(organizacion: string, documento: string): boolean {
+  const limpio = (value: string) => value.replace(/\.[a-z0-9]+$/i, "").replace(/[_\-\s]+/g, " ").trim().toLowerCase();
+  return limpio(organizacion) === limpio(documento);
+}
+
+/** 03 · Quiénes expusieron: una tarjeta por organización. */
+function renderPresentersBody(presenters: SummaryPresenter[], numero: number, continuacion: boolean, intro: string): string {
+  const cards = presenters
+    .map((presenter) => {
+      const anonima = nombreDeArchivo(presenter.organizacion, presenter.documento);
+      const referencia = anonima
+        ? "Organización no identificada en el documento"
+        : clampText(presenter.documento, 70);
+      return [
+        `<article class="presenter-card">`,
+        `<header><h3>${escapeHtml(clampText(presenter.organizacion, 90))}</h3>`,
+        presenter.propuestas
+          ? `<span class="presenter-tag">${presenter.propuestas} ${presenter.propuestas === 1 ? "propuesta" : "propuestas"}</span>`
+          : `<span class="presenter-tag presenter-tag-muted">Sin propuestas</span>`,
+        `</header>`,
+        `<small>${escapeHtml(referencia)}${presenter.tipo ? ` · ${escapeHtml(presenter.tipo)}` : ""}</small>`,
+        presenter.queTrajo ? `<p>${escapeHtml(clampText(presenter.queTrajo, 380))}</p>` : "",
+        `</article>`
+      ].join("");
+    })
+    .join("");
+
+  return [
+    `<section class="record-section">`,
+    renderRecordHeading("Quiénes expusieron", numero, intro, continuacion),
+    `<div class="presenter-grid">${cards}</div>`,
+    `</section>`
+  ].join("");
+}
+
+/** 04 · Qué propuso cada una: agrupado por organización, con su cita textual. */
+function renderProposalsBody(
+  proposals: SummaryProposal[],
+  numero: number,
+  continuacion: boolean,
+  intro: string
+): string {
+  const grupos: Array<{ organizacion: string; documento: string; items: SummaryProposal[] }> = [];
+  for (const proposal of proposals) {
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.organizacion === proposal.organizacion) ultimo.items.push(proposal);
+    else grupos.push({ organizacion: proposal.organizacion, documento: proposal.documento, items: [proposal] });
+  }
+
+  const bloques = grupos
+    .map((grupo) =>
+      [
+        `<div class="proposal-group">`,
+        `<h3 class="proposal-org">${escapeHtml(clampText(grupo.organizacion, 90))}<small>${escapeHtml(
+          nombreDeArchivo(grupo.organizacion, grupo.documento)
+            ? "Organización no identificada en el documento"
+            : clampText(grupo.documento, 70)
+        )}</small></h3>`,
+        ...grupo.items.map((proposal) =>
+          [
+            `<article class="proposal-card">`,
+            `<h4>${escapeHtml(clampText(proposal.titulo, 130))}</h4>`,
+            proposal.resumen ? `<p>${escapeHtml(clampText(proposal.resumen, 400))}</p>` : "",
+            proposal.cita
+              ? `<blockquote>${escapeHtml(clampText(proposal.cita, 260))}${
+                  proposal.paginas.length
+                    ? `<cite>${proposal.paginas.length === 1 ? "Página" : "Páginas"} ${proposal.paginas.join(", ")}</cite>`
+                    : ""
+                }</blockquote>`
+              : "",
+            proposal.articulos.length
+              ? `<ul class="article-chips">${proposal.articulos
+                  .slice(0, 4)
+                  .map(
+                    (articulo) =>
+                      `<li><b>${escapeHtml(articulo.relacion)}</b> art. ${escapeHtml(articulo.numero)}${
+                        articulo.titulo ? ` — ${escapeHtml(clampText(articulo.titulo, 60))}` : ""
+                      }</li>`
+                  )
+                  .join("")}</ul>`
+              : `<p class="article-chips-empty">No modifica ningún artículo vigente: propone regular algo que el Código no contempla.</p>`,
+            `</article>`
+          ].join("")
+        ),
+        `</div>`
+      ].join("")
+    )
+    .join("");
+
+  return [
+    `<section class="record-section">`,
+    renderRecordHeading("Qué propuso cada una", numero, intro, continuacion),
+    bloques,
+    `</section>`
+  ].join("");
+}
+
+/** 05 · Qué artículos del Código se tocan: la vista agregada. */
+function renderImpactBody(
+  impacto: SummaryArticleImpact[],
+  numero: number,
+  continuacion: boolean,
+  intro: string
+): string {
+  const filas = impacto
+    .map((articulo) => {
+      const organizaciones = [...new Set(articulo.propuestas.map((proposal) => proposal.organizacion))];
+      const relaciones = [...new Set(articulo.propuestas.map((proposal) => proposal.relacion))];
+      return [
+        `<tr>`,
+        `<td class="impact-number">Art. ${escapeHtml(articulo.numero)}</td>`,
+        `<td>${escapeHtml(clampText(articulo.titulo || "Sin título en el Código", 110))}</td>`,
+        `<td class="impact-count">${articulo.propuestas.length}</td>`,
+        `<td>${escapeHtml(clampText(organizaciones.join(" · "), 150))}<small>${escapeHtml(relaciones.join(" · "))}</small></td>`,
+        `</tr>`
+      ].join("");
+    })
+    .join("");
+
+  return [
+    `<section class="record-section">`,
+    renderRecordHeading("Qué artículos del Código se tocan", numero, intro, continuacion),
+    `<table class="impact-table">`,
+    `<thead><tr><th>Artículo</th><th>Qué regula hoy</th><th>Propuestas</th><th>Quiénes lo tocan</th></tr></thead>`,
+    `<tbody>${filas}</tbody>`,
+    `</table>`,
+    `</section>`
+  ].join("");
+}
+
+function renderClosingPage(
+  payload: SummaryPayload,
+  options: InstitutionalSummaryOptions,
+  page: number,
+  total: number
+): string {
   const actions = payload.lineasDeAccion
     .slice(0, 5)
     .map((action, index) => `<li><i>${index + 1}</i><p>${escapeHtml(clampText(action, 260))}</p></li>`)
@@ -271,7 +572,9 @@ function renderClosingPage(payload: SummaryPayload, options: InstitutionalSummar
     `<small>La IA orienta; el equipo municipal revisa, redacta y valida.</small>`,
     `</section>`,
     `</main>`,
-    renderFooter(4, total, options),
+    // El número de página venía fijo en 4, de cuando el documento tenía cuatro
+    // páginas siempre. Con paginación dinámica, la última página decía "4 de 9".
+    renderFooter(page, total, options),
     `</section>`
   ].join("");
 }
@@ -352,6 +655,42 @@ export const INSTITUTIONAL_SUMMARY_STYLES = `
   .summary-data-card strong { color: #126ff5; font-size: 14pt; line-height: 1; font-weight: 800; }
   .summary-data-card span { margin-top: 1mm; color: #6b7885; font-size: 7.4pt; line-height: 1.3; }
 
+  /* Lo registrado: sale del expediente, no lo redacta el modelo. */
+  .record-section { padding: 1mm 0 0; }
+  .record-section + .record-section { margin-top: 7mm; border-top: 0.35mm solid #e3e8ef; padding-top: 6mm; }
+  .record-section > .section-intro { max-width: 170mm; margin-bottom: 3.5mm; font-size: 8.6pt; line-height: 1.45; }
+
+  .presenter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+  .presenter-card { display: flex; flex-direction: column; border: 0.35mm solid #e3e8ef; border-left: 1.5mm solid #126ff5; border-radius: 2.6mm; padding: 3mm 3.4mm; background: #fbfcfe; }
+  .presenter-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 2mm; }
+  .presenter-card h3 { margin: 0; color: #10233d; font-size: 8.8pt; line-height: 1.2; font-weight: 800; }
+  .presenter-tag { flex: 0 0 auto; border-radius: 1.6mm; padding: 0.7mm 1.8mm; color: #126ff5; background: #e8f2ff; font-size: 6.2pt; font-weight: 800; white-space: nowrap; }
+  .presenter-tag-muted { color: #6b7885; background: #eef1f5; }
+  .presenter-card > small { display: block; margin-top: 1.2mm; color: #6b7885; font-size: 6.5pt; line-height: 1.3; }
+  .presenter-card > p { margin: 2mm 0 0; color: #33414f; font-size: 8.1pt; line-height: 1.42; }
+
+  .proposal-group + .proposal-group { margin-top: 4mm; }
+  .proposal-org { display: flex; align-items: baseline; justify-content: space-between; gap: 4mm; margin: 0 0 2.2mm; border-bottom: 0.35mm solid #dce7f3; padding-bottom: 1.4mm; color: #0d3fb0; font-size: 9.4pt; line-height: 1.2; font-weight: 800; }
+  .proposal-org small { flex: 0 1 auto; color: #9aa6b2; font-size: 6.4pt; font-weight: 600; text-align: right; }
+  .proposal-card { border: 0.35mm solid #e3e8ef; border-radius: 2.6mm; padding: 2.8mm 3.4mm; background: #ffffff; }
+  .proposal-card + .proposal-card { margin-top: 2.4mm; }
+  .proposal-card h4 { margin: 0; color: #10233d; font-size: 8.8pt; line-height: 1.25; font-weight: 800; }
+  .proposal-card > p { margin: 1.6mm 0 0; color: #33414f; font-size: 8.3pt; line-height: 1.42; }
+  .proposal-card blockquote { margin: 2mm 0 0; border-left: 1.2mm solid #3cb4f0; border-radius: 0 2mm 2mm 0; padding: 1.8mm 2.6mm; color: #28469f; background: #eef7ff; font-size: 7.9pt; line-height: 1.38; font-style: italic; }
+  .proposal-card blockquote cite { display: block; margin-top: 1mm; color: #7f93b5; font-size: 6.2pt; font-style: normal; font-weight: 700; }
+  .article-chips { display: flex; flex-wrap: wrap; gap: 1.4mm; margin: 2mm 0 0; padding: 0; list-style: none; }
+  .article-chips li { border: 0.3mm solid #d8e6fa; border-radius: 1.6mm; padding: 0.8mm 2mm; color: #33414f; background: #f6faff; font-size: 6.6pt; line-height: 1.25; }
+  .article-chips b { color: #0d3fb0; font-weight: 800; }
+  .article-chips-empty { margin: 2mm 0 0; color: #6b7885; font-size: 6.9pt; line-height: 1.3; font-style: italic; }
+
+  .impact-table { width: 100%; border-collapse: collapse; }
+  .impact-table th { border-bottom: 0.5mm solid #126ff5; padding: 0 2.4mm 1.4mm; color: #2589ea; font-size: 6.4pt; font-weight: 800; letter-spacing: 0.9pt; text-align: left; text-transform: uppercase; }
+  .impact-table td { border-bottom: 0.35mm solid #e3e8ef; padding: 2.2mm 2.4mm; color: #33414f; font-size: 8.1pt; line-height: 1.35; vertical-align: top; }
+  .impact-table td small { display: block; margin-top: 0.8mm; color: #6b7885; font-size: 6.4pt; }
+  .impact-table tr:nth-child(even) td { background: #fbfcfe; }
+  .impact-number { width: 20mm; color: #0d3fb0; font-weight: 800; white-space: nowrap; }
+  .impact-count { width: 20mm; color: #126ff5; font-size: 11pt; font-weight: 800; text-align: center; }
+
   .closing-body { display: flex; flex-direction: column; }
   .section-intro { max-width: 165mm; margin: 0 0 4mm; color: #6b7885; font-size: 9.4pt; line-height: 1.5; }
   .action-list { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; margin: 0; padding: 0; list-style: none; }
@@ -390,25 +729,185 @@ export function renderInstitutionalSummary(
   mode: { print?: boolean } = {}
 ): string {
   /*
-   * Paginacion dinamica: portada + una pagina por seccion + cierre.
+   * Paginacion dinamica: portada + lo registrado + lo redactado + cierre.
    *
    * Antes era `const total = 4` con las secciones repartidas de dos en dos, asi
-   * que el documento no podia crecer aunque el material diera para mas. Con
-   * cuatro secciones el resultado son las mismas 6 paginas de siempre menos dos;
-   * con diez, doce paginas.
+   * que el documento no podia crecer aunque el material diera para mas.
    *
    * El encabezado de cada pagina lleva el titulo de SU seccion y no un rotulo
    * fijo ("Hallazgos principales" / "Implicancias para la gestion"): con un
    * numero variable de secciones, dos rotulos no alcanzan, y el titulo real le
    * dice al lector donde esta parado.
    */
-  const total = payload.secciones.length + 2;
+  const material = payload.material;
+
+  /**
+   * Cada parte del documento: cómo se anuncia en la portada y cómo se pagina.
+   *
+   * `cuerpos` lleva el alto estimado de cada página además de su HTML, para poder
+   * juntar dos partes cortas en una sola hoja más abajo.
+   */
+  type DocumentPart = { titulo: string; detalle: string; registrado: boolean; cuerpos: Array<{ html: string; alto: number }> };
+  const partes: DocumentPart[] = [];
+  const sumar = <T,>(items: T[], alto: (item: T) => number) => items.reduce((total, item) => total + alto(item), 0);
+
+  if (material?.expositores.length) {
+    const numero = partes.length + 1;
+    const organizaciones = material.expositores.length;
+    const conPropuestas = material.expositores.filter((presenter) => presenter.propuestas > 0).length;
+    const intro =
+      "Organizaciones que presentaron material en esta audiencia. Sale del expediente: cada ficha resume el documento que la organización aportó, tal como fue registrado.";
+    /*
+     * Las tarjetas van a dos columnas, así que para paginar cada una cuesta
+     * media fila. Para el alto de la página, en cambio, hay que contar FILAS: con
+     * tres organizaciones la segunda fila queda a medias y ocupa igual, y
+     * estimarla como media fila hacía que la página se creyera 25 mm más corta de
+     * lo que era (así se pasaba de largo la 2ª audiencia).
+     */
+    const FILA_MM = 48;
+    const alto = () => FILA_MM / 2;
+    const paginas = paginate(material.expositores, CUERPO_MM - ENCABEZADO_MM, alto);
+    partes.push({
+      titulo: "Quiénes expusieron",
+      detalle: `${organizaciones} ${organizaciones === 1 ? "organización presentó" : "organizaciones presentaron"} material${
+        conPropuestas ? `; ${conPropuestas} con propuestas normativas concretas` : ""
+      }.`,
+      registrado: true,
+      cuerpos: paginas.map((chunk, indice) => ({
+        html: renderPresentersBody(chunk, numero, indice > 0, intro),
+        alto: ENCABEZADO_MM + Math.ceil(chunk.length / 2) * FILA_MM
+      }))
+    });
+  }
+
+  if (material?.propuestas.length) {
+    const numero = partes.length + 1;
+    const intro =
+      "Cada propuesta con la cita textual del documento que la respalda y los artículos del Código que alcanza. Las citas fueron verificadas contra el texto original.";
+    /*
+     * El costo de una propuesta depende de lo que traiga: el resumen, la cita y
+     * los artículos son opcionales y cada uno suma. Un encabezado de organización
+     * suma aparte, y por eso se pagina sobre una lista con marcadores de grupo:
+     * si no, un grupo nuevo al pie de página empujaba su primera propuesta afuera.
+     */
+    const conGrupo = material.propuestas.map((proposal, indice) => ({
+      proposal,
+      abreGrupo: indice === 0 || material.propuestas[indice - 1].organizacion !== proposal.organizacion
+    }));
+    // Los 11 mm de descuento cubren el encabezado extra que aparece cuando un
+    // grupo se parte entre dos páginas: la segunda repite el nombre de la
+    // organización, y eso no se sabe hasta después de paginar.
+    const alto = ({ proposal, abreGrupo }: (typeof conGrupo)[number]) => {
+      const titulo = Math.ceil(Math.min(proposal.titulo.length, 130) / 95) * 4.6;
+      const resumen = Math.ceil(Math.min(proposal.resumen.length, 400) / 105) * 3.4;
+      const cita = proposal.cita ? Math.ceil(Math.min(proposal.cita.length, 260) / 105) * 3.2 + 7 : 0;
+      // Las etiquetas de artículos se acomodan de a dos por línea.
+      const articulos = proposal.articulos.length ? Math.ceil(Math.min(proposal.articulos.length, 4) / 2) * 4.6 + 2.4 : 5;
+      return (abreGrupo ? 11 : 0) + 8 + titulo + resumen + cita + articulos;
+    };
+    const paginas = paginate(conGrupo, CUERPO_MM - ENCABEZADO_MM - 11, alto);
+    partes.push({
+      titulo: "Qué propuso cada una",
+      detalle: `${material.propuestas.length} ${
+        material.propuestas.length === 1 ? "propuesta concreta" : "propuestas concretas"
+      } con su respaldo textual y los artículos que tocan.`,
+      registrado: true,
+      cuerpos: paginas.map((chunk, indice) => ({
+        html: renderProposalsBody(
+          chunk.map((item) => item.proposal),
+          numero,
+          indice > 0,
+          intro
+        ),
+        alto: ENCABEZADO_MM + sumar(chunk, alto)
+      }))
+    });
+  }
+
+  if (material?.impacto.length) {
+    const numero = partes.length + 1;
+    const intro =
+      "Vista agregada: qué artículos del Código de Planeamiento Urbano vigente concentran las propuestas presentadas, ordenados por cuántas los alcanzan.";
+    // La fila la manda su celda más alta: la de organizaciones (que apila los
+    // nombres y debajo las relaciones) o la de qué regula el artículo.
+    const alto = (articulo: SummaryArticleImpact) => {
+      const organizaciones = [...new Set(articulo.propuestas.map((item) => item.organizacion))].join(" · ");
+      const relaciones = [...new Set(articulo.propuestas.map((item) => item.relacion))].join(" · ");
+      const quienes =
+        Math.ceil(Math.min(organizaciones.length, 150) / 55) * 3.9 + Math.ceil(Math.min(relaciones.length, 90) / 62) * 3 + 0.8;
+      const regula = Math.ceil(Math.min(Math.max(articulo.titulo.length, 20), 110) / 26) * 3.9;
+      return 4.6 + Math.max(quienes, regula);
+    };
+    const paginas = paginate(material.impacto, CUERPO_MM - ENCABEZADO_MM - 8, alto);
+    partes.push({
+      titulo: "Qué artículos del Código se tocan",
+      detalle: `${material.impacto.length} ${
+        material.impacto.length === 1 ? "artículo alcanzado" : "artículos alcanzados"
+      } por lo presentado; el más demandado reúne ${material.impacto[0].propuestas.length}.`,
+      registrado: true,
+      cuerpos: paginas.map((chunk, indice) => ({
+        html: renderImpactBody(chunk, numero, indice > 0, intro),
+        alto: ENCABEZADO_MM + 8 + sumar(chunk, alto)
+      }))
+    });
+  }
+
+  // Lo redactado por el modelo: una sección por página, como hasta ahora. Con el
+  // presupuesto actual (~2.600 caracteres) dos ya no entran en los 235 mm útiles.
+  for (const section of payload.secciones) {
+    partes.push({
+      titulo: section.titulo,
+      detalle: section.parrafos[0] ? firstSentence(section.parrafos[0]) : "Contenido verificado en el material de la audiencia.",
+      registrado: false,
+      cuerpos: [{ html: renderSummarySection(section, partes.length + 1), alto: CUERPO_MM }]
+    });
+  }
+
+  /*
+   * Dos secciones registradas comparten hoja cuando entran juntas.
+   *
+   * Una audiencia con dos organizaciones y tres artículos tocados producía tres
+   * páginas al 30%, y un documento institucional con tres hojas casi vacías se
+   * lee como relleno. Sólo se juntan secciones REGISTRADAS (las redactadas están
+   * dimensionadas para ocupar una hoja entera), sólo de partes distintas --dos
+   * páginas de la misma parte se separaron porque no entraban-- y como máximo dos
+   * por hoja, para que el lector siga encontrando cada sección por su título.
+   */
+  type BodyPage = { titulos: string[]; html: string; alto: number; parte: number; registrado: boolean };
+  const cuerpos: BodyPage[] = [];
+  for (const [indiceParte, parte] of partes.entries()) {
+    for (const cuerpo of parte.cuerpos) {
+      const ultima = cuerpos[cuerpos.length - 1];
+      const juntar =
+        parte.registrado &&
+        ultima?.registrado &&
+        ultima.parte !== indiceParte &&
+        ultima.titulos.length < 2 &&
+        ultima.alto + cuerpo.alto + SEPARADOR_MM <= CUERPO_MM;
+      if (juntar) {
+        ultima.titulos.push(parte.titulo);
+        ultima.html += cuerpo.html;
+        ultima.alto += cuerpo.alto + SEPARADOR_MM;
+        ultima.parte = indiceParte;
+        continue;
+      }
+      cuerpos.push({
+        titulos: [parte.titulo],
+        html: cuerpo.html,
+        alto: cuerpo.alto,
+        parte: indiceParte,
+        registrado: parte.registrado
+      });
+    }
+  }
+
+  const total = cuerpos.length + 2;
   const pages = [
-    renderPageOne(payload, options, total),
-    ...payload.secciones.map((section, indice) =>
-      renderSectionsPage(payload, options, indice + 2, section.titulo, indice, total)
+    renderPageOne(payload, options, partes, total),
+    ...cuerpos.map((entrada, indice) =>
+      renderBodyPage(entrada.titulos.join(" · "), entrada.html, options, indice + 2, total)
     ),
-    renderClosingPage(payload, options, total)
+    renderClosingPage(payload, options, total, total)
   ].join("");
 
   return [

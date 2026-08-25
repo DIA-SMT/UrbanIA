@@ -1,6 +1,10 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { renderInstitutionalSummary, type SummaryPayload } from "../lib/hearings/summary-document";
+import {
+  renderInstitutionalSummary,
+  type HearingSummaryMaterial,
+  type SummaryPayload
+} from "../lib/hearings/summary-document";
 import { renderHtmlToPdf } from "../lib/pdf/render-pdf";
 
 const projectRoot = process.cwd();
@@ -9,14 +13,79 @@ function pngDataUri(relativePath: string): string {
   return `data:image/png;base64,${readFileSync(path.join(projectRoot, relativePath)).toString("base64")}`;
 }
 
+/*
+ * Material de muestra en el PEOR caso realista: seis organizaciones, propuestas
+ * de largo desparejo y varias tocando el mismo artículo. Sirve para comprobar la
+ * paginación de las páginas registradas, que es donde el documento puede
+ * desbordar (las páginas tienen alto fijo y el exportador aborta si algo se sale).
+ */
+const ORGANIZACIONES = [
+  "Colegio de Arquitectos de Tucumán",
+  "Consejo Profesional de Ingeniería",
+  "Facultad de Arquitectura y Urbanismo (UNT)",
+  "Asociación de Ciclistas Urbanos",
+  "Cámara de la Construcción",
+  "Vecinos Autoconvocados de Barrio Sur"
+];
+
+const RELACIONES = ["Modifica", "Se relaciona con", "Posible conflicto con", "Reemplaza"];
+
+const material: HearingSummaryMaterial = {
+  expositores: ORGANIZACIONES.map((organizacion, indice) => ({
+    organizacion,
+    documento: `Presentacion ${indice + 1} - muestra.pdf`,
+    // Todos los campos al tope de su clamp: si el peor caso entra, entra
+    // cualquiera. El exportador aborta si algo se sale de la caja imprimible,
+    // así que esta muestra es la prueba de la paginación.
+    queTrajo:
+      "Documento de muestra que plantea criterios de altura, retiros y ocupación del suelo para los corredores centrales de la ciudad. Incluye un diagnóstico de la situación actual, una propuesta de indicadores y un anexo con la comparación entre el régimen vigente y el propuesto. Todos los valores son ficticios y sirven únicamente para el control visual del documento antes de usarlo con material real.",
+    tipo: indice % 2 === 0 ? "Propuesta normativa" : "Presentación institucional",
+    propuestas: indice % 2 === 0 ? [3, 5, 4][Math.floor(indice / 2)] : 0
+  })),
+  propuestas: [],
+  impacto: []
+};
+
+for (const presenter of material.expositores) {
+  for (let indice = 0; indice < presenter.propuestas; indice += 1) {
+    const numero = String(5 + ((indice * 7 + presenter.organizacion.length) % 9) * 3);
+    material.propuestas.push({
+      organizacion: presenter.organizacion,
+      documento: presenter.documento,
+      titulo: `Propuesta de muestra ${indice + 1} sobre indicadores urbanísticos, alturas máximas y retiros del corredor central`,
+      resumen:
+        "Texto ficticio que describe el alcance de la propuesta, el problema que busca resolver y el instrumento normativo sugerido. Se incluye a propósito con una extensión cercana al máximo permitido para verificar que la tarjeta no desborde la página ni recorte el contenido de manera silenciosa, ni empuje al resto del bloque fuera del área imprimible del documento.",
+      cita: "Cita textual de muestra tomada del documento presentado, que respalda la propuesta y se verifica contra el original antes de publicarse; se extiende hasta el máximo previsto para comprobar el alto del recuadro.",
+      paginas: [indice + 2, indice + 3],
+      articulos: [
+        { numero, titulo: "Distritos residenciales y sus indicadores", relacion: RELACIONES[indice % RELACIONES.length], porQue: "" },
+        { numero: String(Number(numero) + 13), titulo: "Régimen de excepciones", relacion: "Se relaciona con", porQue: "" },
+        { numero: String(Number(numero) + 21), titulo: "Espacio público y arbolado", relacion: "Modifica", porQue: "" },
+        { numero: String(Number(numero) + 4), titulo: "Estacionamiento y carga", relacion: "Posible conflicto con", porQue: "" }
+      ]
+    });
+  }
+}
+
+for (const proposal of material.propuestas) {
+  for (const articulo of proposal.articulos) {
+    const actual = material.impacto.find((item) => item.numero === articulo.numero);
+    const entrada = { organizacion: proposal.organizacion, titulo: proposal.titulo, relacion: articulo.relacion };
+    if (actual) actual.propuestas.push(entrada);
+    else material.impacto.push({ numero: articulo.numero, titulo: articulo.titulo, propuestas: [entrada] });
+  }
+}
+material.impacto.sort((a, b) => b.propuestas.length - a.propuestas.length || Number(a.numero) - Number(b.numero));
+
 const payload: SummaryPayload = {
   titulo: "Movilidad segura y accesibilidad en corredores urbanos prioritarios",
   bajada:
     "Síntesis de los aportes presentados para ordenar intervenciones, mejorar cruces peatonales y facilitar el acceso al transporte público.",
   deQueSeTrata:
     "Esta audiencia de muestra permite controlar la presentación del resumen ejecutivo antes de usarlo con material real. El contenido simula un debate sobre movilidad, accesibilidad y seguridad vial. Las cifras, nombres y medidas incluidas son exclusivamente de ejemplo. No deben interpretarse como decisiones ni datos oficiales.",
-  expositor: "Equipo técnico de muestra",
+  expositores: ORGANIZACIONES,
   destinatario: "Gabinete y áreas municipales",
+  material,
   estructura: "Diagnóstico | Experiencia ciudadana | Alternativas | Criterios de seguimiento",
   secciones: [
     {

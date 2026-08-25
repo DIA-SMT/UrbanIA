@@ -711,6 +711,8 @@ model Meeting {
   publicSummaryPath  String?
   publicSummaryAt    DateTime?
   /// Presente solo si kind=PUBLIC_HEARING.
+  /// Documentos presentados en esta audiencia que aportan a la reforma.
+  reformDocuments    ReformDocument[]
   hearingRecord      HearingRecord?
 
   @@index([reformId])
@@ -1181,6 +1183,12 @@ model NormativeReform {
 model ReformDocument {
   id           String   @id @default(cuid())
   reformId     String
+  /// Audiencia en la que se presentó este documento. Es el dueño real: un PDF
+  /// llega a la reforma PORQUE alguien lo expuso en una audiencia, así que el
+  /// expediente de esa audiencia es su lugar. Nullable por los que se cargaron
+  /// antes de esta regla, que hay que asignar a mano.
+  meetingId    String?
+  meeting      Meeting? @relation(fields: [meetingId], references: [id], onDelete: SetNull)
   name         String
   type         String
   url          String?
@@ -1193,6 +1201,15 @@ model ReformDocument {
   /// PROPUESTA_NORMATIVA | DIAGNOSTICO_TECNICO | PRESENTACION_INSTITUCIONAL |
   /// PONENCIA_ACADEMICA | OTRO
   documentKind String?
+  /// Quien presento el documento: el colegio, consejo, universidad u ONG. Es
+  /// el dato de "quien expuso" del resumen de la audiencia; lo detecta el
+  /// analisis y hasta ahora se descartaba al confirmar.
+  organization String?
+  /// Cruce con el Codigo que devolvio el analisis: por cada propuesta, contra
+  /// que articulos impacta y con que relacion. Se guarda TODO el cruce (no solo
+  /// el de las propuestas aceptadas) porque tambien vale saber que toca un
+  /// documento cuyas propuestas todavia no se fabricaron.
+  crossReferences Json?
   /// Hash del archivo, para avisar que ese PDF ya se habia subido. Con 15
   /// archivos cargados de a uno, duplicar es facil.
   sha256       String?
@@ -1201,6 +1218,7 @@ model ReformDocument {
   reform       NormativeReform @relation(fields: [reformId], references: [id], onDelete: Cascade)
 
   @@index([reformId])
+  @@index([meetingId])
   @@index([sha256])
 }
 

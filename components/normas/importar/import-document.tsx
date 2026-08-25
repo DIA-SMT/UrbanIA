@@ -19,6 +19,18 @@ const KIND_OPTIONS = [
 
 type Confidence = "alta" | "media" | "baja";
 
+/** Como se lee cada relacion del cruce (ver CROSS_RELATIONSHIP_LABELS). */
+const CROSS_LABELS: Record<string, string> = {
+  MODIFIES: "Modifica",
+  REPEALS: "Deroga",
+  REPLACES: "Reemplaza",
+  REFERENCES: "Se relaciona con",
+  POTENTIAL_CONFLICT: "Posible conflicto con"
+};
+
+/** Un articulo del Codigo que la propuesta toca, con la relacion y el por que. */
+type CrossReference = { number: string; relationship: string; why: string };
+
 type Proposal = {
   title: string;
   summary: string;
@@ -26,6 +38,8 @@ type Proposal = {
   sourcePages: number[];
   evidenceQuote: string;
   confidence: Confidence;
+  /** Cruce con el Codigo. Vacio = la propuesta agrega algo que no esta regulado. */
+  articles?: CrossReference[];
 };
 
 type Analysis = {
@@ -253,8 +267,16 @@ export function ImportDocument({
             summary: item.summary,
             areas: item.areas,
             sourcePages: item.sourcePages,
-            evidenceQuote: item.evidenceQuote
-          }))
+            evidenceQuote: item.evidenceQuote,
+            // El cruce viaja con la propuesta: el server lo ancla en
+            // NormativeLink contra el articulo que corresponde.
+            articles: item.articles ?? []
+          })),
+          // Y el cruce completo, incluidas las propuestas no aceptadas: que
+          // articulos toca el documento vale igual.
+          crossReferences: items
+            .filter((item) => (item.articles ?? []).length > 0)
+            .map((item) => ({ proposalTitle: item.title, articles: item.articles ?? [] }))
         })
       });
       const payload = await response.json().catch(() => null);
@@ -536,6 +558,33 @@ export function ImportDocument({
                         </p>
                         <p className="mt-1 text-[10px] text-slate-600">
                           Verificada: aparece textualmente en el documento.
+                        </p>
+                      </div>
+
+                      {/* El cruce con el Codigo. Vacio NO es una falla: quiere
+                          decir que la propuesta agrega algo que el Codigo no
+                          regula hoy, y decirlo es tan util como el cruce. */}
+                      <div>
+                        <Label>Qué toca del Código</Label>
+                        {(item.articles ?? []).length ? (
+                          <ul className="mt-1.5 space-y-1.5">
+                            {(item.articles ?? []).map((article) => (
+                              <li key={`${article.number}-${article.relationship}`} className="rounded-md border border-white/8 bg-white/[0.03] px-2.5 py-2">
+                                <p className="text-[11px] font-black text-slate-200">
+                                  <span className="text-sky-200">{CROSS_LABELS[article.relationship] ?? article.relationship}</span>{" "}
+                                  el art. {article.number}
+                                </p>
+                                {article.why ? <p className="mt-0.5 text-[11px] leading-5 text-slate-400">{article.why}</p> : null}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="mt-1.5 text-[11px] leading-5 text-slate-500">
+                            No toca ningún artículo del Código: agrega algo que hoy no está regulado.
+                          </p>
+                        )}
+                        <p className="mt-1 text-[10px] text-slate-600">
+                          Los artículos se eligen del Código cargado; los que no existen se descartan.
                         </p>
                       </div>
                     </div>

@@ -480,6 +480,65 @@ html.urban-light .text-rose-200 {
   color: #be123c !important;
 }
 
+/* Las mismas correcciones, para las clases CON MODIFICADOR DE OPACIDAD.
+ *
+ * Sin esto quedaban afuera y era un agujero silencioso: `text-amber-100` es una
+ * clase y `text-amber-100/70` es OTRA, asi que los selectores de arriba no la
+ * alcanzan. En tema claro el texto seguia saliendo casi blanco sobre fondo
+ * claro. Se noto en el bloque "Fuera del alcance del CPU" de los temas mas
+ * pedidos, donde el titulo se leia (text-amber-100) y la explicacion no
+ * (text-amber-100/70) -- pero afectaba a 17 lugares repartidos en 11 archivos.
+ *
+ * Se usa [class*="..."] en vez de listar cada opacidad para no tener que
+ * perseguir /60, /70, /80, /85, /90 y las que vengan: la barra final del patron
+ * es lo que asegura que solo matchee la variante con modificador.
+ *
+ * Ojo: aca NO entran los tonos oscuros con opacidad (text-sky-800/80 y
+ * text-sky-900/80), que ya estan pensados para fondo claro y aclararlos seria
+ * empeorarlos. */
+html.urban-light [class*="text-white/"],
+html.urban-light [class*="text-slate-100/"],
+html.urban-light [class*="text-slate-200/"] {
+  color: #07111f !important;
+}
+
+html.urban-light [class*="text-slate-300/"] {
+  color: #1f334d !important;
+}
+
+html.urban-light [class*="text-slate-400/"],
+html.urban-light [class*="text-slate-500/"] {
+  color: #475569 !important;
+}
+
+html.urban-light [class*="text-sky-100/"],
+html.urban-light [class*="text-sky-200/"],
+html.urban-light [class*="text-sky-300/"] {
+  color: #0369a1 !important;
+}
+
+html.urban-light [class*="text-emerald-100/"],
+html.urban-light [class*="text-emerald-200/"],
+html.urban-light [class*="text-emerald-300/"] {
+  color: #047857 !important;
+}
+
+html.urban-light [class*="text-amber-100/"],
+html.urban-light [class*="text-amber-200/"],
+html.urban-light [class*="text-amber-300/"] {
+  color: #92400e !important;
+}
+
+html.urban-light [class*="text-violet-100/"],
+html.urban-light [class*="text-violet-200/"] {
+  color: #5b21b6 !important;
+}
+
+html.urban-light [class*="text-rose-100/"],
+html.urban-light [class*="text-rose-200/"] {
+  color: #be123c !important;
+}
+
 /* Apoyo y objecion en tema claro. El verde acento (#81fc87) y el rose (#ef5b85)
    estan pensados para fondo oscuro y sobre blanco quedan ilegibles; se bajan a
    una version con contraste suficiente, manteniendo el mismo significado. */

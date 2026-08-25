@@ -128,6 +128,107 @@ function asStringArray(value: Prisma.JsonValue | null): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
+/**
+ * Lee el cruce guardado en la columna Json, descartando lo que no tenga la forma
+ * esperada. Una columna Json no valida nada por si misma, y un analisis viejo o
+ * a medio guardar no puede romper el detalle de la audiencia.
+ */
+function parseCrossReferences(raw: unknown): HearingDocumentView["crossReferences"] {
+  if (!Array.isArray(raw)) return undefined;
+  const parsed = raw
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const item = entry as Record<string, unknown>;
+      const articles = Array.isArray(item.articles)
+        ? item.articles
+            .map((article) => {
+              if (!article || typeof article !== "object") return null;
+              const value = article as Record<string, unknown>;
+              const number = typeof value.number === "string" ? value.number : null;
+              const relationship = typeof value.relationship === "string" ? value.relationship : null;
+              if (!number || !relationship) return null;
+              return { number, relationship, why: typeof value.why === "string" ? value.why : "" };
+            })
+            .filter((article): article is { number: string; relationship: string; why: string } => Boolean(article))
+        : [];
+      if (!articles.length) return null;
+      return { proposalTitle: typeof item.proposalTitle === "string" ? item.proposalTitle : "", articles };
+    })
+    .filter((entry): entry is { proposalTitle: string; articles: Array<{ number: string; relationship: string; why: string }> } =>
+      Boolean(entry)
+    );
+  return parsed.length ? parsed : undefined;
+}
+
+/**
+ * Audiencias publicas a las que se puede mover un documento.
+ *
+ * Se incluyen las cerradas a proposito: el material se presento en audiencias
+ * que ya ocurrieron, y es ahi donde tiene que quedar archivado.
+ */
+export async function listHearingsForDocuments(): Promise<Array<{ id: string; title: string; occurredAt: string | null }>> {
+  const meetings = await prisma.meeting.findMany({
+    where: { kind: "PUBLIC_HEARING" },
+    select: { id: true, title: true, occurredAt: true },
+    orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+    take: 100
+  });
+  return meetings.map((meeting) => ({
+    id: meeting.id,
+    title: meeting.title,
+    occurredAt: meeting.occurredAt?.toISOString() ?? null
+  }));
+}
+
+/**
+ * El material tecnico presentado en una audiencia: los PDF que aportan a la
+ * reforma (ponencias, propuestas, diagnosticos).
+ *
+ * Salen de ReformDocument y no de HearingDocument porque son los que pasaron
+ * por el analisis de la Fabrica de Normas: traen el resumen, la clasificacion y
+ * --lo mas importante-- cuantas normas se fabricaron a partir de cada uno. Se
+ * muestran junto al expediente formal, en una sola lista.
+ */
+async function listHearingMaterial(meetingId: string): Promise<HearingDocumentView[]> {
+  const documents = await prisma.reformDocument.findMany({
+    where: { meetingId },
+    orderBy: { uploadedAt: "asc" }
+  });
+  if (!documents.length) return [];
+
+  // Las normas apuntan al mismo objeto del bucket que el documento, asi que el
+  // conteo va por storagePath (no hay FK entre norma y PDF).
+  const paths = documents.map((document) => document.storagePath).filter((path): path is string => Boolean(path));
+  const grouped = paths.length
+    ? await prisma.projectAttachment.groupBy({
+        by: ["storagePath"],
+        where: { storagePath: { in: paths } },
+        _count: { _all: true }
+      })
+    : [];
+  const countByPath = new Map(grouped.map((row) => [row.storagePath, row._count._all]));
+
+  return documents
+    .filter((document) => document.url)
+    .map((document) => ({
+      id: document.id,
+      fileName: document.name,
+      url: document.url as string,
+      storagePath: document.storagePath ?? "",
+      mimeType: document.type || null,
+      sizeBytes: document.sizeBytes,
+      uploadedAt: document.uploadedAt.toISOString(),
+      documentKind: document.documentKind,
+      summary: document.summary,
+      pageCount: document.pageCount,
+      normCount: document.storagePath ? (countByPath.get(document.storagePath) ?? 0) : 0,
+      origin: "material" as const,
+      // El cruce se guardo como Json: se valida la forma antes de exponerlo, que
+      // una columna Json puede tener cualquier cosa de analisis viejos.
+      crossReferences: parseCrossReferences(document.crossReferences)
+    }));
+}
+
 /** Documentos adjuntos guardados en metadata.documents (Supabase Storage). */
 function readDocuments(value: Prisma.JsonValue | undefined): HearingDocumentView[] {
   if (!Array.isArray(value)) return [];
@@ -272,7 +373,13 @@ export async function getHearing(id: string): Promise<HearingDetail | null> {
   // siembra con lo legacy (ver ensureHearingRecord), asi que no se pierde nada.
   const record = meeting.hearingRecord;
   const ficha = record ? fichaFromRecord(record) : toHearingFicha(metadata.ficha);
-  const documents = record ? documentsFromRecord(record.documents) : readDocuments(metadata.documents);
+  const expediente = record ? documentsFromRecord(record.documents) : readDocuments(metadata.documents);
+  // El material tecnico que se presento EN esta audiencia. Vive en
+  // ReformDocument porque paso por el analisis de la Fabrica (trae resumen,
+  // clasificacion y las normas que se fabricaron), y desde que el documento
+  // sabe en que audiencia se expuso, este es su lugar.
+  const material = await listHearingMaterial(meeting.id);
+  const documents = [...material, ...expediente];
   const recordConclusions = record ? conclusionsFromRecord(record) : null;
   const conclusions = recordConclusions ?? analysisView?.conclusions ?? null;
   const conclusionsByTeam = Boolean(recordConclusions) || (analysisView?.editedByHuman ?? false);

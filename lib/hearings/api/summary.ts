@@ -5,6 +5,7 @@ import { getHearing } from "@/lib/hearings/data";
 import { hasOpenRouterConfig } from "@/lib/ai/openrouter";
 import {
   downloadHearingDocument,
+  downloadNormDocument,
   hasSupabaseStorage,
   removeHearingDocument,
   uploadHearingDocument
@@ -13,6 +14,7 @@ import { extractPdfText, sanitizePdfText } from "@/lib/pdf/extract-text";
 import { PdfBrowserError, PdfOverflowError, renderHtmlToPdf } from "@/lib/pdf/render-pdf";
 import { generateSummary } from "@/lib/hearings/summary-generate";
 import { digestTranscript } from "@/lib/hearings/transcript-digest";
+import { formatSummaryMaterial, loadHearingSummaryMaterial } from "@/lib/hearings/summary-material";
 import { renderInstitutionalSummary, type SummaryPayload } from "@/lib/hearings/summary-document";
 import {
   getCitySmtWhiteLogoDataUri,
@@ -32,13 +34,24 @@ import {
 // 43% y el resumen salía pobre y general (comparado contra el resumen de la
 // Comisión FAU hecho a mano, 2026-08-03).
 const MAX_DOC_CHARS = 30_000;
-const MAX_DOCS = 2;
+/*
+ * Antes eran 2 documentos y un solo origen. Las audiencias reales traen 4 o 5
+ * presentaciones --una por organización expositora--, así que con 2 el resumen
+ * se escribía ignorando a la mayoría. El presupuesto total acota el costo: los
+ * primeros documentos pueden entrar enteros y los últimos entran recortados,
+ * que es mejor que dejarlos afuera sin decirlo.
+ */
+const MAX_DOCS = 6;
+const MAX_TOTAL_DOC_CHARS = 90_000;
 
 type DocumentExcerpt = {
   name: string;
   material: string;
   truncated: boolean;
 };
+
+/** De dónde sale el PDF: los presentados en la audiencia viven en otro bucket. */
+type DocumentSource = { name: string; storagePath: string; download: (path: string) => Promise<Uint8Array> };
 
 function errorResponse(title: string, detail: string, status: number): NextResponse {
   return NextResponse.json(
@@ -79,42 +92,79 @@ function encodeContentDispositionFileName(value: string): string {
   return encodeURIComponent(value).replace(/['()*]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`);
 }
 
-/** Texto de los documentos PDF/TXT aportados, recortado, para darle contexto al redactor. */
+/**
+ * Texto de los documentos aportados, para darle contexto al redactor.
+ *
+ * Sale de DOS lugares. Las presentaciones de las organizaciones expositoras se
+ * cargan a la audiencia desde la Fábrica y viven en el bucket de normas
+ * (`ReformDocument`); los archivos que se suben directamente al expediente de la
+ * audiencia viven en el de audiencias (`HearingDocument`).
+ *
+ * Antes se leía sólo el segundo. Después de mover los PDFs de la reforma a su
+ * audiencia, ese origen quedó prácticamente vacío y el resumen se escribía sin
+ * abrir ninguna de las presentaciones: sólo con la transcripción.
+ */
 async function documentExcerpts(meetingId: string): Promise<DocumentExcerpt[]> {
-  const documents = await prisma.hearingDocument.findMany({
-    where: { hearingRecord: { meetingId }, storagePath: { not: null } },
-    orderBy: { id: "desc" },
-    select: { name: true, storagePath: true },
-    take: 20
-  });
+  const [reformDocuments, hearingDocuments] = await Promise.all([
+    prisma.reformDocument.findMany({
+      where: { meetingId, storagePath: { not: null } },
+      orderBy: { uploadedAt: "asc" },
+      select: { name: true, storagePath: true },
+      take: 20
+    }),
+    prisma.hearingDocument.findMany({
+      where: { hearingRecord: { meetingId }, storagePath: { not: null } },
+      orderBy: { id: "desc" },
+      select: { name: true, storagePath: true },
+      take: 20
+    })
+  ]);
+
+  const sources: DocumentSource[] = [
+    ...reformDocuments.map((document) => ({
+      name: document.name,
+      storagePath: document.storagePath as string,
+      download: downloadNormDocument
+    })),
+    ...hearingDocuments.map((document) => ({
+      name: document.name,
+      storagePath: document.storagePath as string,
+      download: downloadHearingDocument
+    }))
+  ];
 
   const excerpts: DocumentExcerpt[] = [];
-  for (const document of documents) {
-    if (excerpts.length >= MAX_DOCS || !document.storagePath) continue;
-    const extension = document.name.slice(document.name.lastIndexOf(".")).toLowerCase();
+  let budget = MAX_TOTAL_DOC_CHARS;
+  for (const source of sources) {
+    if (excerpts.length >= MAX_DOCS || budget <= 0) break;
+    const extension = source.name.slice(source.name.lastIndexOf(".")).toLowerCase();
     if (extension !== ".pdf" && extension !== ".txt") continue;
+    const cap = Math.min(MAX_DOC_CHARS, budget);
     try {
-      const bytes = await downloadHearingDocument(document.storagePath);
+      const bytes = await source.download(source.storagePath);
       let text = "";
       let truncated = false;
       if (extension === ".pdf") {
-        const extraction = await extractPdfText(bytes, { maxPages: 60, maxChars: MAX_DOC_CHARS });
+        const extraction = await extractPdfText(bytes, { maxPages: 60, maxChars: cap });
         text = sanitizePdfText(extraction.text);
         truncated = extraction.truncated || extraction.readPages < extraction.pages;
       } else {
         const fullText = sanitizePdfText(new TextDecoder("utf-8").decode(bytes));
-        text = fullText.slice(0, MAX_DOC_CHARS);
+        text = fullText.slice(0, cap);
         truncated = fullText.length > text.length;
       }
       if (text.trim().length >= 200) {
+        budget -= text.length;
         excerpts.push({
-          name: document.name,
-          material: `DOCUMENTO APORTADO "${document.name}"${truncated ? " (EXTRACTO PARCIAL)" : ""}:\n${text}`,
+          name: source.name,
+          material: `DOCUMENTO PRESENTADO "${source.name}"${truncated ? " (EXTRACTO PARCIAL)" : ""}:\n${text}`,
           truncated
         });
       }
     } catch (error) {
-      console.warn(`Resumen: no se pudo leer "${document.name}".`, error instanceof Error ? error.message : error);
+      // Un PDF escaneado o un archivo que ya no está en el bucket no puede
+      // frenar el resumen: se sigue con el resto y el pie declara qué se leyó.
+      console.warn(`Resumen: no se pudo leer "${source.name}".`, error instanceof Error ? error.message : error);
     }
   }
   return excerpts;
@@ -153,9 +203,16 @@ async function buildSummaryPdf(id: string): Promise<BuiltSummary> {
   const digesto = await digestTranscript(hearing.transcriptSegments);
   const transcript = digesto.material;
 
-  const excerpts = await documentExcerpts(id);
+  const [excerpts, registro] = await Promise.all([documentExcerpts(id), loadHearingSummaryMaterial(id)]);
+  const registroTexto = formatSummaryMaterial(registro);
 
-  if (transcript.trim().length < 400 && excerpts.length === 0) {
+  /*
+   * Con documentos analizados alcanza para redactar, aunque no haya
+   * transcripción: quiénes expusieron, qué propusieron y qué artículos tocan ya
+   * son un documento útil. Tres de las audiencias cargadas no tienen audio
+   * transcripto y quedaban sin resumen por esta puerta.
+   */
+  if (transcript.trim().length < 400 && excerpts.length === 0 && !registro.propuestas.length) {
     return {
       ok: false,
       response: errorResponse(
@@ -182,6 +239,9 @@ async function buildSummaryPdf(id: string): Promise<BuiltSummary> {
       : null,
     hearing.analysis?.summary ? `ANÁLISIS PREVIO DEL EQUIPO:\n${hearing.analysis.summary}` : null,
     hearing.analysis?.topics.length ? `TEMAS DETECTADOS: ${hearing.analysis.topics.join("; ")}` : null,
+    // Lo ya registrado va PRIMERO y con su advertencia: el redactor tiene que
+    // saber qué páginas del documento ya existen antes de decidir qué escribir.
+    registroTexto || null,
     // Sin etiqueta propia: el digesto ya trae su encabezado, que dice si viaja
     // completa o resumida en tramos. Ponerle "(puede estar recortada)" arriba,
     // como antes, le avisaba al redactor de una limitación que ya no existe y lo
@@ -196,7 +256,16 @@ async function buildSummaryPdf(id: string): Promise<BuiltSummary> {
   try {
     // Dos pasadas con el modelo fuerte: esqueleto + secciones en paralelo. Un
     // solo prompt producía secciones de un párrafo con relleno (2026-08-03).
-    payload = await generateSummary(material);
+    const redactado = await generateSummary(material, { registrado: Boolean(registroTexto) });
+    payload = {
+      ...redactado,
+      // La lista verificada gana sobre la que dedujo el modelo. La suya sólo se
+      // usa cuando la audiencia no tiene documentos cargados.
+      expositores: registro.expositores.length
+        ? registro.expositores.map((presenter) => presenter.organizacion)
+        : redactado.expositores,
+      ...(registro.expositores.length ? { material: registro } : {})
+    };
   } catch (error) {
     console.error("No se pudo generar el resumen de la audiencia", error);
     return { ok: false, response: errorResponse("No se pudo generar el resumen", generationErrorDetail(error), 502) };
@@ -220,6 +289,9 @@ async function buildSummaryPdf(id: string): Promise<BuiltSummary> {
       ? `${excerpts.length} ${excerpts.length === 1 ? "documento" : "documentos"}: ${excerpts
           .map((excerpt) => `${excerpt.name}${excerpt.truncated ? " (extracto)" : ""}`)
           .join(", ")}`
+      : null,
+    registro.propuestas.length
+      ? `${registro.propuestas.length} propuestas registradas de ${registro.expositores.length} organizaciones`
       : null
   ]
     .filter(Boolean)

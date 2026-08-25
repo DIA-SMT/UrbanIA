@@ -541,6 +541,9 @@ export async function listReforms(filters: ReformFilters = {}): Promise<ReformLi
 export async function listReformDocuments(reformId: string): Promise<ReformDocumentView[]> {
   const documents = await prisma.reformDocument.findMany({
     where: { reformId },
+    // La audiencia donde se presento: es lo que convierte al PDF en parte de un
+    // expediente y no en un archivo suelto colgado de la reforma.
+    include: { meeting: { select: { id: true, title: true, occurredAt: true } } },
     orderBy: { uploadedAt: "desc" },
     take: 200
   });
@@ -567,7 +570,30 @@ export async function listReformDocuments(reformId: string): Promise<ReformDocum
     summary: document.summary,
     documentKind: document.documentKind,
     uploadedAt: document.uploadedAt.toISOString(),
-    normCount: document.storagePath ? (countByPath.get(document.storagePath) ?? 0) : 0
+    normCount: document.storagePath ? (countByPath.get(document.storagePath) ?? 0) : 0,
+    meetingId: document.meetingId,
+    meetingTitle: document.meeting?.title ?? null
+  }));
+}
+
+/**
+ * Audiencias a las que se le puede asignar un documento de ESTA reforma: las que
+ * tratan la reforma, mas las que no tienen reforma asignada.
+ *
+ * Se incluyen las cerradas a proposito: el material se presento en audiencias que
+ * ya ocurrieron, y es justamente ahi donde hay que archivarlo.
+ */
+export async function listMeetingsForDocuments(reformId: string): Promise<Array<{ id: string; title: string; occurredAt: string | null }>> {
+  const meetings = await prisma.meeting.findMany({
+    where: { kind: "PUBLIC_HEARING", OR: [{ reformId }, { reformId: null }] },
+    select: { id: true, title: true, occurredAt: true },
+    orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+    take: 100
+  });
+  return meetings.map((meeting) => ({
+    id: meeting.id,
+    title: meeting.title,
+    occurredAt: meeting.occurredAt?.toISOString() ?? null
   }));
 }
 
