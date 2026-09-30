@@ -3,6 +3,7 @@ import { UserRole, UserStatus } from "@prisma/client";
 import { getSettingsSession } from "@/lib/settings/guard";
 import { handleUserAction } from "@/lib/settings/api/user-actions";
 import { handleRolePermissions } from "@/lib/settings/api/role-permissions";
+import { handleKeepalive, isCronRequest } from "@/lib/settings/api/keepalive";
 import { listCatalog, listUsers } from "@/lib/settings/users";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ export const dynamic = "force-dynamic";
  * GET  ?action=catalog                                    → áreas y dependencias
  * PATCH ?action=user&id=<userId>                          → mutaciones (rol/estado/perfil)
  * PATCH ?action=role-permissions                          → matriz rol/permiso
+ * GET  ?action=keepalive                                  → latido de Supabase (cron, con CRON_SECRET)
  *
  * No hay alta de usuarios: las cuentas nacen en el primer ingreso con Cidituc.
  */
@@ -28,13 +30,26 @@ function parseEnum<T extends Record<string, string>>(value: string | null, optio
 }
 
 export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const action = searchParams.get("action") ?? "users";
+
+  // El latido entra ANTES del guard de sesión: lo llaman el cron de Vercel y
+  // GitHub Actions, que no tienen cuenta. Los autentica el CRON_SECRET. Se
+  // reconoce también por el header solo, por si el query del cron no llegara.
+  if (action === "keepalive" || isCronRequest(request)) {
+    if (!process.env.CRON_SECRET) {
+      return NextResponse.json({ error: "CRON_SECRET no está configurado." }, { status: 503 });
+    }
+    if (!isCronRequest(request)) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    }
+    return handleKeepalive();
+  }
+
   const session = await getSettingsSession("users.manage");
   if (!session) {
     return NextResponse.json({ error: "Necesitás permisos de administración de usuarios." }, { status: 403 });
   }
-
-  const { searchParams } = new URL(request.url);
-  const action = searchParams.get("action") ?? "users";
 
   try {
     if (action === "catalog") {
