@@ -1,16 +1,24 @@
 name: Keep-alive Supabase
 
-# Supabase free pausa el proyecto tras 7 dias sin actividad de base de datos.
-# Este workflow hace la peticion minima posible -un SELECT 1- para reiniciar ese
-# contador. No sirve para nada mas: es solo un latido.
+# Supabase free pausa el proyecto cuando no ve "actividad de usuario" en la base
+# durante una semana. Su doc dice que alcanzan "unas pocas requests por dia", pero
+# no publica el umbral ni que vias cuentan. El latido viejo (un SELECT 1 por el
+# pooler cada 3 dias) daba verde y la base se pauso igual entre el 22 y el
+# 25/09/2026. Por eso ahora:
+#   - corre 4 veces por dia en vez de 2 por semana;
+#   - le pega a la app (/api/settings?action=keepalive), que toca la base por
+#     Prisma Y por la Data API de Supabase (REST), consultando tablas reales;
+#   - mantiene la consulta directa por psql como segunda via, independiente de
+#     que la app este arriba.
+# El cron de Vercel (vercel.json) llama al mismo endpoint una vez por dia. Son
+# dos fuentes a proposito: GitHub apaga los schedule de un repo publico tras 60
+# dias sin commits, y Vercel Hobby no permite mas de una corrida diaria.
 
 on:
-  # Cada 3 dias a las 06:17 UTC (03:17 Argentina). El minuto 17 evita la
-  # congestion del tope de hora, cuando GitHub suele demorar o saltear los cron.
-  # Margen amplio: aun si se saltea una corrida, 6 dias sigue bajo el limite de 7.
-  # Para maxima seguridad se puede pasar a diario: "17 6 * * *".
+  # Cada 6 horas, en el minuto 23: lejos del tope de hora, cuando GitHub suele
+  # demorar o saltear los cron.
   schedule:
-    - cron: "17 6 */3 * *"
+    - cron: "23 */6 * * *"
   # Permite dispararlo a mano desde la pestana Actions para probarlo al instante.
   workflow_dispatch:
 
@@ -23,18 +31,46 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      # Dominio de produccion. Se puede pisar con la variable de repo
+      # KEEPALIVE_URL (Settings > Secrets and variables > Actions > Variables).
+      KEEPALIVE_URL: ${{ vars.KEEPALIVE_URL || 'https://urbania.smt.gob.ar' }}
     steps:
-      - name: SELECT 1 contra la base
+      - name: Latido por la app (Prisma + Data API)
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::Falta el secret CRON_SECRET en el repo (el mismo valor que en Vercel)."
+            exit 1
+          fi
+          # Sin -L a proposito: un redirect no es un latido, tiene que fallar.
+          status=$(curl -sS --max-time 60 -o respuesta.json -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$KEEPALIVE_URL/api/settings?action=keepalive") || status="sin respuesta"
+          # "|| true": si curl no llego a conectarse no hay archivo, y con el
+          # bash -e de Actions el cat cortaria el paso antes del diagnostico.
+          cat respuesta.json 2>/dev/null || true; echo
+          if [ "$status" != "200" ] || ! jq -e '.ok == true' respuesta.json > /dev/null; then
+            echo "::error::El latido por la app fallo (HTTP $status)."
+            exit 1
+          fi
+          echo "Latido OK por la app."
+
+      - name: Consulta directa por psql
+        # Corre aunque falle el paso anterior: si la app esta caida, la base
+        # igual recibe su consulta.
+        if: always()
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "Falta el secret DATABASE_URL en el repo (Settings > Secrets > Actions)."
+            echo "::error::Falta el secret DATABASE_URL en el repo (Settings > Secrets > Actions)."
             exit 1
           fi
           # psql (preinstalado en el runner) no acepta los parametros de Prisma
           # (connection_limit, pool_timeout): se corta la query string y se deja
           # solo sslmode=require, que la conexion a Supabase necesita.
           CLEAN_URL="${DATABASE_URL%%\?*}?sslmode=require"
-          psql "$CLEAN_URL" -tAc "select 1;"
-          echo "Latido OK: la base respondio."
+          psql "$CLEAN_URL" -tAc 'select count(*) from "UrbanLayer";'
+          echo "Latido OK por psql."
